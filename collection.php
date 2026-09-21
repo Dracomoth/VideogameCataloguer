@@ -310,23 +310,34 @@ require_once __DIR__ . '/layout_header.php';
       statusBadge = '<span class="tag-pill tag-status-playing">&#9654; Playing</span>';
     }
 
-    // Box Art Container (Fixed 3:4 aspect)
-    const boxArtSrc = game.BoxArt || '';
-    const boxArtHtml = boxArtSrc
-      ? `<div class="fixed-media-box">
-           <img src="${escapeHtml(boxArtSrc)}" alt="${escapeHtml(game.Game)} Box Art" onerror="this.parentElement.innerHTML='<div class=\\'picked-cover-placeholder\\'>&#127918;</div>'">
-           <span class="media-label-badge">Box Art</span>
-         </div>`
-      : `<div class="fixed-media-box"><div class="picked-cover-placeholder">&#127918;</div><span class="media-label-badge">No Box</span></div>`;
+    // Default Fallback Asset Paths
+    const FALLBACK_COVER  = 'images/support/no_cover.jpg';
+    const FALLBACK_SCREEN = 'images/support/no_screen.jpg';
 
+    // Box Art Container (Fixed 3:4 aspect)
+    const boxArtSrc = (game.BoxArt && game.BoxArt.trim() !== '') ? game.BoxArt : FALLBACK_COVER;
+    const boxArtHtml = `
+      <div class="fixed-media-box">
+        <img 
+          src="${escapeHtml(boxArtSrc)}" 
+          alt="${escapeHtml(game.Game)} Box Art" 
+          onerror="this.onerror=null; this.src='${FALLBACK_COVER}';"
+        >
+        <span class="media-label-badge">Box Art</span>
+      </div>
+    `;
     // Screenshot Container (Fixed 4:3 aspect)
-    const screenshotSrc = game.Image || '';
-    const screenshotHtml = screenshotSrc
-      ? `<div class="fixed-media-screenshot">
-           <img src="${escapeHtml(screenshotSrc)}" alt="${escapeHtml(game.Game)} Screenshot" onerror="this.parentElement.style.display='none'">
-           <span class="media-label-badge">Screenshot</span>
-         </div>`
-      : '';
+    const screenshotSrc = (game.Image && game.Image.trim() !== '') ? game.Image : FALLBACK_SCREEN;
+    const screenshotHtml = `
+      <div class="fixed-media-screenshot">
+        <img 
+          src="${escapeHtml(screenshotSrc)}" 
+          alt="${escapeHtml(game.Game)} Screenshot" 
+          onerror="this.onerror=null; this.src='${FALLBACK_SCREEN}';"
+        >
+        <span class="media-label-badge">Screenshot</span>
+      </div>
+    `;
 
     const genreText = [game.category_name, game.subcategory_name]
       .filter(Boolean)
