@@ -128,6 +128,12 @@ require_once __DIR__ . '/layout_header.php';
 
   let searchTimer = null;
   let currentTotalMatches = 0;
+  let cachedMatches = []; // Cached full list for the gallery
+  let activePickedId = null;
+  let isGalleryOpen = false;
+
+  const FALLBACK_COVER  = 'images/support/no_cover.jpg';
+  const FALLBACK_SCREEN = 'images/support/no_screen.jpg';
 
   document.addEventListener('DOMContentLoaded', () => {
     bootstrapSelector();
@@ -140,7 +146,6 @@ require_once __DIR__ . '/layout_header.php';
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Failed to initialize lookups.');
-
       lookups = json.data;
       populateDropdowns();
       handleSelectorChange();
@@ -243,22 +248,34 @@ require_once __DIR__ . '/layout_header.php';
       if (!json.success) throw new Error(json.error);
 
       currentTotalMatches = Number(json.data.count) || 0;
+      cachedMatches = json.data.games || [];
       document.getElementById('recordCountBadge').textContent = `${currentTotalMatches.toLocaleString()} Titles Found`;
 
-      // Enable/disable the Pick For Me action depending on matches
       const pickBtn = document.getElementById('pickForMeBtn');
       pickBtn.disabled = (currentTotalMatches === 0);
+
+      // If a game card was already showing, re-render the gallery underneath it
+      if (activePickedId) {
+        const stillInResults = cachedMatches.find(g => g.ID === activePickedId);
+        if (stillInResults) {
+          renderGallery(cachedMatches);
+        } else {
+          activePickedId = null;
+        }
+      }
     } catch (err) {
       document.getElementById('recordCountBadge').textContent = 'Query Failed';
       console.error(err);
     }
   }
 
-  // Pick For Me Action
   async function pickRandomGame() {
     const pickBtn = document.getElementById('pickForMeBtn');
     const showcase = document.getElementById('deckPlaceholder');
     
+    // Auto-collapse the drawer whenever a new roll is triggered
+    isGalleryOpen = false;
+
     pickBtn.disabled = true;
     pickBtn.innerHTML = '&#127922; Rolling...';
 
@@ -275,10 +292,9 @@ require_once __DIR__ . '/layout_header.php';
         headers: { 'Accept': 'application/json' }
       });
       const json = await res.json();
-
       if (!json.success) throw new Error(json.error);
-      const game = json.data.game;
 
+      const game = json.data.game;
       if (!game) {
         showcase.innerHTML = `
           <div style="padding: 40px 16px; text-align: center; color: var(--text-dim);">
@@ -289,6 +305,7 @@ require_once __DIR__ . '/layout_header.php';
         return;
       }
 
+      activePickedId = game.ID;
       renderPickedGameCard(game);
     } catch (err) {
       console.error(err);
@@ -301,6 +318,7 @@ require_once __DIR__ . '/layout_header.php';
 
   function renderPickedGameCard(game) {
     const showcase = document.getElementById('deckPlaceholder');
+    activePickedId = game.ID;
 
     // Status Badge
     let statusBadge = '<span class="tag-pill tag-status-backlog">In Backlog</span>';
@@ -309,10 +327,6 @@ require_once __DIR__ . '/layout_header.php';
     } else if (game.Played) {
       statusBadge = '<span class="tag-pill tag-status-playing">&#9654; Playing</span>';
     }
-
-    // Default Fallback Asset Paths
-    const FALLBACK_COVER  = 'images/support/no_cover.jpg';
-    const FALLBACK_SCREEN = 'images/support/no_screen.jpg';
 
     // Box Art Container (Fixed 3:4 aspect)
     const boxArtSrc = (game.BoxArt && game.BoxArt.trim() !== '') ? game.BoxArt : FALLBACK_COVER;
@@ -326,6 +340,7 @@ require_once __DIR__ . '/layout_header.php';
         <span class="media-label-badge">Box Art</span>
       </div>
     `;
+
     // Screenshot Container (Fixed 4:3 aspect)
     const screenshotSrc = (game.Image && game.Image.trim() !== '') ? game.Image : FALLBACK_SCREEN;
     const screenshotHtml = `
@@ -349,19 +364,17 @@ require_once __DIR__ . '/layout_header.php';
     const commentsHtml = game.Comments 
       ? `<div class="picked-notes">&ldquo;${escapeHtml(game.Comments)}&rdquo;</div>` 
       : '';
-
     const tagsHtml = game.Tags
       ? `<div style="font-size: 11px; color: #94a3b8; margin-bottom: 12px;"><strong>Tags:</strong> ${escapeHtml(game.Tags)}</div>`
       : '';
-
     const languageHtml = game.language_name
       ? `<span class="tag-pill" style="background: rgba(100, 116, 139, 0.2); color: #94a3b8;">${escapeHtml(game.language_name)}</span>`
       : '';
-
     const emulatorInfo = game.RetroArchCore || game.Emulator
       ? `<span class="tag-pill" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.3);">Core: ${escapeHtml(game.RetroArchCore || game.Emulator)}</span>`
       : '';
 
+    // Main Showcase + Expandable Drawer Markup
     showcase.innerHTML = `
       <div class="picked-card-container">
         <!-- Visual Column (Box Art & Screenshot) -->
@@ -398,7 +411,82 @@ require_once __DIR__ . '/layout_header.php';
           </div>
         </div>
       </div>
+
+      <!-- Collapsible Additional Findings Strip -->
+      <div class="picked-results-wrapper">
+        <button type="button" class="picked-toggle-link" onclick="toggleFindingsDrawer()">
+          <span id="drawerToggleIcon">${isGalleryOpen ? '&#9652;' : '&#9662;'}</span>
+          <span id="drawerToggleLabel">${isGalleryOpen ? 'Hide matching titles' : 'View all matching titles'} (${cachedMatches.length})</span>
+        </button>
+
+        <div id="findingsDrawer" class="picked-results-drawer ${isGalleryOpen ? 'open' : ''}">
+          <div id="galleryContainer" class="picked-gallery-grid"></div>
+        </div>
+      </div>
     `;
+
+    renderGallery(cachedMatches);
+  }
+
+  function toggleFindingsDrawer() {
+    isGalleryOpen = !isGalleryOpen;
+    const drawer = document.getElementById('findingsDrawer');
+    const icon = document.getElementById('drawerToggleIcon');
+    const label = document.getElementById('drawerToggleLabel');
+
+    if (!drawer) return;
+
+    if (isGalleryOpen) {
+      drawer.classList.add('open');
+      icon.innerHTML = '&#9652;';
+      label.textContent = `Hide matching titles (${cachedMatches.length})`;
+    } else {
+      drawer.classList.remove('open');
+      icon.innerHTML = '&#9662;';
+      label.textContent = `View all matching titles (${cachedMatches.length})`;
+    }
+  }
+
+  function renderGallery(games) {
+    const container = document.getElementById('galleryContainer');
+    if (!container) return;
+
+    if (!games || games.length === 0) {
+      container.innerHTML = '<div style="color: var(--text-dim); font-size: 12px; grid-column: 1/-1; text-align: center;">No additional titles found.</div>';
+      return;
+    }
+
+    container.innerHTML = games.map(g => {
+      const screenSrc = (g.Image && g.Image.trim() !== '') ? g.Image : FALLBACK_SCREEN;
+      const isSelected = (g.ID === activePickedId);
+
+      return `
+        <div class="gallery-card-thumb ${isSelected ? 'active-pick' : ''}" onclick="selectGameFromGallery(${g.ID})" title="${escapeHtml(g.Game)}">
+          <div class="thumb-image-wrap">
+            <img 
+              src="${escapeHtml(screenSrc)}" 
+              alt="${escapeHtml(g.Game)}" 
+              loading="lazy"
+              onerror="this.onerror=null; this.src='${FALLBACK_SCREEN}';"
+            >
+          </div>
+          <div class="thumb-title">${escapeHtml(g.Game)}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function selectGameFromGallery(gameId) {
+    const selected = cachedMatches.find(g => g.ID === gameId);
+    if (!selected) return;
+
+    // Smooth scroll back to top of the card if user was scrolled down in a large list
+    const card = document.querySelector('.picked-card-container');
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    renderPickedGameCard(selected);
   }
 
   function escapeHtml(str) {

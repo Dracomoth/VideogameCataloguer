@@ -1603,3 +1603,113 @@ tr.active td {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
   }
+
+  /* -------------------------------------------------------------
+   Collection Results Drawer & Gallery Strip
+   ------------------------------------------------------------- */
+.picked-results-wrapper {
+  max-width: 980px;
+  margin: 14px auto 30px auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.picked-toggle-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: center;
+  color: var(--border-focus);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 6px 16px;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.picked-toggle-link:hover {
+  background: var(--panel-hover);
+  border-color: var(--border-focus);
+  color: #fff;
+}
+
+.picked-results-drawer {
+  display: none;
+  margin-top: 14px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  animation: fadeInScale 0.25s ease;
+}
+
+.picked-results-drawer.open {
+  display: block;
+}
+
+.picked-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.gallery-card-thumb {
+  display: flex;
+  flex-direction: column;
+  background: #090e17;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 6px;
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+  user-select: none;
+}
+
+.gallery-card-thumb:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-focus);
+}
+
+.gallery-card-thumb.active-pick {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 10px var(--accent-glow);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.thumb-image-wrap {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #0d1522;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.thumb-image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.thumb-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin-top: 6px;
+  line-height: 1.25;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

@@ -135,17 +135,20 @@ try {
         };
 
         $sql = "SELECT g.`ID`, g.`Game`, g.`Year`, g.`BoxArt`, g.`Image`,
-                       g.`InCollection`, g.`Played`, g.`Won`,
-                       c.`Console` AS console_name,
+                       g.`InCollection`, g.`Played`, g.`Won`, g.`Tags`, g.`Comments`,
+                       c.`Console` AS console_name, c.`Emulator`, c.`RetroArchCore`,
                        cat.`Category` AS category_name,
-                       sub.`Subcategory` AS subcategory_name
+                       sub.`Subcategory` AS subcategory_name,
+                       pub.`Publisher` AS publisher_name,
+                       lang.`Language` AS language_name
                 FROM `Games` g
                 LEFT JOIN `Consoles` c ON g.`Console ID` = c.`ID`
                 LEFT JOIN `Categories` cat ON g.`Category ID` = cat.`ID`
                 LEFT JOIN `Subcategories` sub ON g.`Subcategory ID` = sub.`ID`
+                LEFT JOIN `Publishers` pub ON g.`Publisher ID` = pub.`ID`
+                LEFT JOIN `Languages` lang ON g.`Language ID` = lang.`ID`
                 {$whereClause}
                 {$orderClause}";
-
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $games =$stmt->fetchAll();
