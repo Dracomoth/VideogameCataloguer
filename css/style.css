@@ -1046,6 +1046,55 @@ tr.active td {
   gap: 4px;
 }
 
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.dashboard-hero-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+  width: 100%;
+}
+
+.dashboard-main-row {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 16px;
+  width: 100%;
+}
+
+.dashboard-portals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+/* Tablet & Mobile Breakpoint: Convert horizontal splits to vertical stack */
+@media (max-width: 860px) {
+  .dashboard-container {
+    padding: 14px 10px;
+    gap: 16px;
+  }
+
+  /* Force sections to stack one under the other at full width */
+  .dashboard-hero-row,
+  .dashboard-main-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* 2-column touch grid for portals on smartphones */
+  .dashboard-portals-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
+
 /* --------------------------------------------------------------------------
    12. Collection & Portable Vault Grid (collection.php)
    -------------------------------------------------------------------------- */

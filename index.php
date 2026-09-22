@@ -2,14 +2,14 @@
 /**
  * index.php - Main Command Center & Portfolio Dashboard
  */
-$pageTitle = 'Command Center';$activeNav = 'dashboard';
-
+$pageTitle = 'Command Center';
+$activeNav  = 'dashboard';
 require_once __DIR__ . '/layout_header.php';
 ?>
 
-<div style="display: flex; flex-direction: column; gap: 20px; padding: 24px; max-width: 1440px; margin: 0 auto; width: 100%;">
+<div class="dashboard-container">
 
-  <!-- SECTION 1: Top 4 KPI Metric Tiles (Side-by-Side on Desktop) -->
+  <!-- SECTION 1: Top 4 KPI Metric Tiles -->
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; width: 100%;">
     
     <!-- 1. Total Games & Owned -->
@@ -31,7 +31,7 @@ require_once __DIR__ . '/layout_header.php';
       </div>
     </div>
 
-    <!-- 3. Active Backlog Queue (Replaces Portable Ready) -->
+    <!-- 3. Active Backlog Queue -->
     <div class="editor-card" style="padding: 18px; position: static;">
       <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Active Backlog</div>
       <div id="statActiveBacklog" style="font-size: 32px; font-weight: 800; color: var(--warning); margin-top: 4px; line-height: 1.1;">--</div>
@@ -40,7 +40,7 @@ require_once __DIR__ . '/layout_header.php';
       </div>
     </div>
 
-    <!-- 4. Catalog Health (Percentage + Clean Subtext) -->
+    <!-- 4. Catalog Health -->
     <div class="editor-card" style="padding: 18px; position: static;">
       <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Catalog Health</div>
       <div id="statHealthPct" style="font-size: 32px; font-weight: 800; color: var(--border-focus); margin-top: 4px; line-height: 1.1;">--%</div>
@@ -52,8 +52,8 @@ require_once __DIR__ . '/layout_header.php';
 
   </div>
 
-  <!-- SECTION 2: Launchpad Banner & Now Playing -->
-  <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; width: 100%;">
+  <!-- SECTION 2: Launchpad Banner & Now Playing (Responsive Class Applied) -->
+  <div class="dashboard-hero-row">
     
     <!-- Player Mode Launchpad Hero -->
     <a href="collection.php" class="nav-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-color: var(--border-focus); text-decoration: none; padding: 24px;">
@@ -78,15 +78,15 @@ require_once __DIR__ . '/layout_header.php';
         <span style="font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Currently Playing</span>
         <span id="playingBadge" class="badge-count">0 Titles</span>
       </div>
-      <div id="nowPlayingContainer" style="padding: 12px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 190px;">
+      <div id="nowPlayingContainer" style="padding: 12px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 220px;">
         <div style="text-align: center; color: var(--text-dim); font-size: 13px; padding: 20px;">No games currently in-progress.</div>
       </div>
     </div>
 
   </div>
 
-  <!-- SECTION 3: Consoles Breakdown & Administrative Modules Grid -->
-  <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 16px; width: 100%;">
+  <!-- SECTION 3: Consoles Breakdown & Administrative Modules (Responsive Class Applied) -->
+  <div class="dashboard-main-row">
 
     <!-- Top Hardware Breakdown -->
     <div class="grid-card" style="border: 1px solid var(--border); border-radius: var(--radius-md);">
@@ -111,7 +111,7 @@ require_once __DIR__ . '/layout_header.php';
     </div>
 
     <!-- Management Portals Directory -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+    <div class="dashboard-portals-grid">
       
       <a href="games.php" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
         <div class="card-top" style="margin-bottom: 8px;">
