@@ -11,38 +11,38 @@ require_once __DIR__ . '/layout_header.php';
 
 <div class="wrapper" style="margin-bottom: 24px;">
   <!-- 1. Top Action Toolbar -->
-  <div class="toolbar">
-    <button type="button" class="btn" onclick="resetSelectorFilters()" title="Reset Filters">&#8634; Reset</button>
-    <button type="button" class="btn" onclick="toggleSearch()" title="Find by Title">&#128269; Search</button>
-    <button 
-      type="button" 
-      id="pickForMeBtn" 
-      class="btn" 
-      style="color: var(--warning); cursor: pointer;" 
-      disabled 
-      onclick="pickRandomGame()" 
-      title="Pick a random game based on current filters"
-    >
-      &#127922; Pick For Me
-    </button>
-    <span id="recordCountBadge" class="badge-count" style="margin-left: auto;">Loading Library...</span>
+  <div class="toolbar hub-toolbar">
+    <div class="toolbar-actions">
+      <button type="button" class="btn" onclick="resetSelectorFilters()" title="Reset Filters">&#8634; Reset</button>
+      <button type="button" class="btn" onclick="toggleSearch()" title="Find by Title">&#128269; Search</button>
+      <button
+         type="button"
+         id="pickForMeBtn"
+         class="btn btn-pick"
+         disabled
+         onclick="pickRandomGame()"
+         title="Pick a random game based on current filters"
+      >
+        &#127922; Pick For Me
+      </button>
+    </div>
+    <span id="recordCountBadge" class="badge-count">Loading Library...</span>
   </div>
 
   <!-- 2. Expandable Search Box -->
   <div class="search-box" id="searchBox">
-    <input 
-      type="text" 
-      id="hubSearchInput" 
-      class="form-control" 
-      placeholder="Type title, tags, or notes to filter instantly..." 
-      oninput="debounceSearch()"
+    <input
+       type="text"
+       id="hubSearchInput"
+       class="form-control"
+       placeholder="Type title, tags, or notes to filter instantly..."
+       oninput="debounceSearch()"
     >
   </div>
 
   <!-- 3. Standard Filter Panel -->
   <div class="form-pane" style="background: var(--panel);">
     <div class="form-grid-3">
-      
       <!-- Platform Dropdown -->
       <div class="form-row">
         <label for="hubConsoleSelect">Platform</label>
@@ -66,11 +66,10 @@ require_once __DIR__ . '/layout_header.php';
           <option value="">All Subcategories</option>
         </select>
       </div>
-
     </div>
 
     <!-- Status & Sorting Row -->
-    <div class="form-grid-2" style="margin-top: 6px; align-items: center;">
+    <div class="form-grid-2 hub-secondary-grid">
       <div class="form-row">
         <label for="hubStatusSelect">Play Status</label>
         <select id="hubStatusSelect" class="form-control" onchange="handleSelectorChange()">
@@ -97,10 +96,9 @@ require_once __DIR__ . '/layout_header.php';
   <!-- 4. Showcase Target Area -->
   <div class="datasheet-section">
     <div class="grid-header">
-      <span style="font-weight: 600;">Game Library Showcase</span>
-      <span id="activeFilterSummary" style="color: var(--text-dim); font-size: 11px;">Filter: Initializing...</span>
+      <span class="grid-title">Game Library Showcase</span>
+      <span id="activeFilterSummary">Filter: Initializing...</span>
     </div>
-
     <div id="deckPlaceholder" style="padding: 40px 16px; text-align: center; color: var(--text-dim);">
       <div style="font-size: 28px; margin-bottom: 6px;">&#127918;</div>
       <p style="font-size: 13px; color: var(--text-muted);">

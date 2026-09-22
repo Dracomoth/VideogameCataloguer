@@ -360,12 +360,168 @@ img {
 
 .toolbar {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   background: #111827;
   padding: 10px 14px;
   border-bottom: 1px solid var(--border);
-  overflow-x: auto;
   align-items: center;
+  justify-content: space-between;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn.btn-pick {
+  color: var(--warning);
+  font-weight: 700;
+}
+
+.hub-secondary-grid {
+  margin-top: 10px;
+}
+
+.grid-title {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+#activeFilterSummary {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+/* ==========================================================================
+   Responsive Overhauls (Mobile & Tablet Breakpoints)
+   ========================================================================== */
+
+/* Tablet & Large Mobile: Switch form rows to stacked layout */
+@media (max-width: 768px) {
+  .shortcuts-legend { display: none; }
+  .header-telemetry { display: none; }
+
+  /* Stack labels above inputs across all standard forms and Player Hub */
+  .form-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .form-row label {
+    width: 100%;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+
+  /* Expand controls for better touch accuracy on high-DPI screens */
+  .form-control,
+  select.form-control {
+    height: 42px;
+    font-size: 14px;
+  }
+
+  .form-grid-3 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+/* Phone Portrait Breakpoint (e.g. RedMagic 10 Pro) */
+@media (max-width: 600px) {
+  body {
+    padding: 6px;
+  }
+
+  .master-wrapper {
+    border-radius: var(--radius-md);
+  }
+
+  .form-pane {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  /* Responsive Toolbar Flow */
+  .hub-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .hub-toolbar .toolbar-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.3fr;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .hub-toolbar .toolbar-actions .btn {
+    height: 40px;
+    padding: 0 6px;
+    font-size: 13px;
+  }
+
+  .hub-toolbar #recordCountBadge {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  /* Showcase Section Header Stacking */
+  .grid-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 10px 12px;
+  }
+
+  #activeFilterSummary {
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  /* Spotlight Pick Card: Side-by-side artwork previews on mobile */
+  .picked-media-strip {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    padding: 14px 10px;
+    flex: 1 1 auto;
+  }
+
+  .fixed-media-box {
+    flex: 1 1 140px;
+    max-width: 160px;
+    aspect-ratio: 3 / 4;
+  }
+
+  .fixed-media-screenshot {
+    flex: 1 1 160px;
+    max-width: 200px;
+    aspect-ratio: 4 / 3;
+  }
+
+  .picked-details {
+    padding: 16px 14px;
+  }
+
+  .picked-title {
+    font-size: 20px;
+  }
 }
 
 .search-box {
