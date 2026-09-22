@@ -72,24 +72,26 @@ try {
         &#9654; Player Hub
       </a>
 
-      <span class="nav-divider"></span>
+      <!-- First Divider (Hidden on mobile along with the management items) -->
+      <span class="nav-divider nav-desktop-only"></span>
 
-      <a href="games.php" class="nav-tab <?= $activeNav === 'games' ? 'active' : '' ?>">
+      <!-- Maintenance / Data Entry (Desktop Only) -->
+      <a href="games.php" class="nav-tab nav-desktop-only <?= $activeNav === 'games' ? 'active' : '' ?>">
         Games
       </a>
-      <a href="consoles.php" class="nav-tab <?= $activeNav === 'consoles' ? 'active' : '' ?>">
+      <a href="consoles.php" class="nav-tab nav-desktop-only<?= $activeNav === 'consoles' ? 'active' : '' ?>">
         Consoles
       </a>
-      <a href="publishers.php" class="nav-tab <?= $activeNav === 'publishers' ? 'active' : '' ?>">
+      <a href="publishers.php" class="nav-tab nav-desktop-only<?= $activeNav === 'publishers' ? 'active' : '' ?>">
         Publishers
       </a>
-      <a href="categories.php" class="nav-tab <?= $activeNav === 'categories' ? 'active' : '' ?>">
+      <a href="categories.php" class="nav-tab nav-desktop-only<?= $activeNav === 'categories' ? 'active' : '' ?>">
         Categories
       </a>
-      <a href="subcategories.php" class="nav-tab <?= $activeNav === 'subcategories' ? 'active' : '' ?>">
+      <a href="subcategories.php" class="nav-tab nav-desktop-only <?= $activeNav === 'subcategories' ? 'active' : '' ?>">
         Subcategories
       </a>
-      <a href="languages.php" class="nav-tab <?= $activeNav === 'languages' ? 'active' : '' ?>">
+      <a href="languages.php" class="nav-tab nav-desktop-only <?= $activeNav === 'languages' ? 'active' : '' ?>">
         Languages
       </a>
 
@@ -99,12 +101,12 @@ try {
       <a href="reports.php" class="nav-tab <?= $activeNav === 'reports' ? 'active' : '' ?>">
         &#128202; Reports
       </a>
-      <a href="bulk_upload.php" class="nav-tab <?= $activeNav === 'bulk_upload' ? 'active' : '' ?>">
+      <a href="bulk_upload.php" class="nav-tab nav-desktop-only <?= $activeNav === 'bulk_upload' ? 'active' : '' ?>">
         &#128229; Bulk Upload
       </a>
     </div>
 
-    <div class="nav-actions-quick">
+    <div class="nav-actions-quick nav-desktop-only">
       <a href="games.php?is_new=1" class="btn btn-sm primary">+ Add Game</a>
     </div>
   </nav>

@@ -1602,6 +1602,20 @@ tr.active td {
   .shortcuts-legend { display: none; }
   .header-telemetry { display: none; }
 
+  /* Hide administrative & data-entry navigation controls on mobile */
+  .nav-desktop-only {
+    display: none !important;
+  }
+
+  /* Keep the remaining mobile tabs clean and prevent accidental scrollbars */
+  .master-nav {
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+  }
+  .master-nav::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+
   /* Transform all inline form rows into stacked mobile layouts */
   .form-row {
     flex-direction: column;
