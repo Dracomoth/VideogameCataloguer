@@ -70,31 +70,24 @@ function store_game_asset(array $file, int $gameId, string $type = 'Img'): ?stri
     return "images/games/{$filename}";
 }
 
-function resolve_game_asset_url(?string $path, int $id, string $type = 'Img'): string {
-    global $baseDir, $uploadDir;
+function resolve_game_asset_url(?string $path): string {
+    global $baseDir;
 
-    if (!empty($path)) {
-        $clean = trim($path);
-        if (str_starts_with($clean, 'http://') || str_starts_with($clean, 'https://')) {
-            return $clean;
-        }
-        if (file_exists($baseDir . '/' . ltrim($clean, '/'))) {
-            return ltrim($clean, '/');
-        }
+    // Strictly return empty if the database path is NULL or empty
+    if (empty($path)) {
+        return '';
     }
 
-    // Disk fallback: <ID>_<Type>.<ext>
-    if ($id > 0 && is_dir($uploadDir)) {
-        $matches = glob("{$uploadDir}/{$id}_{$type}.*");
-        if (!empty($matches) && is_file($matches[0])) {
-            return 'images/games/' . basename($matches[0]);
-        }
-        // Legacy fallback
-        $legacyPrefix = ($type === 'Box') ? 'cover_' : 'screen_';
-        $legacyMatches = glob("{$uploadDir}/{$legacyPrefix}{$id}.*");
-        if (!empty($legacyMatches) && is_file($legacyMatches[0])) {
-            return 'images/games/' . basename($legacyMatches[0]);
-        }
+    $clean = trim($path);
+
+    // Support external URLs
+    if (str_starts_with($clean, 'http://') || str_starts_with($clean, 'https://')) {
+        return $clean;
+    }
+
+    // Verify local file existence for the exact recorded path
+    if (file_exists($baseDir . '/' . ltrim($clean, '/'))) {
+        return ltrim($clean, '/');
     }
 
     return '';
@@ -172,8 +165,9 @@ try {
             $row['Won']            = !empty($row['Won']) ? 1 : 0;
 
             // Resolved media URLs
-            $row['boxart_url'] = resolve_game_asset_url($row['BoxArt'] ?? '', $id, 'Box');
-            $row['screen_url'] = resolve_game_asset_url($row['Image'] ?? '', $id, 'Img');
+            // Updated code:
+            $row['boxart_url'] = resolve_game_asset_url($row['BoxArt'] ?? null);
+            $row['screen_url'] = resolve_game_asset_url($row['Image'] ?? null);
         }
 
         // Dropdown lookups
