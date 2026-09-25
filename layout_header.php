@@ -104,6 +104,9 @@ try {
       <a href="bulk_upload.php" class="nav-tab nav-desktop-only <?= $activeNav === 'bulk_upload' ? 'active' : '' ?>">
         &#128229; Bulk Upload
       </a>
+      <a href="admin.php" class="nav-tab nav-desktop-only <?= $activeNav === 'admin' ? 'active' : '' ?>">
+        &#9881; Admin
+      </a>
     </div>
 
     <div class="nav-actions-quick nav-desktop-only">
