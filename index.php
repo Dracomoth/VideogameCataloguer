@@ -47,6 +47,7 @@ spl_autoload_register(function (string $class): void {
     }
 });
 
+use Vault\Controllers\DashboardController;
 use Vault\Services\Database;
 use Vault\Services\Response;
 use Vault\Services\Router;
@@ -65,7 +66,7 @@ if ($scriptDir !== '' && str_starts_with(trim($requestUri, '/'), $scriptDir)) {
 // 6. Initialize Router
 $router = new Router();
 
-// Baseline Health & Verification Route
+// Baseline Health Check
 $router->get('/health', function () use ($config) {
     $dbStatus = 'offline';
     try {
@@ -84,45 +85,13 @@ $router->get('/health', function () use ($config) {
     ]);
 });
 
-// Root Dev Landing / Verification Route
-$router->get('/', function () use ($config) {
-    $isJson = (!empty($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))
-           || str_starts_with($_SERVER['REQUEST_URI'] ?? '', '/api/');
+// --- Application Core Routes ---
 
-    $dbStatus = 'offline';
-    try {
-        Database::getConnection();
-        $dbStatus = 'connected';
-    } catch (\Throwable) {
-        $dbStatus = 'disconnected';
-    }
+// Dashboard HTML Workbench View
+$router->get('/', [DashboardController::class, 'index']);
 
-    if ($isJson) {
-        Response::json([
-            'status'   => 'online',
-            'app'      => $config['app']['name'],
-            'env'      => $config['app']['env'],
-            'database' => $dbStatus,
-            'time'     => date('Y-m-d H:i:s'),
-        ]);
-    }
-
-    $dbBadgeColor = $dbStatus === 'connected' ? '#10b981' : '#ef4444';
-
-    Response::html("<!DOCTYPE html>
-<html lang=\"en\">
-<head>
-  <meta charset=\"UTF-8\">
-  <title>{$config['app']['name']} - Setup</title>
-</head>
-<body style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b0f19; color: #f8fafc; padding: 40px;\">
-  <h2>🎮 {$config['app']['name']} Front Controller Active</h2>
-  <p>Environment: <strong>{$config['app']['env']}</strong></p>
-  <p>Database: <span style=\"background: {$dbBadgeColor}; color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: 600;\">{$dbStatus}</span></p>
-  <p>Router and service pipeline operational.</p>
-</body>
-</html>");
-});
+// Dashboard JSON Telemetry API
+$router->get('/api/dashboard', [DashboardController::class, 'api']);
 
 // 7. Dispatch the Request
 $router->dispatch($requestUri, $requestMethod);
