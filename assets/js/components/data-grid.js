@@ -446,6 +446,8 @@ class DataGrid extends HTMLElement {
         </div>
       `;
     }
+
+    this.dispatchEvent(new CustomEvent('grid-updated', { bubbles: true }));
   }
 
   _renderCell(row, col, rowIndex) {

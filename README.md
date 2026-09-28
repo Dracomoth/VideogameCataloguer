@@ -41,14 +41,22 @@ public_html/vdgn-test/
 │   │   └── Auth.php              # Central authentication, session & RBAC engine
 │   ├── Controllers/
 │   │   ├── AuthController.php    # Session login & logout handler
+│   │   ├── CategoryController.php # Taxonomy categories maintenance
+│   │   ├── ConsoleController.php # Consoles & hardware maintenance
 │   │   ├── DashboardController.php # Command center telemetry & workbench
 │   │   ├── LanguageController.php # Taxonomy languages maintenance
+│   │   ├── PublisherController.php # Taxonomy publishers & hardware makers
 │   │   ├── RoleController.php    # Dual-device matrix & role configuration
+│   │   ├── SubcategoryController.php # Taxonomy subcategories maintenance
 │   │   └── UserController.php    # User administration & profile CRUD
 │   ├── Repositories/
+│   │   ├── CategoryRepository.php # Category queries, hierarchy & game counts
+│   │   ├── ConsoleRepository.php  # Consoles, hardware specs & image lifecycle
 │   │   ├── DashboardRepository.php # Collection metrics & rankings
 │   │   ├── LanguageRepository.php # Language queries & referential integrity
+│   │   ├── PublisherRepository.php # Publisher & hardware maker queries
 │   │   ├── RoleRepository.php    # Dual-device matrix persistence
+│   │   ├── SubcategoryRepository.php # Subcategory hierarchy & parent links
 │   │   └── UserRepository.php    # User record & role queries
 │   ├── Services/
 │   │   ├── Database.php          # PDO connection & query service
@@ -56,14 +64,18 @@ public_html/vdgn-test/
 │   │   ├── Router.php            # Zero-dependency HTTP dispatcher
 │   │   └── View.php              # PHP template rendering engine
 │   └── Views/                    # Modular view layer (flat structure)
+│       ├── categories.php        # Categories split workbench & subgenre chips
+│       ├── consoles.php          # Consoles split workbench, dropzones & specs
 │       ├── dashboard.php         # Permanent Command Center body view
 │       ├── footer.php            # Modular footer component
 │       ├── header.php            # Modular top brand & telemetry banner
-│       ├── languages.php         # Taxonomy languages grid & modals
+│       ├── languages.php         # Languages split workbench & data-grid
 │       ├── layout.php            # Master scaffold wrapper
 │       ├── login.php             # Standalone dark-slate login screen
 │       ├── navbar.php            # Modular RBAC-filtered navigation bar
+│       ├── publishers.php        # Publishers split workbench & hardware toggle
 │       ├── roles.php             # Dual-device permissions matrix workbench
+│       ├── subcategories.php     # Subcategories split workbench & category filter
 │       └── users.php             # User management directory & modal
 │
 ├── assets/                       # [PUBLIC]
@@ -152,8 +164,47 @@ Enforced `Auth::requireAccess('dashboard', 'read')` on `index` and `api` endpoin
 - `assets/css/style.css`: Section 20 `.vault-grid-*` centralized dark-slate styles with zero embedded runtime styles in JavaScript.
 - `src/Views/layout.php`: Registered Web Component script globally with automatic cache-busting (`filemtime`).
 
-22) File 21: Taxonomy Languages & Regions Maintenance Module (Committed & Tested)
+22) File 21: Taxonomy Languages & Regions Maintenance Module (Tested & Complete)
 - `src/Repositories/LanguageRepository.php`: Data access layer for `languages` table with game reference counts (`COUNT(games.id)`), duplicate name checking, and safe deletion prevention if linked games exist.
 - `src/Controllers/LanguageController.php`: RBAC protected (`Auth::requireAccess('languages', 'read'|'write')`) controller providing `index`, `apiList`, `create`, `update`, and `delete`.
-- `src/Views/languages.php`: Taxonomy management view integrating `<data-grid>`, Add/Edit modal dialogs, and Delete confirmation modal with active game-count safeguards.
+- `src/Views/languages.php`: Master-detail split workbench layout with persistent form editor and reusable `<data-grid>`.
 - `src/Views/navbar.php` & `index.php`: Updated desktop navigation tab and registered routes (`/languages`, `/api/languages`, `/languages/create`, `/languages/{id}/update`, `/languages/{id}/delete`).
+
+23) File 22: Taxonomy Categories Maintenance Module (Tested & Complete)
+- `src/Repositories/CategoryRepository.php`: Data access layer with hierarchy aggregation (`subcategories_raw`), `subcat_count`, `games_count`, and deletion safeguards blocking deletion if subcategories or games are attached.
+- `src/Controllers/CategoryController.php`: RBAC protected controller with standard JSON response envelopes (`Response::json()`, `Response::error()`).
+- `src/Views/categories.php`: Split workbench layout with persistent left editor, subcategory chip inspector, `<data-grid>` (ID, Category, Subcategories badge, Linked Games badge), and keyboard shortcuts.
+- `index.php`: Registered routes (`/categories`, `/api/categories`, `/categories/create`, `/categories/{id}/update`, `/categories/{id}/delete`).
+
+24) File 23: Taxonomy Publishers & Hardware Manufacturers Maintenance Module (Tested & Complete)
+- `src/Repositories/PublisherRepository.php`: Data access layer joining `consoles` and `games`, computing `consoles_count` and `games_count`, with `is_console_maker` classification.
+- `src/Controllers/PublisherController.php`: RBAC protected controller supporting hardware manufacturer flag mutations and deletion safeguards.
+- `src/Views/publishers.php`: Split workbench layout with persistent left editor, `🕹️ Console / Hardware Maker` checkbox, registered platforms inspector, and `<data-grid>` with hardware badges and platform counts.
+- `index.php`: Registered routes (`/publishers`, `/api/publishers`, `/publishers/create`, `/publishers/{id}/update`, `/publishers/{id}/delete`).
+
+25) File 24: Taxonomy Subcategories Maintenance Module (Tested & Complete)
+- `src/Repositories/SubcategoryRepository.php`: Data access layer joining `categories` and `games`, ensuring scoped category uniqueness and relational safeguards.
+- `src/Controllers/SubcategoryController.php`: RBAC protected controller passing categories list for parent assignment dropdown and grid filtering.
+- `src/Views/subcategories.php`: Split workbench layout with persistent parent category dropdown, `<data-grid>` with category pill badges and top category filter dropdown (`grid.customFilters`).
+- `index.php`: Registered routes (`/subcategories`, `/api/subcategories`, `/subcategories/create`, `/subcategories/{id}/update`, `/subcategories/{id}/delete`).
+
+26) File 25: Hardware & Consoles Maintenance Module (Tested & Complete)
+- `src/Repositories/ConsoleRepository.php`: Full CRUD repository managing hardware specifications, form factor flags, emulation links, and strict 4-step image lifecycle operations:
+  - **Insert**: Uploaded images are renamed before storage using `<id>_<console name(escaped)>_image.<ext>` for `image_path` and `<id>_<console name(escaped)>_logo.<ext>` for `logo_path`.
+  - **Update**: Retrieves previous values, unlinks existing files on disk regardless of previous path value, and renames/stores newly uploaded assets with the same convention.
+  - **Read**: Retrieves values directly from fields and exposes web URLs without enforcing naming conventions.
+  - **Delete**: Unlinks whatever files are referenced in `image_path` and `logo_path` before record deletion, subject to library game reference safeguards.
+- `src/Controllers/ConsoleController.php`: RBAC protected controller handling multipart form uploads and JSON API responses.
+- `src/Views/consoles.php`: Master-detail split workbench with persistent form editor (460px), dual visual asset dropzones with instant image preview & removal, collapsible emulation & technical links details, hardware type flags, and searchable `<data-grid>` with form factor filtering (`grid.customFilters`).
+- `index.php`: Registered routes (`/consoles`, `/api/consoles`, `/consoles/create`, `/consoles/{id}/update`, `/consoles/{id}/delete`).
+
+27) File 26: Game Cataloguer & Asset Hub Maintenance Module (Tested & Complete)
+- `src/Repositories/GameRepository.php`: Full CRUD repository managing game titles, platforms, categories, subcategories, publishers, languages, collection/play status toggles, personal notes, tags, and strict 4-step image lifecycle operations:
+  - **Insert**: Uploaded images are renamed before storage using `<ID>_Img.<ext>` for `screenshot_path` and `<ID>_Box.<ext>` for `boxart_path`. Relative paths stored in database.
+  - **Update**: Retrieves previous values from DB, unlinks existing files on disk regardless of previous path value, and renames/stores newly uploaded assets with `<ID>_Img.<ext>` and `<ID>_Box.<ext>`. If removal is requested (`delete_screenshot` or `delete_boxart`), unlinks existing file and clears field to `NULL`.
+  - **Read**: Retrieves values directly from fields and exposes web URLs without enforcing naming conventions on read. Computes `collection_status` badge (`CLEARED`, `PLAYED`, `IN COLLECTION`, `BACKLOG`).
+  - **Delete**: Unlinks whatever files are referenced in `screenshot_path` and `boxart_path` before record deletion.
+- `src/Controllers/GameController.php`: RBAC protected controller handling multipart form uploads, taxonomy reference datasets, and JSON API responses.
+- `src/Views/games.php`: Master-detail split workbench with persistent form editor (500px), platform and dynamic subcategory hierarchy filter, collection status chip toggles (`In Collection`, `Played`, `Cleared / Won`), dual visual asset dropzones (`Upload Box Art` `<ID>_Box.ext` and `Upload Screenshot` `<ID>_Img.ext`) with instant preview & removal, AI Auto-Fill action button (`✨ AI Auto-Fill`) with sparkle icon, tags and personal notes, and high-density searchable `<data-grid>` with platform and genre dropdown filtering (`grid.customFilters`) and completion status badges.
+- `index.php`: Registered routes (`/games`, `/api/games`, `/games/create`, `/games/{id}/update`, `/games/{id}/delete`).
+

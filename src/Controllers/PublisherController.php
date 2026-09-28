@@ -1,7 +1,7 @@
 <?php
 /**
- * src/Controllers/LanguageController.php
- * Controller managing taxonomy language maintenance, grid datasets, and mutations.
+ * src/Controllers/PublisherController.php
+ * Controller managing game publishers, hardware manufacturer classifications, and mutations.
  */
 
 declare(strict_types=1);
@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Vault\Controllers;
 
 use Vault\Auth\Auth;
-use Vault\Repositories\LanguageRepository;
+use Vault\Repositories\PublisherRepository;
 use Vault\Services\Response;
 use Vault\Services\View;
 use Throwable;
@@ -19,42 +19,42 @@ if (!defined('APP_INIT')) {
     exit('Direct access not permitted.');
 }
 
-final class LanguageController
+final class PublisherController
 {
-    private LanguageRepository $repo;
+    private PublisherRepository $repo;
 
     public function __construct()
     {
-        $this->repo = new LanguageRepository();
+        $this->repo = new PublisherRepository();
     }
 
     /**
-     * Displays the languages taxonomy management view.
+     * Displays the publishers taxonomy and hardware classification view.
      *
      * @param array<string, mixed> $request
      * @return never
      */
     public function index(array $request): void
     {
-        Auth::requireAccess('languages', 'read');
+        Auth::requireAccess('publishers', 'read');
 
-        $languages = $this->repo->getAll();
-        $canWrite  = Auth::canWrite('languages');
+        $publishers = $this->repo->getAll();
+        $canWrite   = Auth::canWrite('publishers');
 
         $flashMessage = $_SESSION['flash_message'] ?? null;
         $flashError   = $_SESSION['flash_error'] ?? null;
         unset($_SESSION['flash_message'], $_SESSION['flash_error']);
 
         $viewData = [
-            'pageTitle'    => 'Languages & Regions',
-            'activeNav'    => 'languages',
-            'languages'    => $languages,
+            'pageTitle'    => 'Publishers Maintenance',
+            'activeNav'    => 'publishers',
+            'publishers'   => $publishers,
             'canWrite'     => $canWrite,
             'flashMessage' => $flashMessage,
             'flashError'   => $flashError,
         ];
 
-        $html = View::render('languages', $viewData, 'layout');
+        $html = View::render('publishers', $viewData, 'layout');
         Response::html($html);
     }
 
@@ -66,31 +66,32 @@ final class LanguageController
      */
     public function apiList(array $request): void
     {
-        Auth::requireAccess('languages', 'read');
+        Auth::requireAccess('publishers', 'read');
 
-        $languages = $this->repo->getAll();
+        $publishers = $this->repo->getAll();
         Response::json([
-            'languages' => $languages,
-            'can_write' => Auth::canWrite('languages'),
+            'publishers' => $publishers,
+            'can_write'  => Auth::canWrite('publishers'),
         ]);
     }
 
     /**
-     * Creates a new language record.
+     * Creates a new publisher record.
      *
      * @param array<string, mixed> $request
      * @return never
      */
     public function create(array $request): void
     {
-        Auth::requireAccess('languages', 'write');
+        Auth::requireAccess('publishers', 'write');
 
-        $body = $request['body'] ?? [];
-        $name = (string)($body['name'] ?? ($body['language'] ?? ''));
+        $body           = $request['body'] ?? [];
+        $name           = (string)($body['name'] ?? ($body['publisher'] ?? ''));
+        $isConsoleMaker = !empty($body['is_console_maker']) && in_array($body['is_console_maker'], [1, '1', true, 'true', 'on'], true);
 
         try {
-            $newId = $this->repo->create($name);
-            $msg = "Language '{$name}' created successfully.";
+            $newId = $this->repo->create($name, $isConsoleMaker);
+            $msg = "Publisher '{$name}' created successfully.";
 
             if ($this->wantsJson($request)) {
                 Response::json([
@@ -100,33 +101,34 @@ final class LanguageController
             }
 
             $_SESSION['flash_message'] = $msg;
-            Response::redirect('/languages');
+            Response::redirect('/publishers');
         } catch (Throwable $e) {
             if ($this->wantsJson($request)) {
                 Response::error($e->getMessage(), 422);
             }
             $_SESSION['flash_error'] = $e->getMessage();
-            Response::redirect('/languages');
+            Response::redirect('/publishers');
         }
     }
 
     /**
-     * Updates an existing language record.
+     * Updates an existing publisher record.
      *
      * @param array<string, mixed> $request
      * @return never
      */
     public function update(array $request): void
     {
-        Auth::requireAccess('languages', 'write');
+        Auth::requireAccess('publishers', 'write');
 
-        $body = $request['body'] ?? [];
-        $id   = (int)($request['params']['id'] ?? ($body['id'] ?? 0));
-        $name = (string)($body['name'] ?? ($body['language'] ?? ''));
+        $body           = $request['body'] ?? [];
+        $id             = (int)($request['params']['id'] ?? ($body['id'] ?? 0));
+        $name           = (string)($body['name'] ?? ($body['publisher'] ?? ''));
+        $isConsoleMaker = !empty($body['is_console_maker']) && in_array($body['is_console_maker'], [1, '1', true, 'true', 'on'], true);
 
         try {
-            $this->repo->update($id, $name);
-            $msg = "Language updated successfully.";
+            $this->repo->update($id, $name, $isConsoleMaker);
+            $msg = "Publisher updated successfully.";
 
             if ($this->wantsJson($request)) {
                 Response::json([
@@ -136,31 +138,31 @@ final class LanguageController
             }
 
             $_SESSION['flash_message'] = $msg;
-            Response::redirect('/languages');
+            Response::redirect('/publishers');
         } catch (Throwable $e) {
             if ($this->wantsJson($request)) {
                 Response::error($e->getMessage(), 422);
             }
             $_SESSION['flash_error'] = $e->getMessage();
-            Response::redirect('/languages');
+            Response::redirect('/publishers');
         }
     }
 
     /**
-     * Deletes a language record if unreferenced by games.
+     * Deletes a publisher record if unreferenced by games and consoles.
      *
      * @param array<string, mixed> $request
      * @return never
      */
     public function delete(array $request): void
     {
-        Auth::requireAccess('languages', 'write');
+        Auth::requireAccess('publishers', 'write');
 
         $id = (int)($request['params']['id'] ?? ($request['body']['id'] ?? 0));
 
         try {
             $this->repo->delete($id);
-            $msg = 'Language deleted successfully.';
+            $msg = 'Publisher deleted successfully.';
 
             if ($this->wantsJson($request)) {
                 Response::json([
@@ -170,13 +172,13 @@ final class LanguageController
             }
 
             $_SESSION['flash_message'] = $msg;
-            Response::redirect('/languages');
+            Response::redirect('/publishers');
         } catch (Throwable $e) {
             if ($this->wantsJson($request)) {
                 Response::error($e->getMessage(), 422);
             }
             $_SESSION['flash_error'] = $e->getMessage();
-            Response::redirect('/languages');
+            Response::redirect('/publishers');
         }
     }
 

@@ -48,9 +48,14 @@ spl_autoload_register(function (string $class): void {
 });
 
 use Vault\Controllers\AuthController;
+use Vault\Controllers\CategoryController;
+use Vault\Controllers\ConsoleController;
 use Vault\Controllers\DashboardController;
+use Vault\Controllers\GameController;
 use Vault\Controllers\LanguageController;
+use Vault\Controllers\PublisherController;
 use Vault\Controllers\RoleController;
+use Vault\Controllers\SubcategoryController;
 use Vault\Controllers\UserController;
 use Vault\Services\Database;
 use Vault\Services\Response;
@@ -127,6 +132,51 @@ $router->post('/languages/create', [LanguageController::class, 'create']);
 $router->post('/languages/{id}/update', [LanguageController::class, 'update']);
 $router->post('/languages/{id}/delete', [LanguageController::class, 'delete']);
 $router->delete('/languages/{id}', [LanguageController::class, 'delete']);
+
+// Taxonomy: Categories Routes
+$router->get('/categories', [CategoryController::class, 'index']);
+$router->get('/api/categories', [CategoryController::class, 'apiList']);
+$router->post('/categories', [CategoryController::class, 'create']);
+$router->post('/categories/create', [CategoryController::class, 'create']);
+$router->post('/categories/{id}/update', [CategoryController::class, 'update']);
+$router->post('/categories/{id}/delete', [CategoryController::class, 'delete']);
+$router->delete('/categories/{id}', [CategoryController::class, 'delete']);
+
+// Taxonomy: Publishers & Hardware Manufacturers Routes
+$router->get('/publishers', [PublisherController::class, 'index']);
+$router->get('/api/publishers', [PublisherController::class, 'apiList']);
+$router->post('/publishers', [PublisherController::class, 'create']);
+$router->post('/publishers/create', [PublisherController::class, 'create']);
+$router->post('/publishers/{id}/update', [PublisherController::class, 'update']);
+$router->post('/publishers/{id}/delete', [PublisherController::class, 'delete']);
+$router->delete('/publishers/{id}', [PublisherController::class, 'delete']);
+
+// Taxonomy: Subcategories Routes
+$router->get('/subcategories', [SubcategoryController::class, 'index']);
+$router->get('/api/subcategories', [SubcategoryController::class, 'apiList']);
+$router->post('/subcategories', [SubcategoryController::class, 'create']);
+$router->post('/subcategories/create', [SubcategoryController::class, 'create']);
+$router->post('/subcategories/{id}/update', [SubcategoryController::class, 'update']);
+$router->post('/subcategories/{id}/delete', [SubcategoryController::class, 'delete']);
+$router->delete('/subcategories/{id}', [SubcategoryController::class, 'delete']);
+
+// Hardware & Consoles Maintenance Routes
+$router->get('/consoles', [ConsoleController::class, 'index']);
+$router->get('/api/consoles', [ConsoleController::class, 'apiList']);
+$router->post('/consoles', [ConsoleController::class, 'create']);
+$router->post('/consoles/create', [ConsoleController::class, 'create']);
+$router->post('/consoles/{id}/update', [ConsoleController::class, 'update']);
+$router->post('/consoles/{id}/delete', [ConsoleController::class, 'delete']);
+$router->delete('/consoles/{id}', [ConsoleController::class, 'delete']);
+
+// Game Cataloguer & Asset Maintenance Routes
+$router->get('/games', [GameController::class, 'index']);
+$router->get('/api/games', [GameController::class, 'apiList']);
+$router->post('/games', [GameController::class, 'create']);
+$router->post('/games/create', [GameController::class, 'create']);
+$router->post('/games/{id}/update', [GameController::class, 'update']);
+$router->post('/games/{id}/delete', [GameController::class, 'delete']);
+$router->delete('/games/{id}', [GameController::class, 'delete']);
 
 // 7. Dispatch the Request
 $router->dispatch($requestUri, $requestMethod);

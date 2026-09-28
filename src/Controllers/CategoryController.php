@@ -1,7 +1,7 @@
 <?php
 /**
- * src/Controllers/LanguageController.php
- * Controller managing taxonomy language maintenance, grid datasets, and mutations.
+ * src/Controllers/CategoryController.php
+ * Controller managing genre categories maintenance, grid datasets, and mutations.
  */
 
 declare(strict_types=1);
@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Vault\Controllers;
 
 use Vault\Auth\Auth;
-use Vault\Repositories\LanguageRepository;
+use Vault\Repositories\CategoryRepository;
 use Vault\Services\Response;
 use Vault\Services\View;
 use Throwable;
@@ -19,42 +19,42 @@ if (!defined('APP_INIT')) {
     exit('Direct access not permitted.');
 }
 
-final class LanguageController
+final class CategoryController
 {
-    private LanguageRepository $repo;
+    private CategoryRepository $repo;
 
     public function __construct()
     {
-        $this->repo = new LanguageRepository();
+        $this->repo = new CategoryRepository();
     }
 
     /**
-     * Displays the languages taxonomy management view.
+     * Displays the categories taxonomy management view.
      *
      * @param array<string, mixed> $request
      * @return never
      */
     public function index(array $request): void
     {
-        Auth::requireAccess('languages', 'read');
+        Auth::requireAccess('categories', 'read');
 
-        $languages = $this->repo->getAll();
-        $canWrite  = Auth::canWrite('languages');
+        $categories = $this->repo->getAll();
+        $canWrite   = Auth::canWrite('categories');
 
         $flashMessage = $_SESSION['flash_message'] ?? null;
         $flashError   = $_SESSION['flash_error'] ?? null;
         unset($_SESSION['flash_message'], $_SESSION['flash_error']);
 
         $viewData = [
-            'pageTitle'    => 'Languages & Regions',
-            'activeNav'    => 'languages',
-            'languages'    => $languages,
+            'pageTitle'    => 'Categories Maintenance',
+            'activeNav'    => 'categories',
+            'categories'   => $categories,
             'canWrite'     => $canWrite,
             'flashMessage' => $flashMessage,
             'flashError'   => $flashError,
         ];
 
-        $html = View::render('languages', $viewData, 'layout');
+        $html = View::render('categories', $viewData, 'layout');
         Response::html($html);
     }
 
@@ -66,31 +66,31 @@ final class LanguageController
      */
     public function apiList(array $request): void
     {
-        Auth::requireAccess('languages', 'read');
+        Auth::requireAccess('categories', 'read');
 
-        $languages = $this->repo->getAll();
+        $categories = $this->repo->getAll();
         Response::json([
-            'languages' => $languages,
-            'can_write' => Auth::canWrite('languages'),
+            'categories' => $categories,
+            'can_write'  => Auth::canWrite('categories'),
         ]);
     }
 
     /**
-     * Creates a new language record.
+     * Creates a new category record.
      *
      * @param array<string, mixed> $request
      * @return never
      */
     public function create(array $request): void
     {
-        Auth::requireAccess('languages', 'write');
+        Auth::requireAccess('categories', 'write');
 
         $body = $request['body'] ?? [];
-        $name = (string)($body['name'] ?? ($body['language'] ?? ''));
+        $name = (string)($body['name'] ?? ($body['category'] ?? ''));
 
         try {
             $newId = $this->repo->create($name);
-            $msg = "Language '{$name}' created successfully.";
+            $msg = "Category '{$name}' created successfully.";
 
             if ($this->wantsJson($request)) {
                 Response::json([
@@ -100,33 +100,33 @@ final class LanguageController
             }
 
             $_SESSION['flash_message'] = $msg;
-            Response::redirect('/languages');
+            Response::redirect('/categories');
         } catch (Throwable $e) {
             if ($this->wantsJson($request)) {
                 Response::error($e->getMessage(), 422);
             }
             $_SESSION['flash_error'] = $e->getMessage();
-            Response::redirect('/languages');
+            Response::redirect('/categories');
         }
     }
 
     /**
-     * Updates an existing language record.
+     * Updates an existing category record.
      *
      * @param array<string, mixed> $request
      * @return never
      */
     public function update(array $request): void
     {
-        Auth::requireAccess('languages', 'write');
+        Auth::requireAccess('categories', 'write');
 
         $body = $request['body'] ?? [];
         $id   = (int)($request['params']['id'] ?? ($body['id'] ?? 0));
-        $name = (string)($body['name'] ?? ($body['language'] ?? ''));
+        $name = (string)($body['name'] ?? ($body['category'] ?? ''));
 
         try {
             $this->repo->update($id, $name);
-            $msg = "Language updated successfully.";
+            $msg = "Category updated successfully.";
 
             if ($this->wantsJson($request)) {
                 Response::json([
@@ -136,31 +136,31 @@ final class LanguageController
             }
 
             $_SESSION['flash_message'] = $msg;
-            Response::redirect('/languages');
+            Response::redirect('/categories');
         } catch (Throwable $e) {
             if ($this->wantsJson($request)) {
                 Response::error($e->getMessage(), 422);
             }
             $_SESSION['flash_error'] = $e->getMessage();
-            Response::redirect('/languages');
+            Response::redirect('/categories');
         }
     }
 
     /**
-     * Deletes a language record if unreferenced by games.
+     * Deletes a category record if unreferenced by games and subcategories.
      *
      * @param array<string, mixed> $request
      * @return never
      */
     public function delete(array $request): void
     {
-        Auth::requireAccess('languages', 'write');
+        Auth::requireAccess('categories', 'write');
 
         $id = (int)($request['params']['id'] ?? ($request['body']['id'] ?? 0));
 
         try {
             $this->repo->delete($id);
-            $msg = 'Language deleted successfully.';
+            $msg = 'Category deleted successfully.';
 
             if ($this->wantsJson($request)) {
                 Response::json([
@@ -170,13 +170,13 @@ final class LanguageController
             }
 
             $_SESSION['flash_message'] = $msg;
-            Response::redirect('/languages');
+            Response::redirect('/categories');
         } catch (Throwable $e) {
             if ($this->wantsJson($request)) {
                 Response::error($e->getMessage(), 422);
             }
             $_SESSION['flash_error'] = $e->getMessage();
-            Response::redirect('/languages');
+            Response::redirect('/categories');
         }
     }
 

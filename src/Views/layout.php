@@ -62,6 +62,33 @@ $gridJsVer  = file_exists($gridJsPath) ? (string)filemtime($gridJsPath) : '1.0';
 <!-- Global Dynamic Toast Mount -->
 <div id="toastContainer"></div>
 
+<script>
+/**
+ * Global Toast Notification Dispatcher
+ */
+function showToast(msg, type = 'success') {
+  if (!msg) return;
+  let container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 250);
+  }, 3200);
+}
+window.showToast = showToast;
+</script>
+
 <!-- Universal Web Components -->
 <script src="/assets/js/components/data-grid.js?v=<?= $gridJsVer ?>"></script>
 </body>
