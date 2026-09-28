@@ -1,7 +1,8 @@
 <?php
 /**
- * src/Views/dashboard/dashboard.view.php
- * Command Center Dashboard View (Verification Template).
+ * src/Views/dashboard.php
+ * Permanent Command Center Dashboard Body View.
+ * Injected into the <main> slot of layout.php.
  *
  * Variables provided by DashboardController:
  * @var array<string, mixed> $kpi
@@ -19,7 +20,7 @@ if (!defined('APP_INIT')) {
     exit('Direct access not permitted.');
 }
 
-$healthPct = (float)($kpi['health_pct'] ?? 0);
+$healthPct   = (float)($kpi['health_pct'] ?? 0);
 $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--warning)' : 'var(--danger)');
 ?>
 <div class="dashboard-container">
@@ -29,10 +30,10 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
     <div class="editor-card" style="padding: 18px; position: static;">
       <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Total Games</div>
       <div style="font-size: 32px; font-weight: 800; color: #fff; margin-top: 4px; line-height: 1.1;">
-        <?= number_format((int)$kpi['total_games']) ?>
+        <?= number_format((int)($kpi['total_games'] ?? 0)) ?>
       </div>
       <div style="font-size: 12px; color: var(--text-dim); margin-top: 6px;">
-        <span style="color: var(--border-focus); font-weight: 700;"><?= number_format((int)$kpi['owned_games']) ?></span> in physical library
+        <span style="color: var(--border-focus); font-weight: 700;"><?= number_format((int)($kpi['owned_games'] ?? 0)) ?></span> in physical library
       </div>
     </div>
 
@@ -40,11 +41,11 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
     <div class="editor-card" style="padding: 18px; position: static;">
       <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Completion Rate</div>
       <div style="font-size: 32px; font-weight: 800; color: var(--success); margin-top: 4px; line-height: 1.1;">
-        <?= View::e((string)$kpi['completion_pct']) ?>%
+        <?= View::e((string)($kpi['completion_pct'] ?? 0)) ?>%
       </div>
       <div style="font-size: 12px; color: var(--text-dim); margin-top: 6px;">
-        <span style="color: #fff; font-weight: 600;"><?= number_format((int)$kpi['won_games']) ?></span> beaten &bull;
-        <span style="color: var(--warning); font-weight: 600;"><?= number_format((int)$kpi['backlog_games']) ?></span> in backlog
+        <span style="color: #fff; font-weight: 600;"><?= number_format((int)($kpi['won_games'] ?? 0)) ?></span> beaten &bull;
+        <span style="color: var(--warning); font-weight: 600;"><?= number_format((int)($kpi['backlog_games'] ?? 0)) ?></span> in backlog
       </div>
     </div>
 
@@ -52,10 +53,10 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
     <div class="editor-card" style="padding: 18px; position: static;">
       <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Active Backlog</div>
       <div style="font-size: 32px; font-weight: 800; color: var(--warning); margin-top: 4px; line-height: 1.1;">
-        <?= number_format((int)$kpi['backlog_games']) ?>
+        <?= number_format((int)($kpi['backlog_games'] ?? 0)) ?>
       </div>
       <div style="font-size: 12px; color: var(--text-dim); margin-top: 6px;">
-        Titles waiting to be played (<span style="color: var(--border-focus); font-weight: 600;"><?= number_format((int)$kpi['playing_games']) ?></span> currently active)
+        Titles waiting to be played (<span style="color: var(--border-focus); font-weight: 600;"><?= number_format((int)($kpi['playing_games'] ?? 0)) ?></span> currently active)
       </div>
     </div>
 
@@ -63,11 +64,11 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
     <div class="editor-card" style="padding: 18px; position: static;">
       <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Catalog Health</div>
       <div style="font-size: 32px; font-weight: 800; color: <?= $healthColor ?>; margin-top: 4px; line-height: 1.1;">
-        <?= View::e((string)$kpi['health_pct']) ?>%
+        <?= View::e((string)($kpi['health_pct'] ?? 0)) ?>%
       </div>
       <div style="font-size: 12px; color: var(--text-dim); margin-top: 6px; line-height: 1.4;">
-        <span style="color: var(--danger); font-weight: 600;"><?= number_format((int)$kpi['missing_covers']) ?></span> games with no cover<br>
-        <span style="color: var(--danger); font-weight: 600;"><?= number_format((int)$kpi['missing_screens']) ?></span> games with no screenshot
+        <span style="color: var(--danger); font-weight: 600;"><?= number_format((int)($kpi['missing_covers'] ?? 0)) ?></span> games with no cover<br>
+        <span style="color: var(--danger); font-weight: 600;"><?= number_format((int)($kpi['missing_screens'] ?? 0)) ?></span> games with no screenshot
       </div>
     </div>
   </div>
@@ -159,7 +160,7 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
       <a href="/games" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
         <div class="card-top" style="margin-bottom: 8px;">
           <span style="font-size: 22px;">🎮</span>
-          <span class="badge-count"><?= number_format((int)$kpi['total_games']) ?></span>
+          <span class="badge-count"><?= number_format((int)($kpi['total_games'] ?? 0)) ?></span>
         </div>
         <div style="font-size: 15px; font-weight: 700; color: #fff;">Games</div>
         <div class="card-desc" style="font-size: 11px;">Data entry workbench & media uploader.</div>
@@ -168,7 +169,7 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
       <a href="/consoles" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
         <div class="card-top" style="margin-bottom: 8px;">
           <span style="font-size: 22px;">🕹</span>
-          <span class="badge-count"><?= number_format((int)$counts['consoles']) ?></span>
+          <span class="badge-count"><?= number_format((int)($counts['consoles'] ?? 0)) ?></span>
         </div>
         <div style="font-size: 15px; font-weight: 700; color: #fff;">Consoles</div>
         <div class="card-desc" style="font-size: 11px;">Hardware specs, logos, photos & emulators.</div>
@@ -177,7 +178,7 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
       <a href="/publishers" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
         <div class="card-top" style="margin-bottom: 8px;">
           <span style="font-size: 22px;">🏢</span>
-          <span class="badge-count"><?= number_format((int)$counts['publishers']) ?></span>
+          <span class="badge-count"><?= number_format((int)($counts['publishers'] ?? 0)) ?></span>
         </div>
         <div style="font-size: 15px; font-weight: 700; color: #fff;">Publishers</div>
         <div class="card-desc" style="font-size: 11px;">Game studios and console manufacturers.</div>
@@ -186,7 +187,7 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
       <a href="/categories" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
         <div class="card-top" style="margin-bottom: 8px;">
           <span style="font-size: 22px;">📁</span>
-          <span class="badge-count"><?= number_format((int)$counts['categories']) ?></span>
+          <span class="badge-count"><?= number_format((int)($counts['categories'] ?? 0)) ?></span>
         </div>
         <div style="font-size: 15px; font-weight: 700; color: #fff;">Categories</div>
         <div class="card-desc" style="font-size: 11px;">Primary genre taxonomies.</div>
@@ -195,7 +196,7 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
       <a href="/subcategories" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
         <div class="card-top" style="margin-bottom: 8px;">
           <span style="font-size: 22px;">📂</span>
-          <span class="badge-count"><?= number_format((int)$counts['subcategories']) ?></span>
+          <span class="badge-count"><?= number_format((int)($counts['subcategories'] ?? 0)) ?></span>
         </div>
         <div style="font-size: 15px; font-weight: 700; color: #fff;">Subcategories</div>
         <div class="card-desc" style="font-size: 11px;">Detailed sub-genre classification.</div>
@@ -204,7 +205,7 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
       <a href="/languages" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
         <div class="card-top" style="margin-bottom: 8px;">
           <span style="font-size: 22px;">🌐</span>
-          <span class="badge-count"><?= number_format((int)$counts['languages']) ?></span>
+          <span class="badge-count"><?= number_format((int)($counts['languages'] ?? 0)) ?></span>
         </div>
         <div style="font-size: 15px; font-weight: 700; color: #fff;">Languages</div>
         <div class="card-desc" style="font-size: 11px;">Localization and language flags.</div>

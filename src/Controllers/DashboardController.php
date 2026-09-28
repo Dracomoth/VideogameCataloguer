@@ -53,7 +53,7 @@ final class DashboardController
             'nowPlaying'  => $nowPlaying,
         ];
 
-        $html = View::render('dashboard.view', $viewData, 'layout');
+        $html = View::render('dashboard', $viewData, 'layout');
         Response::html($html);
     }
 
