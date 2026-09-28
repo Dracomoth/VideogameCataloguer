@@ -1,0 +1,32 @@
+# ----------------------------------------------------------------------
+# Videogame Vault - Security Perimeter & Front Controller Rewrite
+# ----------------------------------------------------------------------
+
+# Disable directory file listings (prevents directory snooping)
+Options -Indexes
+
+# Follow symbolic links (standard requirement for mod_rewrite)
+Options +FollowSymLinks
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # 1. HARD SECURITY: Block access to protected backend folders
+    RewriteRule ^(config|src|database|storage)/.*$ - [F,L,NC]
+
+    # 2. HARD SECURITY: Block hidden files, dotfiles, lockfiles, and markdown docs
+    RewriteRule (^|/)\.(?!well-known) - [F,L]
+    RewriteRule \.(sql|md|log|json|lock)$ - [F,L,NC]
+
+    # 3. DIRECT PASSTHROUGH: If the request is for an existing static file or folder, serve it
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # 4. FRONT CONTROLLER: Route all remaining requests to index.php
+    RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>
+
+# Fallback MIME-types & UTF-8 character encoding
+AddDefaultCharset UTF-8
