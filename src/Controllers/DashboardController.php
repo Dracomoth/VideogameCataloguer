@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Vault\Controllers;
 
+use Vault\Auth\Auth;
 use Vault\Repositories\DashboardRepository;
 use Vault\Services\Response;
 use Vault\Services\View;
@@ -34,6 +35,8 @@ final class DashboardController
      */
     public function index(array $request): void
     {
+        Auth::requireAccess('dashboard', 'read');
+
         $kpi         = $this->repo->getKpiMetrics();
         $counts      = $this->repo->getEntityCounts();
         $topConsoles = $this->repo->getTopConsoles(6);
@@ -65,6 +68,8 @@ final class DashboardController
      */
     public function api(array $request): void
     {
+        Auth::requireAccess('dashboard', 'read');
+
         $kpi         = $this->repo->getKpiMetrics();
         $counts      = $this->repo->getEntityCounts();
         $topConsoles = $this->repo->getTopConsoles(6);

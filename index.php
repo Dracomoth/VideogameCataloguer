@@ -47,7 +47,10 @@ spl_autoload_register(function (string $class): void {
     }
 });
 
+use Vault\Controllers\AuthController;
 use Vault\Controllers\DashboardController;
+use Vault\Controllers\RoleController;
+use Vault\Controllers\UserController;
 use Vault\Services\Database;
 use Vault\Services\Response;
 use Vault\Services\Router;
@@ -87,11 +90,33 @@ $router->get('/health', function () use ($config) {
 
 // --- Application Core Routes ---
 
+// Authentication & Session Routes
+$router->get('/login', [AuthController::class, 'showLogin']);
+$router->post('/login', [AuthController::class, 'login']);
+$router->get('/logout', [AuthController::class, 'logout']);
+$router->post('/logout', [AuthController::class, 'logout']);
+
 // Dashboard HTML Workbench View
 $router->get('/', [DashboardController::class, 'index']);
 
 // Dashboard JSON Telemetry API
 $router->get('/api/dashboard', [DashboardController::class, 'api']);
 
+// User Management Routes
+$router->get('/users', [UserController::class, 'index']);
+$router->post('/users', [UserController::class, 'store']);
+$router->post('/users/{id}/update', [UserController::class, 'update']);
+$router->post('/users/{id}/toggle', [UserController::class, 'toggle']);
+$router->post('/users/{id}/delete', [UserController::class, 'delete']);
+$router->delete('/users/{id}', [UserController::class, 'delete']);
+
+// Role & Dual-Device Permission Matrix Routes
+$router->get('/roles', [RoleController::class, 'index']);
+$router->post('/roles', [RoleController::class, 'store']);
+$router->get('/api/roles/{id}/matrix', [RoleController::class, 'matrix']);
+$router->post('/roles/{id}/update', [RoleController::class, 'update']);
+$router->post('/roles/{id}/delete', [RoleController::class, 'delete']);
+$router->delete('/roles/{id}', [RoleController::class, 'delete']);
+
 // 7. Dispatch the Request
-$router->dispatch($requestUri, $requestMethod);
+$router->dispatch($requestUri, $requestMethod);
