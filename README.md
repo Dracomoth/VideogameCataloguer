@@ -1,3 +1,7 @@
+
+
+& "C:\php\php.exe" -S localhost:8000 router.php
+
 public_html/vdgn-test/
 ├── README.md                     # Contains architecture map, setup guide, roles
 ├── .htaccess                     # Central rewrite & security firewall
