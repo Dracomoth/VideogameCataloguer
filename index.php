@@ -16,7 +16,6 @@ if (!file_exists($configFile)) {
     header('Content-Type: text/plain; charset=utf-8');
     exit("Configuration file missing. Please copy 'config/config.example.php' to 'config/config.php' and enter your environment settings.");
 }
-
 $config = require $configFile;
 
 // 3. Configure environment error reporting
@@ -34,8 +33,8 @@ if (!empty($config['app']['debug'])) {
 spl_autoload_register(function (string $class): void {
     $prefix = 'Vault\\';
     $baseDir = __DIR__ . '/src/';
-
     $len = strlen($prefix);
+
     if (strncmp($prefix, $class, $len) !== 0) {
         return;
     }
@@ -48,55 +47,82 @@ spl_autoload_register(function (string $class): void {
     }
 });
 
+use Vault\Services\Database;
+use Vault\Services\Response;
+use Vault\Services\Router;
+
 // 5. Parse Request Context
 $requestUri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $requestMethod = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 
-// Normalize URI path (trim duplicate slashes and strip script name if subfolder-hosted)
+// Normalize URI path (trim duplicate slashes and strip script folder if subfolder-hosted)
 $scriptDir = trim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/\\');
 if ($scriptDir !== '' && str_starts_with(trim($requestUri, '/'), $scriptDir)) {
     $path = substr(trim($requestUri, '/'), strlen($scriptDir));
     $requestUri = '/' . ltrim($path, '/');
 }
 
-// 6. Base Verification Route Dispatcher
-// (We will expand this to full controller-based routing once core classes are defined)
-if ($requestUri === '/' || $requestUri === '/health') {
-    $isJson = (!empty($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))
-           || str_starts_with($requestUri, '/api/');
+// 6. Initialize Router
+$router = new Router();
 
-    $response = [
-        'status'  => 'online',
-        'app'     => $config['app']['name'],
-        'env'     => $config['app']['env'],
-        'time'    => date('Y-m-d H:i:s'),
-        'route'   => $requestUri,
-        'method'  => $requestMethod,
-    ];
-
-    if ($isJson || $requestUri === '/health') {
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['success' => true, 'data' => $response], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-        exit;
+// Baseline Health & Verification Route
+$router->get('/health', function () use ($config) {
+    $dbStatus = 'offline';
+    try {
+        Database::getConnection();
+        $dbStatus = 'online';
+    } catch (\Throwable $e) {
+        $dbStatus = 'error: ' . $e->getMessage();
     }
 
-    // Default development landing text
-    header('Content-Type: text/html; charset=utf-8');
-    echo "<!DOCTYPE html><html><head><title>{$config['app']['name']} - Setup</title></head>";
-    echo "<body style=\"font-family: sans-serif; background: #0b0f19; color: #f8fafc; padding: 40px;\">";
-    echo "<h2>🎮 {$config['app']['name']} Front Controller Active</h2>";
-    echo "<p>Environment: <strong>{$config['app']['env']}</strong></p>";
-    echo "<p>Native autoloader and routing pipeline operational.</p>";
-    echo "</body></html>";
-    exit;
-}
+    Response::json([
+        'status'   => 'ok',
+        'app'      => $config['app']['name'],
+        'env'      => $config['app']['env'],
+        'database' => $dbStatus,
+        'time'     => date('Y-m-d H:i:s'),
+    ]);
+});
 
-// Default 404 handler for unrecognized routes during initial setup
-http_response_code(404);
-header('Content-Type: application/json; charset=utf-8');
-echo json_encode([
-    'success' => false,
-    'error'   => 'Route not found.',
-    'path'    => $requestUri
-], JSON_UNESCAPED_SLASHES);
-exit;
+// Root Dev Landing / Verification Route
+$router->get('/', function () use ($config) {
+    $isJson = (!empty($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))
+           || str_starts_with($_SERVER['REQUEST_URI'] ?? '', '/api/');
+
+    $dbStatus = 'offline';
+    try {
+        Database::getConnection();
+        $dbStatus = 'connected';
+    } catch (\Throwable) {
+        $dbStatus = 'disconnected';
+    }
+
+    if ($isJson) {
+        Response::json([
+            'status'   => 'online',
+            'app'      => $config['app']['name'],
+            'env'      => $config['app']['env'],
+            'database' => $dbStatus,
+            'time'     => date('Y-m-d H:i:s'),
+        ]);
+    }
+
+    $dbBadgeColor = $dbStatus === 'connected' ? '#10b981' : '#ef4444';
+
+    Response::html("<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"UTF-8\">
+  <title>{$config['app']['name']} - Setup</title>
+</head>
+<body style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b0f19; color: #f8fafc; padding: 40px;\">
+  <h2>🎮 {$config['app']['name']} Front Controller Active</h2>
+  <p>Environment: <strong>{$config['app']['env']}</strong></p>
+  <p>Database: <span style=\"background: {$dbBadgeColor}; color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: 600;\">{$dbStatus}</span></p>
+  <p>Router and service pipeline operational.</p>
+</body>
+</html>");
+});
+
+// 7. Dispatch the Request
+$router->dispatch($requestUri, $requestMethod);
