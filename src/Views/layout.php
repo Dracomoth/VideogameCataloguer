@@ -30,6 +30,9 @@ $totalSystems = $stats['total_consoles'] ?? 0;
 
 $stylePath = __DIR__ . '/../../assets/css/style.css';
 $styleVer  = file_exists($stylePath) ? (string)filemtime($stylePath) : '1.0';
+
+$gridJsPath = __DIR__ . '/../../assets/js/components/data-grid.js';
+$gridJsVer  = file_exists($gridJsPath) ? (string)filemtime($gridJsPath) : '1.0';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -58,5 +61,8 @@ $styleVer  = file_exists($stylePath) ? (string)filemtime($stylePath) : '1.0';
 
 <!-- Global Dynamic Toast Mount -->
 <div id="toastContainer"></div>
+
+<!-- Universal Web Components -->
+<script src="/assets/js/components/data-grid.js?v=<?= $gridJsVer ?>"></script>
 </body>
 </html>

@@ -45,7 +45,7 @@ $canView = function (string $screen): bool {
       </a>
     <?php endif; ?>
 
-    <?php if ($canView('games') || $canView('consoles') || $canView('publishers')): ?>
+    <?php if ($canView('games') || $canView('consoles') || $canView('publishers') || $canView('categories') || $canView('subcategories') || $canView('languages')): ?>
       <span class="nav-divider nav-desktop-only"></span>
     <?php endif; ?>
 

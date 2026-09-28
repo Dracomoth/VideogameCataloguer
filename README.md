@@ -42,10 +42,12 @@ public_html/vdgn-test/
 │   ├── Controllers/
 │   │   ├── AuthController.php    # Session login & logout handler
 │   │   ├── DashboardController.php # Command center telemetry & workbench
+│   │   ├── LanguageController.php # Taxonomy languages maintenance
 │   │   ├── RoleController.php    # Dual-device matrix & role configuration
 │   │   └── UserController.php    # User administration & profile CRUD
 │   ├── Repositories/
 │   │   ├── DashboardRepository.php # Collection metrics & rankings
+│   │   ├── LanguageRepository.php # Language queries & referential integrity
 │   │   ├── RoleRepository.php    # Dual-device matrix persistence
 │   │   └── UserRepository.php    # User record & role queries
 │   ├── Services/
@@ -57,6 +59,7 @@ public_html/vdgn-test/
 │       ├── dashboard.php         # Permanent Command Center body view
 │       ├── footer.php            # Modular footer component
 │       ├── header.php            # Modular top brand & telemetry banner
+│       ├── languages.php         # Taxonomy languages grid & modals
 │       ├── layout.php            # Master scaffold wrapper
 │       ├── login.php             # Standalone dark-slate login screen
 │       ├── navbar.php            # Modular RBAC-filtered navigation bar
@@ -142,3 +145,15 @@ Updated front controller routing table connecting Authentication (`/login`, `/lo
 
 20) File 19: src/Controllers/DashboardController.php (Committed & Tested)
 Enforced `Auth::requireAccess('dashboard', 'read')` on `index` and `api` endpoints, redirecting unauthenticated visitors to `/login`.
+
+21) File 20: Universal Data-Grid Web Component (Committed & Tested)
+- `assets/js/components/data-grid.js`: Zero-dependency, reusable `<data-grid>` (`<vault-grid>`) Web Component.
+- Features: Rich column rendering (pill badges, bold text, action buttons, custom HTML callbacks), instant multi-column search filtering, multi-type column sorting (text, number, date), and comprehensive pagination controls: First (`<<`), Previous (`<`), Next (`>`), Last (`>>`), Page X of Y indicator, Jump to Page direct input, and 25 / 50 / 100 items per page selector.
+- `assets/css/style.css`: Section 20 `.vault-grid-*` centralized dark-slate styles with zero embedded runtime styles in JavaScript.
+- `src/Views/layout.php`: Registered Web Component script globally with automatic cache-busting (`filemtime`).
+
+22) File 21: Taxonomy Languages & Regions Maintenance Module (Committed & Tested)
+- `src/Repositories/LanguageRepository.php`: Data access layer for `languages` table with game reference counts (`COUNT(games.id)`), duplicate name checking, and safe deletion prevention if linked games exist.
+- `src/Controllers/LanguageController.php`: RBAC protected (`Auth::requireAccess('languages', 'read'|'write')`) controller providing `index`, `apiList`, `create`, `update`, and `delete`.
+- `src/Views/languages.php`: Taxonomy management view integrating `<data-grid>`, Add/Edit modal dialogs, and Delete confirmation modal with active game-count safeguards.
+- `src/Views/navbar.php` & `index.php`: Updated desktop navigation tab and registered routes (`/languages`, `/api/languages`, `/languages/create`, `/languages/{id}/update`, `/languages/{id}/delete`).

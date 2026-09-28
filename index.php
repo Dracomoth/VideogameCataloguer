@@ -49,6 +49,7 @@ spl_autoload_register(function (string $class): void {
 
 use Vault\Controllers\AuthController;
 use Vault\Controllers\DashboardController;
+use Vault\Controllers\LanguageController;
 use Vault\Controllers\RoleController;
 use Vault\Controllers\UserController;
 use Vault\Services\Database;
@@ -117,6 +118,15 @@ $router->get('/api/roles/{id}/matrix', [RoleController::class, 'matrix']);
 $router->post('/roles/{id}/update', [RoleController::class, 'update']);
 $router->post('/roles/{id}/delete', [RoleController::class, 'delete']);
 $router->delete('/roles/{id}', [RoleController::class, 'delete']);
+
+// Taxonomy: Languages & Regions Routes
+$router->get('/languages', [LanguageController::class, 'index']);
+$router->get('/api/languages', [LanguageController::class, 'apiList']);
+$router->post('/languages', [LanguageController::class, 'create']);
+$router->post('/languages/create', [LanguageController::class, 'create']);
+$router->post('/languages/{id}/update', [LanguageController::class, 'update']);
+$router->post('/languages/{id}/delete', [LanguageController::class, 'delete']);
+$router->delete('/languages/{id}', [LanguageController::class, 'delete']);
 
 // 7. Dispatch the Request
 $router->dispatch($requestUri, $requestMethod);
