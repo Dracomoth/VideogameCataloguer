@@ -1,0 +1,21 @@
+# Database configuration & environment credentials
+config/config.php
+
+# Operating system files
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Uploaded runtime media (keep directory structure, ignore user files)
+images/games/*
+images/consoles/*
+!images/games/.gitkeep
+!images/consoles/.gitkeep
+!images/support/
+
+# Temporary logs & server staging
+storage/logs/*.log
+*.log
+
+# Local router and test artifacts
+router.php
