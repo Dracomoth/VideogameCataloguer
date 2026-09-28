@@ -16,6 +16,3 @@ images/consoles/*
 # Temporary logs & server staging
 storage/logs/*.log
 *.log
-
-# Local router and test artifacts
-router.php
