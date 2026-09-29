@@ -13,9 +13,8 @@ images/consoles/*
 !images/consoles/.gitkeep
 !images/support/
 
-# Scratch & Test files
+# Scratch files
 scratch/*
-test/*
 
 # Temporary logs & server staging
 storage/logs/*.log
