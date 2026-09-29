@@ -1101,8 +1101,15 @@ tr.active td {
 
 .dashboard-portals-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 240px));
     gap: 12px;
+    align-content: start;
+    align-items: start;
+}
+
+.dashboard-portals-grid .nav-card {
+    min-height: 150px;
+    max-height: 160px;
 }
 
 /* Tablet & Mobile Breakpoint: Convert horizontal splits to vertical stack */
@@ -1119,6 +1126,11 @@ tr.active td {
 
     .dashboard-portals-grid {
         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+
+    .dashboard-portals-grid .nav-card {
+        max-height: none;
+        min-height: 150px;
     }
 }
 
@@ -2358,4 +2370,4 @@ vault-grid {
 
 .vault-grid-jump-btn:hover {
     background: var(--panel-hover);
-}
+}
