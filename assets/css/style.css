@@ -68,6 +68,7 @@ body {
     -webkit-font-smoothing: antialiased;
     padding: 16px;
     min-height: 100vh;
+    overflow-x: hidden;
 }
 
 a {
@@ -85,6 +86,7 @@ img {
    -------------------------------------------------------------------------- */
 .master-wrapper {
     max-width: 1480px;
+    width: 100%;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
@@ -94,6 +96,8 @@ img {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     overflow: hidden;
+    overflow-x: hidden;
+    box-sizing: border-box;
 }
 
 .master-header {
@@ -234,6 +238,11 @@ img {
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 .master-footer {
@@ -687,12 +696,29 @@ textarea.form-control {
 /* --------------------------------------------------------------------------
    8. Layout Grids (Master-Detail & Split Form)
    -------------------------------------------------------------------------- */
-.workspace {
+.workspace,
+.workspace-games,
+.workspace-consoles {
     display: grid;
     grid-template-columns: 340px 1fr;
     gap: 16px;
     align-items: start;
     padding: 16px;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.workspace > *,
+.workspace-games > *,
+.workspace-consoles > *,
+.editor-pane,
+.editor-card,
+.grid-card {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .editor-card {
@@ -1695,9 +1721,13 @@ tr.active td {
     }
 }
 
-@media (max-width: 840px) {
-    .workspace {
-        grid-template-columns: 1fr;
+@media (max-width: 860px) {
+    .workspace,
+    .workspace-games,
+    .workspace-consoles {
+        grid-template-columns: minmax(0, 1fr) !important;
+        padding: 12px 8px !important;
+        gap: 16px !important;
     }
 
     .editor-layout,
@@ -1957,7 +1987,10 @@ tr.active td {
 data-grid,
 vault-grid {
     display: block;
-    width: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
     color: var(--text-main);
     font-family: inherit;
 }
@@ -1969,6 +2002,11 @@ vault-grid {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: 100%;
 }
 
 /* Toolbar */
@@ -1981,6 +2019,7 @@ vault-grid {
     background: var(--surface-alt);
     border-bottom: 1px solid var(--border);
     flex-wrap: wrap;
+    flex-shrink: 0;
 }
 
 .vault-grid-toolbar-left,
@@ -2064,18 +2103,48 @@ vault-grid {
 
 /* Table Scaffold */
 .vault-grid-table-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-y: auto;
     overflow-x: auto;
-    min-height: 220px;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+}
+
+.vault-grid-table-container::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.vault-grid-table-container::-webkit-scrollbar-track {
+    background: var(--surface-alt);
+}
+
+.vault-grid-table-container::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: var(--radius-pill);
+}
+
+.vault-grid-table-container::-webkit-scrollbar-thumb:hover {
+    background: var(--border-focus);
 }
 
 .vault-grid-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     text-align: left;
     font-size: 13px;
 }
 
 .vault-grid-table th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
     background: var(--surface-alt);
     color: var(--text-muted);
     font-size: 11px;
@@ -2269,6 +2338,7 @@ vault-grid {
     border-top: 1px solid var(--border);
     flex-wrap: wrap;
     gap: 14px;
+    flex-shrink: 0;
 }
 
 .vault-grid-telemetry {
@@ -2371,3 +2441,217 @@ vault-grid {
 .vault-grid-jump-btn:hover {
     background: var(--panel-hover);
 }
+
+/* Empty Row Vertical Centering */
+.vault-grid-table:has(.vault-grid-empty-row) {
+    height: 100%;
+}
+
+.vault-grid-empty-row td {
+    vertical-align: middle;
+}
+
+/* Reset outer .grid-card wrapper borders when containing <data-grid> */
+.workspace > .grid-card,
+.workspace-consoles > .grid-card,
+.workspace-games > .grid-card,
+.grid-card:has(data-grid),
+.grid-card:has(vault-grid) {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Responsive Mobile Data-Grid & Maintenance Table Rules */
+@media (max-width: 860px) {
+    data-grid,
+    vault-grid {
+        height: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        display: block !important;
+        box-sizing: border-box !important;
+    }
+
+    .vault-grid-wrapper {
+        height: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
+
+    .vault-grid-table-container {
+        flex: 0 1 auto !important;
+        min-height: 200px !important;
+        max-height: 315px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        overflow-y: auto !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-x pan-y;
+        box-sizing: border-box !important;
+    }
+
+    /* Prevent table columns from squishing while enabling smooth horizontal touch scroll */
+    .vault-grid-table {
+        min-width: 580px;
+        width: 100%;
+    }
+
+    .vault-grid-table th,
+    .vault-grid-table td {
+        padding: 9px 12px !important;
+        font-size: 12px !important;
+        white-space: nowrap;
+    }
+
+    .vault-grid-table td:nth-child(2) {
+        white-space: normal;
+        min-width: 130px;
+    }
+
+    .vault-grid-empty-state {
+        padding: 36px 16px;
+    }
+
+    /* Toolbar responsive ergonomics */
+    .vault-grid-toolbar {
+        padding: 10px 12px !important;
+        gap: 10px !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .vault-grid-toolbar-left,
+    .vault-grid-toolbar-right {
+        width: 100% !important;
+        gap: 8px !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .vault-grid-search-wrap,
+    .vault-grid-search-input {
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .vault-grid-filters-group {
+        width: 100% !important;
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+        gap: 8px !important;
+    }
+
+    .vault-grid-filter-item {
+        width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+    }
+
+    .vault-grid-select-filter {
+        width: 100% !important;
+        min-width: 0 !important;
+        flex: 1 !important;
+        box-sizing: border-box !important;
+    }
+
+    .vault-grid-size-selector {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+    }
+
+    .vault-grid-select-size {
+        height: 34px !important;
+    }
+
+    /* Footer responsive ergonomics */
+    .vault-grid-footer {
+        padding: 10px 12px !important;
+        gap: 10px !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .vault-grid-telemetry {
+        text-align: center !important;
+        width: 100% !important;
+        font-size: 11px !important;
+    }
+
+    .vault-grid-pagination {
+        width: 100% !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 8px !important;
+    }
+
+    .vault-grid-paging-buttons {
+        width: 100% !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        flex-wrap: wrap !important;
+    }
+
+    .vault-grid-page-btn {
+        padding: 6px 10px !important;
+        min-width: 32px !important;
+        height: 32px !important;
+    }
+
+    .vault-grid-jump-container {
+        border-left: none !important;
+        padding-left: 0 !important;
+        margin-top: 4px !important;
+        justify-content: center !important;
+    }
+
+    /* User Management & Roles Matrix responsive containers */
+    .users-view-container,
+    .roles-view-container {
+        padding: 14px 10px !important;
+        gap: 16px !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .roles-workbench-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 16px !important;
+    }
+
+    .roles-workbench-grid > .grid-card {
+        padding: 14px 10px !important;
+    }
+
+    .table-container,
+    .table-scroll {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-x pan-y;
+        box-sizing: border-box !important;
+    }
+
+    .table-container > table,
+    .table-scroll > table {
+        min-width: 580px;
+        width: 100%;
+    }
+}

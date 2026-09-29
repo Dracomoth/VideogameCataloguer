@@ -32,10 +32,13 @@ if (!defined('APP_INIT')) {
   background: var(--row-active, rgba(56, 189, 248, 0.16)) !important;
 }
 .grid-card {
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--panel);
-  overflow: hidden;
+  border: none;
+  background: transparent;
+  padding: 0;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Category & Subcategory Pill Badges */

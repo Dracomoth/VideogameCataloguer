@@ -75,7 +75,7 @@ $isSuper = !empty($selectedRole['is_super']) || $selectedId === 1;
   </div>
 
   <!-- Two-Column Workbench Layout -->
-  <div style="display: grid; grid-template-columns: minmax(280px, 340px) 1fr; gap: 20px; align-items: start;">
+  <div class="roles-workbench-grid" style="display: grid; grid-template-columns: minmax(280px, 340px) 1fr; gap: 20px; align-items: start;">
     <!-- LEFT COLUMN: Roles List Navigation -->
     <div style="display: flex; flex-direction: column; gap: 10px;">
       <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 2px;">

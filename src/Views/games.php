@@ -36,10 +36,15 @@ if (!defined('APP_INIT')) {
   gap: 16px;
   align-items: start;
   padding: 16px;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
-@media (max-width: 1180px) {
+@media (max-width: 960px) {
   .workspace-games {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 12px 8px;
   }
 }
 
@@ -51,10 +56,13 @@ if (!defined('APP_INIT')) {
   background: var(--row-active, rgba(56, 189, 248, 0.16)) !important;
 }
 .grid-card {
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--panel);
-  overflow: hidden;
+  border: none;
+  background: transparent;
+  padding: 0;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* 2-Column Form Fields */
@@ -80,6 +88,16 @@ if (!defined('APP_INIT')) {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
+}
+@media (max-width: 520px) {
+  .chip-group-3 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 360px) {
+  .chip-group-3 {
+    grid-template-columns: 1fr;
+  }
 }
 .chip-toggle {
   display: flex;

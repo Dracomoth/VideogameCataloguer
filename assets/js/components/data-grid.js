@@ -72,6 +72,11 @@ class DataGrid extends HTMLElement {
 
   connectedCallback() {
     this.render();
+    this._setupHeightSync();
+  }
+
+  disconnectedCallback() {
+    this._teardownHeightSync();
   }
 
   // =========================================================================
@@ -281,6 +286,7 @@ class DataGrid extends HTMLElement {
 
     this._bindEvents();
     this._applyDataPipeline();
+    this._requestSyncHeight();
   }
 
   _renderCustomFilterBars() {
@@ -448,6 +454,7 @@ class DataGrid extends HTMLElement {
     }
 
     this.dispatchEvent(new CustomEvent('grid-updated', { bubbles: true }));
+    this._requestSyncHeight();
   }
 
   _renderCell(row, col, rowIndex) {
@@ -667,7 +674,123 @@ class DataGrid extends HTMLElement {
     });
   }
 
+  // =========================================================================
+  // Height Synchronization (PC Fixed Size vs Mobile Dynamic Bounds)
+  // =========================================================================
 
+  _setupHeightSync() {
+    this._teardownHeightSync();
+
+    if (window.ResizeObserver) {
+      this._sideFormObserver = new ResizeObserver(() => {
+        this._requestSyncHeight();
+      });
+      const sideForm = this._findSideForm();
+      if (sideForm) {
+        this._sideFormObserver.observe(sideForm);
+        this._observedSideForm = sideForm;
+      }
+    }
+
+    this._onWindowResize = () => {
+      this._requestSyncHeight();
+    };
+    window.addEventListener('resize', this._onWindowResize, { passive: true });
+
+    this._requestSyncHeight();
+  }
+
+  _teardownHeightSync() {
+    if (this._sideFormObserver) {
+      this._sideFormObserver.disconnect();
+      this._sideFormObserver = null;
+    }
+    this._observedSideForm = null;
+    if (this._onWindowResize) {
+      window.removeEventListener('resize', this._onWindowResize);
+      this._onWindowResize = null;
+    }
+    if (this._syncRafId) {
+      cancelAnimationFrame(this._syncRafId);
+      this._syncRafId = null;
+    }
+  }
+
+  _requestSyncHeight() {
+    if (this._syncRafId) {
+      cancelAnimationFrame(this._syncRafId);
+    }
+    this._syncRafId = requestAnimationFrame(() => {
+      this._syncHeight();
+    });
+  }
+
+  _isMobileLayout() {
+    return window.innerWidth <= 860;
+  }
+
+  _findSideForm() {
+    // 1. Search in closest workspace container
+    const workspace = this.closest('.workspace, .workspace-consoles, .workspace-games');
+    if (workspace) {
+      const form = workspace.querySelector('.editor-card, aside.editor-card');
+      if (form) return form;
+    }
+    // 2. Search in parent container sibling tree
+    if (this.parentElement) {
+      const siblingForm = this.parentElement.parentElement?.querySelector('.editor-card, aside.editor-card');
+      if (siblingForm) return siblingForm;
+    }
+    // 3. Fallback to document query
+    return document.querySelector('.editor-card, aside.editor-card');
+  }
+
+  _syncHeight() {
+    const MIN_GRID_HEIGHT = 520;
+    const wrapper = this.querySelector('.vault-grid-wrapper');
+    const tableContainer = this.querySelector('.vault-grid-table-container');
+
+    if (this._isMobileLayout()) {
+      // Mobile Mode:
+      // Allow grid to range from empty state minimum (~200px) to maximum 5-6 records (~315px)
+      this.style.height = '';
+      if (wrapper) {
+        wrapper.style.height = '';
+      }
+      if (tableContainer) {
+        tableContainer.style.height = '';
+        tableContainer.style.minHeight = '200px';
+        tableContainer.style.maxHeight = '315px';
+      }
+      return;
+    }
+
+    // PC Browser Mode:
+    // Fixed size: either established reasonable minimum (520px) or maximum of side form if bigger
+    const sideForm = this._findSideForm();
+    let targetHeight = MIN_GRID_HEIGHT;
+
+    if (sideForm) {
+      if (this._sideFormObserver && this._observedSideForm !== sideForm) {
+        this._sideFormObserver.observe(sideForm);
+        this._observedSideForm = sideForm;
+      }
+      const formHeight = Math.round(sideForm.offsetHeight);
+      if (formHeight > 0) {
+        targetHeight = Math.max(MIN_GRID_HEIGHT, formHeight);
+      }
+    }
+
+    this.style.height = `${targetHeight}px`;
+    if (wrapper) {
+      wrapper.style.height = '100%';
+    }
+    if (tableContainer) {
+      tableContainer.style.height = '';
+      tableContainer.style.minHeight = '0';
+      tableContainer.style.maxHeight = 'none';
+    }
+  }
 
   _escapeHtml(str) {
     if (str === null || str === undefined) return '';
