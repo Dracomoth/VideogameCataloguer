@@ -106,7 +106,14 @@ final class UserRepository
         $password  = (string)($data['password'] ?? '');
         $roleId    = (int)($data['role_id'] ?? 0);
         $avatar    = !empty($data['avatar_path']) ? trim((string)$data['avatar_path']) : null;
-        $isActive  = isset($data['is_active']) ? (int)(bool)$data['is_active'] : 1;
+        $isActive  = array_key_exists('is_active', $data) ? (int)(bool)$data['is_active'] : 1;
+
+        // Super Admin accounts must always be active
+        $roleRepo = new RoleRepository();
+        $targetRole = $roleRepo->getById($roleId);
+        if (!empty($targetRole['is_super'])) {
+            $isActive = 1;
+        }
 
         if ($firstName === '' || $lastName === '') {
             throw new InvalidArgumentException('First and last name are required.');
@@ -170,12 +177,19 @@ final class UserRepository
         $email     = strtolower(trim((string)($data['email'] ?? $user['email'])));
         $roleId    = isset($data['role_id']) ? (int)$data['role_id'] : (int)$user['role_id'];
         $avatar    = array_key_exists('avatar_path', $data) ? $data['avatar_path'] : $user['avatar_path'];
-        $isActive  = isset($data['is_active']) ? (int)(bool)$data['is_active'] : (int)$user['is_active'];
+        $isActive  = array_key_exists('is_active', $data) ? (int)(bool)$data['is_active'] : (int)$user['is_active'];
 
-        // Protect primary Super Admin (ID 1) from role alteration or deactivation
+        // Protect Super Admin accounts from deactivation
+        $roleRepo = new RoleRepository();
+        $targetRole = $roleRepo->getById($roleId);
+        $isSuper = ($id === 1) || !empty($user['is_super']) || (!empty($targetRole) && !empty($targetRole['is_super']));
+        if ($isSuper) {
+            $isActive = 1;
+        }
+
+        // Protect primary Super Admin (ID 1) from role alteration
         if ($id === 1) {
             $roleId = 1;
-            $isActive = 1;
         }
 
         // Email uniqueness check
@@ -228,8 +242,13 @@ final class UserRepository
      */
     public function toggleActive(int $id): bool
     {
-        if ($id === 1) {
-            throw new RuntimeException('The primary Super Admin account cannot be deactivated.');
+        $user = $this->getById($id);
+        if (!$user) {
+            throw new RuntimeException("User with ID {$id} not found.");
+        }
+
+        if ($id === 1 || !empty($user['is_super'])) {
+            throw new RuntimeException('Super Admin accounts cannot be deactivated.');
         }
 
         $sql = "UPDATE `users` SET `is_active` = IF(`is_active` = 1, 0, 1) WHERE `id` = :id";
@@ -244,8 +263,13 @@ final class UserRepository
      */
     public function delete(int $id): bool
     {
-        if ($id === 1) {
-            throw new RuntimeException('The primary Super Admin account cannot be deleted.');
+        $user = $this->getById($id);
+        if (!$user) {
+            throw new RuntimeException("User with ID {$id} not found.");
+        }
+
+        if ($id === 1 || !empty($user['is_super'])) {
+            throw new RuntimeException('Super Admin accounts cannot be deleted.');
         }
 
         $sql = "DELETE FROM `users` WHERE `id` = :id";

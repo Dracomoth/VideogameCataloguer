@@ -74,6 +74,9 @@ final class UserController
         Auth::requireAccess('users', 'write');
 
         $body = $request['body'] ?? [];
+        if (!isset($body['is_active']) && isset($body['email'])) {
+            $body['is_active'] = 0;
+        }
 
         try {
             $this->userRepo->create($body);
@@ -104,6 +107,9 @@ final class UserController
 
         $id = (int)($request['params']['id'] ?? ($request['body']['id'] ?? 0));
         $body = $request['body'] ?? [];
+        if (!isset($body['is_active']) && isset($body['email'])) {
+            $body['is_active'] = 0;
+        }
 
         try {
             $this->userRepo->update($id, $body);

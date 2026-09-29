@@ -243,9 +243,9 @@ if (!defined('APP_INIT')) {
       <!-- Role Selection -->
       <div>
         <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Assigned Role *</label>
-        <select id="userRoleId" name="role_id" required style="width: 100%; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius-md); color: #fff; padding: 8px 12px; font-size: 13px;">
+        <select id="userRoleId" name="role_id" required onchange="handleRoleChange()" style="width: 100%; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius-md); color: #fff; padding: 8px 12px; font-size: 13px;">
           <?php foreach ($roles as $r): ?>
-            <option value="<?= (int)$r['id'] ?>">
+            <option value="<?= (int)$r['id'] ?>" data-super="<?= !empty($r['is_super']) ? '1' : '0' ?>">
               <?= View::e($r['name']) ?><?= !empty($r['is_super']) ? ' (Super Admin)' : '' ?>
             </option>
           <?php endforeach; ?>
@@ -286,8 +286,9 @@ if (!defined('APP_INIT')) {
         <input type="text" id="userAvatarPath" name="avatar_path" placeholder="/images/avatars/user.jpg" style="width: 100%; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius-md); color: #fff; padding: 8px 12px; font-size: 13px;">
       </div>
 
-      <!-- Active Checkbox -->
-      <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+      <!-- Active Checkbox Container -->
+      <div id="userActiveContainer" style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+        <input type="hidden" name="is_active" value="0">
         <input type="checkbox" id="userIsActive" name="is_active" value="1" checked style="accent-color: var(--accent); width: 16px; height: 16px;">
         <label for="userIsActive" style="font-size: 12px; color: #fff; font-weight: 600;">Account is active & permitted to log in</label>
       </div>
@@ -307,6 +308,27 @@ if (!defined('APP_INIT')) {
 
 <script>
 /**
+ * Updates visibility of the active checkbox based on selected role and user ID.
+ */
+function handleRoleChange() {
+  const userId = parseInt(document.getElementById('userId').value, 10);
+  const roleSelect = document.getElementById('userRoleId');
+  const selectedOption = roleSelect.options[roleSelect.selectedIndex];
+  const isSuperRole = selectedOption && selectedOption.getAttribute('data-super') === '1';
+  const isSuperAdmin = userId === 1 || isSuperRole;
+
+  const activeContainer = document.getElementById('userActiveContainer');
+  const activeCheckbox = document.getElementById('userIsActive');
+
+  if (isSuperAdmin) {
+    activeContainer.style.display = 'none';
+    activeCheckbox.checked = true;
+  } else {
+    activeContainer.style.display = 'flex';
+  }
+}
+
+/**
  * Opens modal configured for creating a new user record.
  */
 function openCreateUserModal() {
@@ -322,6 +344,8 @@ function openCreateUserModal() {
   document.getElementById('passwordEditNote').style.display = 'none';
   document.getElementById('userAvatarPath').value = '';
   document.getElementById('userIsActive').checked = true;
+
+  handleRoleChange();
 
   // Auto-generate initial secure password for convenience
   generateSecurePassword();
@@ -346,7 +370,18 @@ function openEditUserModal(user) {
   document.getElementById('passwordHintText').textContent = '(Optional)';
   document.getElementById('passwordEditNote').style.display = 'block';
   document.getElementById('userAvatarPath').value = user.avatar_path || '';
-  document.getElementById('userIsActive').checked = parseInt(user.is_active, 10) === 1;
+
+  const isSuperAdmin = parseInt(user.id, 10) === 1 || parseInt(user.is_super, 10) === 1;
+  const activeContainer = document.getElementById('userActiveContainer');
+  const activeCheckbox = document.getElementById('userIsActive');
+
+  if (isSuperAdmin) {
+    activeContainer.style.display = 'none';
+    activeCheckbox.checked = true;
+  } else {
+    activeContainer.style.display = 'flex';
+    activeCheckbox.checked = parseInt(user.is_active, 10) === 1;
+  }
 
   const modal = document.getElementById('userModal');
   modal.style.display = 'flex';
