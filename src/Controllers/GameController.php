@@ -54,7 +54,7 @@ final class GameController
         Auth::requireAccess('games', 'read');
 
         $games         = $this->repo->getAll();
-        $consoles      = $this->consoleRepo->getAll();
+        $consoles      = $this->consoleRepo->getPlayableConsoles();
         $categories    = $this->categoryRepo->getAll();
         $subcategories = $this->subcategoryRepo->getAll();
         $publishers    = $this->publisherRepo->getAll();
@@ -94,7 +94,7 @@ final class GameController
         Auth::requireAccess('games', 'read');
 
         $games         = $this->repo->getAll();
-        $consoles      = $this->consoleRepo->getAll();
+        $consoles      = $this->consoleRepo->getPlayableConsoles();
         $categories    = $this->categoryRepo->getAll();
         $subcategories = $this->subcategoryRepo->getAll();
         $publishers    = $this->publisherRepo->getAll();

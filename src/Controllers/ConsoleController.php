@@ -53,15 +53,18 @@ final class ConsoleController
         $flashError   = $_SESSION['flash_error'] ?? null;
         unset($_SESSION['flash_message'], $_SESSION['flash_error']);
 
+        $masterConsoles = $this->repo->getPlayableConsoles();
+
         $viewData = [
-            'pageTitle'    => 'Consoles Maintenance',
-            'activeNav'    => 'consoles',
-            'consoles'     => $consoles,
-            'makers'       => $makers,
-            'consoleTypes' => $consoleTypes,
-            'canWrite'     => $canWrite,
-            'flashMessage' => $flashMessage,
-            'flashError'   => $flashError,
+            'pageTitle'      => 'Consoles Maintenance',
+            'activeNav'      => 'consoles',
+            'consoles'       => $consoles,
+            'makers'         => $makers,
+            'consoleTypes'   => $consoleTypes,
+            'masterConsoles' => $masterConsoles,
+            'canWrite'       => $canWrite,
+            'flashMessage'   => $flashMessage,
+            'flashError'     => $flashError,
         ];
 
         $html = View::render('consoles', $viewData, 'layout');
@@ -78,15 +81,17 @@ final class ConsoleController
     {
         Auth::requireAccess('consoles', 'read');
 
-        $consoles     = $this->repo->getAll();
-        $makers       = $this->publisherRepo->getConsoleMakers();
-        $consoleTypes = $this->typeRepo->getAll();
+        $consoles       = $this->repo->getAll();
+        $makers         = $this->publisherRepo->getConsoleMakers();
+        $consoleTypes   = $this->typeRepo->getAll();
+        $masterConsoles = $this->repo->getPlayableConsoles();
 
         Response::json([
-            'consoles'      => $consoles,
-            'makers'        => $makers,
-            'console_types' => $consoleTypes,
-            'can_write'     => Auth::canWrite('consoles'),
+            'consoles'        => $consoles,
+            'makers'          => $makers,
+            'console_types'   => $consoleTypes,
+            'master_consoles' => $masterConsoles,
+            'can_write'       => Auth::canWrite('consoles'),
         ]);
     }
 

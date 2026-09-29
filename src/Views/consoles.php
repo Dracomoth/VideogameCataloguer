@@ -322,12 +322,40 @@ if (!defined('APP_INIT')) {
         </div>
       </div>
 
-      <!-- Flags -->
-      <div class="form-group" style="margin-bottom: 6px;">
-        <label class="chip-toggle" for="isForReference" style="display: inline-flex; width: auto; padding: 7px 12px;">
-          <input type="checkbox" id="isForReference" name="is_for_reference" value="1" <?= !$canWrite ? 'disabled' : '' ?>>
-          📌 Reference Only
-        </label>
+      <!-- Hardware Flags & Conditional Master Platform Reference -->
+      <div class="form-group" style="margin-top: 16px; margin-bottom: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div>
+            <label class="chip-toggle" for="isForReference" style="display: inline-flex; width: auto; padding: 7px 12px; margin: 0; cursor: pointer;">
+              <input 
+                type="checkbox" 
+                id="isForReference" 
+                name="is_for_reference" 
+                value="1" 
+                onchange="handleReferenceChange(this.checked)"
+                <?= !$canWrite ? 'disabled' : '' ?>
+              >
+              📌 Reference Only
+            </label>
+          </div>
+
+          <!-- Master Platform Dropdown (Visible only when Reference Only is checked) -->
+          <div id="masterPlatformGroup" style="display: none; background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px;">
+            <label for="masterReferenceId" style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.05em; display: block; margin-bottom: 6px;">
+              Master Platform * <span style="font-weight: 400; text-transform: none; color: var(--text-muted);">(Primary console this reference derives from)</span>
+            </label>
+            <select id="masterReferenceId" name="master_reference_id" class="form-control" <?= !$canWrite ? 'disabled' : '' ?>>
+              <option value="">-- Select Master Platform --</option>
+              <?php if (!empty($masterConsoles)): ?>
+                <?php foreach ($masterConsoles as $mc): ?>
+                  <option value="<?= (int)$mc['id'] ?>">
+                    <?= htmlspecialchars((string)$mc['name'], ENT_QUOTES, 'UTF-8') ?>
+                  </option>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </select>
+          </div>
+        </div>
       </div>
 
       <!-- Visual Assets: Photo & Logo -->
@@ -521,6 +549,10 @@ if (!defined('APP_INIT')) {
   <?= json_encode($consoleTypes, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
 </script>
 
+<script id="serverMasterConsolesData" type="application/json">
+  <?= json_encode($masterConsoles ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
+</script>
+
 <script>
 /**
  * Master-Detail Consoles Controller Script
@@ -528,6 +560,7 @@ if (!defined('APP_INIT')) {
 let consolesList = [];
 let makersList = [];
 let consoleTypesList = [];
+let masterConsolesList = [];
 let selectedId = null;
 const canWrite = <?= json_encode($canWrite) ?>;
 
@@ -556,6 +589,16 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('Failed to parse console types dataset:', err);
     consoleTypesList = [];
   }
+
+  try {
+    const rawMasters = document.getElementById('serverMasterConsolesData').textContent;
+    masterConsolesList = JSON.parse(rawMasters || '[]');
+  } catch (err) {
+    masterConsolesList = [];
+  }
+
+  // Populate master platform candidates initially
+  populateMasterDropdown(null);
 
   // 2. Initialize the reusable <data-grid>
   const grid = document.getElementById('consolesGrid');
@@ -593,7 +636,8 @@ document.addEventListener('DOMContentLoaded', () => {
               flagsHtml += `<span class="tag-flag" style="background-color: ${escapeHtml(bg)}; color: ${escapeHtml(font)}; border: 1px solid ${escapeHtml(font)}44;">${escapeHtml(typeName)}</span>`;
             }
             if (Number(row.is_for_reference) === 1) {
-              flagsHtml += `<span class="tag-flag tag-reference">REF</span>`;
+              const masterTip = row.master_console_name ? ` title="Master: ${escapeHtml(row.master_console_name)}"` : ' title="Reference-only platform"';
+              flagsHtml += `<span class="tag-flag tag-reference"${masterTip}>REF</span>`;
             }
           }
           return `<div style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
@@ -706,7 +750,27 @@ function selectConsole(id) {
   document.getElementById('releaseYear').value = record.year || '';
   document.getElementById('generation').value = record.generation || '';
   document.getElementById('consoleTypeId').value = String(record.console_type_id || '');
-  document.getElementById('isForReference').checked = Number(record.is_for_reference) === 1;
+  
+  const isRef = Number(record.is_for_reference) === 1;
+  document.getElementById('isForReference').checked = isRef;
+
+  // Rebuild candidate master platform dropdown excluding this console and any reference consoles
+  populateMasterDropdown(selectedId);
+  const masterGroup = document.getElementById('masterPlatformGroup');
+  const masterSelect = document.getElementById('masterReferenceId');
+  if (isRef) {
+    if (masterGroup) masterGroup.style.display = 'block';
+    if (masterSelect) {
+      masterSelect.required = true;
+      masterSelect.value = String(record.master_reference_id || '');
+    }
+  } else {
+    if (masterGroup) masterGroup.style.display = 'none';
+    if (masterSelect) {
+      masterSelect.required = false;
+      masterSelect.value = '';
+    }
+  }
 
   document.getElementById('retroarchCore').value = record.retroarch_core || '';
   document.getElementById('coreLink').value = record.core_link || '';
@@ -727,8 +791,13 @@ function selectConsole(id) {
   if (deleteBtn) {
     deleteBtn.disabled = false;
     const gameCount = Number(record.games_count ?? record.game_count ?? 0);
-    if (gameCount > 0) {
+    const refCount = Number(record.reference_consoles_count ?? 0);
+    if (gameCount > 0 && refCount > 0) {
+      deleteBtn.title = `Cannot delete: Has ${gameCount} game(s) and is master platform for ${refCount} reference console(s)`;
+    } else if (gameCount > 0) {
       deleteBtn.title = `Cannot delete: Has ${gameCount} game(s) in its library`;
+    } else if (refCount > 0) {
+      deleteBtn.title = `Cannot delete: Master platform for ${refCount} reference console(s)`;
     } else {
       deleteBtn.title = `Delete ${record.name}`;
     }
@@ -747,6 +816,16 @@ function resetForm() {
   document.getElementById('consoleId').value = '';
   document.getElementById('consoleTypeId').value = '';
   document.getElementById('isForReference').checked = false;
+
+  const masterGroup = document.getElementById('masterPlatformGroup');
+  const masterSelect = document.getElementById('masterReferenceId');
+  if (masterGroup) masterGroup.style.display = 'none';
+  if (masterSelect) {
+    masterSelect.required = false;
+    masterSelect.value = '';
+  }
+  populateMasterDropdown(null);
+
   document.getElementById('deleteImage').value = '0';
   document.getElementById('deleteLogo').value = '0';
 
@@ -804,6 +883,88 @@ function resetDropzonePreview(containerId, deleteBtnId, icon, label) {
   }
   if (deleteBtn) {
     deleteBtn.disabled = true;
+  }
+}
+
+/**
+ * Handles checking/unchecking the "Reference Only" checkbox.
+ * When checked: validates eligibility, shows Master Platform dropdown, and ensures it appears clear.
+ * When unchecked: hides Master Platform dropdown and clears selection.
+ */
+function handleReferenceChange(isChecked) {
+  const masterGroup = document.getElementById('masterPlatformGroup');
+  const masterSelect = document.getElementById('masterReferenceId');
+
+  if (!isChecked) {
+    if (masterGroup) masterGroup.style.display = 'none';
+    if (masterSelect) {
+      masterSelect.required = false;
+      masterSelect.value = '';
+    }
+    return;
+  }
+
+  // If in edit mode, validate business rules before allowing checkbox to remain checked
+  if (selectedId !== null) {
+    const record = consolesList.find(c => Number(c.id) === selectedId);
+    if (record) {
+      const gameCount = Number(record.games_count ?? record.game_count ?? 0);
+      if (gameCount > 0) {
+        showToast(`Cannot mark as Reference Only: Console has ${gameCount} game(s) in its library.`, 'error');
+        document.getElementById('isForReference').checked = false;
+        if (masterGroup) masterGroup.style.display = 'none';
+        return;
+      }
+
+      const refCount = Number(record.reference_consoles_count ?? 0);
+      if (refCount > 0) {
+        showToast(`Cannot mark as Reference Only: This console is already the master platform for ${refCount} reference console(s).`, 'error');
+        document.getElementById('isForReference').checked = false;
+        if (masterGroup) masterGroup.style.display = 'none';
+        return;
+      }
+    }
+  }
+
+  // Re-populate master candidates excluding self and any reference consoles
+  populateMasterDropdown(selectedId);
+
+  // Each time the checkbox is marked the dropdown must appear but clear
+  if (masterSelect) {
+    masterSelect.value = '';
+    masterSelect.required = true;
+  }
+  if (masterGroup) {
+    masterGroup.style.display = 'block';
+  }
+}
+
+/**
+ * Re-populates the master platform dropdown options dynamically
+ */
+function populateMasterDropdown(excludeId = null) {
+  const masterSelect = document.getElementById('masterReferenceId');
+  if (!masterSelect) return;
+
+  const currentVal = masterSelect.value;
+  masterSelect.innerHTML = '<option value="">-- Select Master Platform --</option>';
+
+  // Master platform candidates: not marked as reference, and not the console itself
+  const candidates = consolesList.filter(c => {
+    if (Number(c.is_for_reference) === 1) return false;
+    if (excludeId !== null && Number(c.id) === Number(excludeId)) return false;
+    return true;
+  }).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+  candidates.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = String(c.id);
+    opt.textContent = c.name;
+    masterSelect.appendChild(opt);
+  });
+
+  if (currentVal && candidates.some(c => String(c.id) === currentVal)) {
+    masterSelect.value = currentVal;
   }
 }
 
@@ -925,6 +1086,14 @@ async function handleSave(e) {
     return;
   }
 
+  const isRef = document.getElementById('isForReference').checked;
+  const masterId = document.getElementById('masterReferenceId').value;
+  if (isRef && (!masterId || masterId === '')) {
+    showToast('Please select a Master Platform for this reference-only console.', 'error');
+    document.getElementById('masterReferenceId').focus();
+    return;
+  }
+
   saveBtn.disabled = true;
   saveBtn.textContent = '⏳ Saving...';
 
@@ -973,6 +1142,12 @@ async function handleDelete() {
   const gameCount = Number(record.games_count ?? record.game_count ?? 0);
   if (gameCount > 0) {
     showToast(`Cannot delete: Referenced by ${gameCount} game(s) in collection library.`, 'error');
+    return;
+  }
+
+  const refCount = Number(record.reference_consoles_count ?? 0);
+  if (refCount > 0) {
+    showToast(`Cannot delete: This console is the master platform for ${refCount} reference console(s). Reassign or delete those reference consoles first.`, 'error');
     return;
   }
 
@@ -1052,6 +1227,9 @@ async function reloadGridData(selectIdAfter = null) {
     if (grid) {
       grid.data = consolesList;
     }
+
+    // Refresh master candidates dropdown
+    populateMasterDropdown(selectedId);
 
     if (selectIdAfter) {
       selectConsole(selectIdAfter);

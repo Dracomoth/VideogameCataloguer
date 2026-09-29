@@ -244,6 +244,11 @@ final class GameRepository
             throw new InvalidArgumentException('Please select a platform/console.');
         }
 
+        $targetConsole = Database::fetchOne("SELECT id, is_for_reference FROM `consoles` WHERE id = :id", [':id' => $consoleId]);
+        if ($targetConsole && !empty($targetConsole['is_for_reference'])) {
+            throw new InvalidArgumentException("Cannot assign a game to a Reference-Only console platform.");
+        }
+
         $categoryId    = !empty($data['category_id']) ? (int)$data['category_id'] : null;
         $subcategoryId = !empty($data['subcategory_id']) ? (int)$data['subcategory_id'] : null;
         $languageId    = !empty($data['language_id']) ? (int)$data['language_id'] : null;
@@ -352,6 +357,11 @@ final class GameRepository
         $consoleId = !empty($data['console_id']) ? (int)$data['console_id'] : null;
         if ($consoleId === null || $consoleId <= 0) {
             throw new InvalidArgumentException('Please select a platform/console.');
+        }
+
+        $targetConsole = Database::fetchOne("SELECT id, is_for_reference FROM `consoles` WHERE id = :id", [':id' => $consoleId]);
+        if ($targetConsole && !empty($targetConsole['is_for_reference'])) {
+            throw new InvalidArgumentException("Cannot assign a game to a Reference-Only console platform.");
         }
 
         $categoryId    = !empty($data['category_id']) ? (int)$data['category_id'] : null;

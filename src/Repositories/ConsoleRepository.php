@@ -52,6 +52,9 @@ final class ConsoleRepository
                 ct.badge_bg_color,
                 ct.badge_font_color,
                 c.is_for_reference,
+                c.master_reference_id,
+                mc.name AS master_console_name,
+                (SELECT COUNT(*) FROM `consoles` sub_ref WHERE sub_ref.master_reference_id = c.id) AS reference_consoles_count,
                 c.image_path,
                 c.logo_path,
                 c.comments,
@@ -67,8 +70,9 @@ final class ConsoleRepository
             FROM `consoles` c
             LEFT JOIN `console_types` ct ON ct.id = c.console_type_id
             LEFT JOIN `publishers` p ON p.id = c.publisher_id
+            LEFT JOIN `consoles` mc ON mc.id = c.master_reference_id
             LEFT JOIN `games` g ON g.console_id = c.id
-            GROUP BY c.id
+            GROUP BY c.id, mc.name
             ORDER BY c.name ASC
         ";
 
@@ -99,6 +103,9 @@ final class ConsoleRepository
                 ct.badge_bg_color,
                 ct.badge_font_color,
                 c.is_for_reference,
+                c.master_reference_id,
+                mc.name AS master_console_name,
+                (SELECT COUNT(*) FROM `consoles` sub_ref WHERE sub_ref.master_reference_id = c.id) AS reference_consoles_count,
                 c.image_path,
                 c.logo_path,
                 c.comments,
@@ -114,9 +121,10 @@ final class ConsoleRepository
             FROM `consoles` c
             LEFT JOIN `console_types` ct ON ct.id = c.console_type_id
             LEFT JOIN `publishers` p ON p.id = c.publisher_id
+            LEFT JOIN `consoles` mc ON mc.id = c.master_reference_id
             LEFT JOIN `games` g ON g.console_id = c.id
             WHERE c.id = :id
-            GROUP BY c.id
+            GROUP BY c.id, mc.name
         ";
 
         $row = Database::fetchOne($sql, [':id' => $id]);
@@ -125,6 +133,39 @@ final class ConsoleRepository
         }
 
         return $this->formatConsoleRecord($row);
+    }
+
+    /**
+     * Retrieves all non-reference consoles (playable systems that can have games).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getPlayableConsoles(): array
+    {
+        $all = $this->getAll();
+        return array_values(array_filter($all, function (array $c): bool {
+            return empty($c['is_for_reference']);
+        }));
+    }
+
+    /**
+     * Retrieves candidate consoles that can serve as master platforms.
+     *
+     * @param int|null $excludeId Optional console ID to exclude from being its own master
+     * @return array<int, array<string, mixed>>
+     */
+    public function getMasterCandidates(?int $excludeId = null): array
+    {
+        $all = $this->getAll();
+        return array_values(array_filter($all, function (array $c) use ($excludeId): bool {
+            if (!empty($c['is_for_reference'])) {
+                return false;
+            }
+            if ($excludeId !== null && (int)$c['id'] === $excludeId) {
+                return false;
+            }
+            return true;
+        }));
     }
 
     /**
@@ -311,17 +352,32 @@ final class ConsoleRepository
         $retroarchCore      = trim((string)($data['retroarch_core'] ?? '')) ?: null;
         $coreLink           = trim((string)($data['core_link'] ?? '')) ?: null;
 
+        $masterReferenceId  = null;
+        if ($isForReference) {
+            $masterReferenceId = !empty($data['master_reference_id']) ? (int)$data['master_reference_id'] : null;
+            if ($masterReferenceId === null || $masterReferenceId <= 0) {
+                throw new InvalidArgumentException("Please select a Master Platform for this reference-only console.");
+            }
+            $masterConsole = Database::fetchOne("SELECT id, name, is_for_reference FROM `consoles` WHERE id = :id", [':id' => $masterReferenceId]);
+            if (!$masterConsole) {
+                throw new InvalidArgumentException("Selected Master Platform not found.");
+            }
+            if (!empty($masterConsole['is_for_reference'])) {
+                throw new InvalidArgumentException("The selected Master Platform is itself marked as reference-only. A reference console cannot be the master of another console.");
+            }
+        }
+
         $sql = "
             INSERT INTO `consoles` (
                 `name`, `publisher_id`, `year`, `generation`,
-                `console_type_id`, `is_for_reference`,
+                `console_type_id`, `is_for_reference`, `master_reference_id`,
                 `image_path`, `logo_path`, `comments`,
                 `emulator`, `emulator_link`,
                 `emulator_android`, `emulator_android_link`,
                 `retroarch_core`, `core_link`
             ) VALUES (
                 :name, :publisher_id, :year, :generation,
-                :console_type_id, :is_for_reference,
+                :console_type_id, :is_for_reference, :master_reference_id,
                 NULL, NULL, :comments,
                 :emulator, :emulator_link,
                 :emulator_android, :emulator_android_link,
@@ -336,6 +392,7 @@ final class ConsoleRepository
             ':generation'           => $generation,
             ':console_type_id'      => $consoleTypeId,
             ':is_for_reference'     => $isForReference,
+            ':master_reference_id'  => $masterReferenceId,
             ':comments'             => $comments,
             ':emulator'             => $emulator,
             ':emulator_link'        => $emulatorLink,
@@ -422,6 +479,36 @@ final class ConsoleRepository
         $retroarchCore      = trim((string)($data['retroarch_core'] ?? '')) ?: null;
         $coreLink           = trim((string)($data['core_link'] ?? '')) ?: null;
 
+        $masterReferenceId  = null;
+        if ($isForReference) {
+            $masterReferenceId = !empty($data['master_reference_id']) ? (int)$data['master_reference_id'] : null;
+            if ($masterReferenceId === null || $masterReferenceId <= 0) {
+                throw new InvalidArgumentException("Please select a Master Platform for this reference-only console.");
+            }
+            if ($masterReferenceId === $id) {
+                throw new InvalidArgumentException("A console cannot select itself as its own master platform.");
+            }
+            $masterConsole = Database::fetchOne("SELECT id, name, is_for_reference FROM `consoles` WHERE id = :id", [':id' => $masterReferenceId]);
+            if (!$masterConsole) {
+                throw new InvalidArgumentException("Selected Master Platform not found.");
+            }
+            if (!empty($masterConsole['is_for_reference'])) {
+                throw new InvalidArgumentException("The selected Master Platform is itself marked as reference-only. A reference console cannot be the master of another console.");
+            }
+
+            // Cannot mark console as reference if it has games associated
+            $gamesCount = $this->getGamesCount($id);
+            if ($gamesCount > 0) {
+                throw new InvalidArgumentException("Cannot mark this console as reference-only because it has {$gamesCount} game(s) in its library. Reference consoles cannot host game libraries.");
+            }
+
+            // Cannot mark console as reference if it is master of other reference console
+            $refCount = (int)Database::fetchColumn("SELECT COUNT(*) FROM `consoles` WHERE master_reference_id = :id", [':id' => $id]);
+            if ($refCount > 0) {
+                throw new InvalidArgumentException("Cannot mark this console as reference-only because it is already the master platform for {$refCount} other reference console(s).");
+            }
+        }
+
         $deleteImage = !empty($data['delete_image']);
         $deleteLogo  = !empty($data['delete_logo']);
 
@@ -460,6 +547,7 @@ final class ConsoleRepository
                 `generation`            = :generation,
                 `console_type_id`       = :console_type_id,
                 `is_for_reference`      = :is_for_reference,
+                `master_reference_id`   = :master_reference_id,
                 `image_path`            = :image_path,
                 `logo_path`             = :logo_path,
                 `comments`              = :comments,
@@ -479,6 +567,7 @@ final class ConsoleRepository
             ':generation'           => $generation,
             ':console_type_id'      => $consoleTypeId,
             ':is_for_reference'     => $isForReference,
+            ':master_reference_id'  => $masterReferenceId,
             ':image_path'           => $currentImagePath,
             ':logo_path'            => $currentLogoPath,
             ':comments'             => $comments,
@@ -521,6 +610,12 @@ final class ConsoleRepository
             throw new RuntimeException("Cannot delete this console because it has {$gamesCount} game(s) in its library. Reassign or delete those games first.");
         }
 
+        // Check if any reference consoles have this console as master
+        $refCount = (int)Database::fetchColumn("SELECT COUNT(*) FROM `consoles` WHERE master_reference_id = :id", [':id' => $id]);
+        if ($refCount > 0) {
+            throw new RuntimeException("Cannot delete this console because it is the master platform for {$refCount} other reference console(s). Reassign or delete those reference consoles first.");
+        }
+
         // Delete whatever files are referenced in image_path and logo_path
         $this->deleteAssetFile($existing['image_path']);
         $this->deleteAssetFile($existing['logo_path']);
@@ -545,15 +640,19 @@ final class ConsoleRepository
         $imagePath = (string)($row['image_path'] ?? '');
         $logoPath  = (string)($row['logo_path'] ?? '');
 
-        $row['id']                = (int)$row['id'];
-        $row['publisher_id']      = !empty($row['publisher_id']) ? (int)$row['publisher_id'] : null;
-        $row['console_type_id']   = (int)($row['console_type_id'] ?? 1);
-        $row['console_type_name'] = (string)($row['console_type_name'] ?? 'Home');
-        $row['badge_bg_color']    = (string)($row['badge_bg_color'] ?? '#1E3A8A');
-        $row['badge_font_color']  = (string)($row['badge_font_color'] ?? '#93C5FD');
-        $row['is_for_reference']  = (int)($row['is_for_reference'] ?? 0);
-        $row['games_count']       = (int)($row['games_count'] ?? 0);
-        $row['game_count']        = (int)($row['game_count'] ?? 0);
+        $row['id']                       = (int)$row['id'];
+        $row['publisher_id']             = !empty($row['publisher_id']) ? (int)$row['publisher_id'] : null;
+        $row['console_type_id']          = (int)($row['console_type_id'] ?? 1);
+        $row['console_type_name']        = (string)($row['console_type_name'] ?? 'Home');
+        $row['badge_bg_color']           = (string)($row['badge_bg_color'] ?? '#1E3A8A');
+        $row['badge_font_color']         = (string)($row['badge_font_color'] ?? '#93C5FD');
+        $row['is_for_reference']         = (int)($row['is_for_reference'] ?? 0);
+        $row['master_reference_id']      = !empty($row['master_reference_id']) ? (int)$row['master_reference_id'] : null;
+        $row['master_console_id']        = $row['master_reference_id'];
+        $row['master_console_name']      = (string)($row['master_console_name'] ?? '');
+        $row['reference_consoles_count'] = (int)($row['reference_consoles_count'] ?? 0);
+        $row['games_count']              = (int)($row['games_count'] ?? 0);
+        $row['game_count']               = (int)($row['game_count'] ?? 0);
 
         // Web accessible URLs for reading with automatic filemtime cache-busting
         $imgVer = '';
