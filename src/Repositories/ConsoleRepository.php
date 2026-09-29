@@ -188,6 +188,7 @@ final class ConsoleRepository
 
         if (file_exists($fullPath) && is_file($fullPath)) {
             @unlink($fullPath);
+            clearstatcache(true, $fullPath);
         }
     }
 
@@ -248,6 +249,7 @@ final class ConsoleRepository
         // If file with exact destination already exists, unlink it first
         if (file_exists($destination) && is_file($destination)) {
             @unlink($destination);
+            clearstatcache(true, $destination);
         }
 
         $saved = is_uploaded_file($file['tmp_name'])
@@ -257,6 +259,8 @@ final class ConsoleRepository
         if (!$saved) {
             throw new RuntimeException("Failed to save uploaded {$type} to destination: {$filename}");
         }
+
+        clearstatcache(true, $destination);
 
         return "images/consoles/{$filename}";
     }
@@ -556,9 +560,27 @@ final class ConsoleRepository
         $row['games_count']      = (int)($row['games_count'] ?? 0);
         $row['game_count']       = (int)($row['game_count'] ?? 0);
 
-        // Web accessible URLs for reading
-        $row['image_url'] = $imagePath !== '' ? ('/' . ltrim($imagePath, '/\\')) : '';
-        $row['logo_url']  = $logoPath !== ''  ? ('/' . ltrim($logoPath, '/\\'))  : '';
+        // Web accessible URLs for reading with automatic filemtime cache-busting
+        $imgVer = '';
+        if ($imagePath !== '') {
+            $cleanImg = ltrim(trim($imagePath), '/\\');
+            $fullImg  = $this->rootPath . '/' . $cleanImg;
+            if (file_exists($fullImg)) {
+                $imgVer = '?v=' . filemtime($fullImg);
+            }
+        }
+
+        $logoVer = '';
+        if ($logoPath !== '') {
+            $cleanLogo = ltrim(trim($logoPath), '/\\');
+            $fullLogo  = $this->rootPath . '/' . $cleanLogo;
+            if (file_exists($fullLogo)) {
+                $logoVer = '?v=' . filemtime($fullLogo);
+            }
+        }
+
+        $row['image_url'] = $imagePath !== '' ? ('/' . ltrim($imagePath, '/\\') . $imgVer) : '';
+        $row['logo_url']  = $logoPath !== ''  ? ('/' . ltrim($logoPath, '/\\')  . $logoVer) : '';
 
         return $row;
     }

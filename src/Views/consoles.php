@@ -774,7 +774,9 @@ function setDropzoneImage(containerId, url, deleteBtnId, icon, label) {
   if (!container) return;
 
   if (url && url.trim() !== '') {
-    container.innerHTML = `<img src="${escapeHtml(url)}" class="dropzone-preview-img" alt="Asset Preview" onerror="this.parentElement.innerHTML='<div class=\\'dropzone-empty\\'><span>⚠️</span><small>Image not found</small></div>';">`;
+    const cacheBuster = (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+    const displayUrl = url + cacheBuster;
+    container.innerHTML = `<img src="${escapeHtml(displayUrl)}" class="dropzone-preview-img" alt="Asset Preview" onerror="this.parentElement.innerHTML='<div class=\\'dropzone-empty\\'><span>⚠️</span><small>Image not found</small></div>';">`;
     if (deleteBtn && canWrite) deleteBtn.disabled = false;
   } else {
     resetDropzonePreview(containerId, deleteBtnId, icon, label);
