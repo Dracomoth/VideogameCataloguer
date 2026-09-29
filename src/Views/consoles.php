@@ -11,6 +11,7 @@
  * Variables expected from ConsoleController:
  * @var array<int, array<string, mixed>> $consoles
  * @var array<int, array<string, mixed>> $makers
+ * @var array<int, array<string, mixed>> $consoleTypes
  * @var bool $canWrite
  * @var string|null $flashMessage
  * @var string|null $flashError
@@ -294,35 +295,36 @@ if (!defined('APP_INIT')) {
         </div>
       </div>
 
-      <!-- Hardware Generation -->
-      <div class="form-group">
-        <label for="generation">Hardware Generation</label>
-        <input 
-          type="text" 
-          id="generation" 
-          name="generation" 
-          class="form-control" 
-          placeholder="e.g. 4th Gen, 16-bit"
-          <?= !$canWrite ? 'disabled' : '' ?>
-        >
+      <!-- Hardware Generation & Console Type -->
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label for="consoleTypeId">Console Hardware Type *</label>
+          <select id="consoleTypeId" name="console_type_id" class="form-control" required <?= !$canWrite ? 'disabled' : '' ?>>
+            <option value="">-- Select Type --</option>
+            <?php foreach ($consoleTypes as $ct): ?>
+              <option value="<?= (int)$ct['id'] ?>">
+                <?= htmlspecialchars((string)$ct['name'], ENT_QUOTES, 'UTF-8') ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="generation">Hardware Generation</label>
+          <input 
+            type="text" 
+            id="generation" 
+            name="generation" 
+            class="form-control" 
+            placeholder="e.g. 4th Gen, 16-bit"
+            <?= !$canWrite ? 'disabled' : '' ?>
+          >
+        </div>
       </div>
 
-      <!-- Hardware Type Flags -->
-      <div class="section-label">Hardware Type & Flags</div>
-      <div class="chip-group">
-        <label class="chip-toggle" for="isHandheld">
-          <input type="checkbox" id="isHandheld" name="is_handheld" value="1" <?= !$canWrite ? 'disabled' : '' ?>>
-          🕹️ Handheld / Portable
-        </label>
-        <label class="chip-toggle" for="isComputer">
-          <input type="checkbox" id="isComputer" name="is_computer" value="1" <?= !$canWrite ? 'disabled' : '' ?>>
-          💻 Microcomputer
-        </label>
-        <label class="chip-toggle" for="isArcade">
-          <input type="checkbox" id="isArcade" name="is_arcade" value="1" <?= !$canWrite ? 'disabled' : '' ?>>
-          👾 Arcade Board
-        </label>
-        <label class="chip-toggle" for="isForReference">
+      <!-- Flags -->
+      <div class="form-group" style="margin-bottom: 6px;">
+        <label class="chip-toggle" for="isForReference" style="display: inline-flex; width: auto; padding: 7px 12px;">
           <input type="checkbox" id="isForReference" name="is_for_reference" value="1" <?= !$canWrite ? 'disabled' : '' ?>>
           📌 Reference Only
         </label>
@@ -515,12 +517,17 @@ if (!defined('APP_INIT')) {
   <?= json_encode($makers, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
 </script>
 
+<script id="serverConsoleTypesData" type="application/json">
+  <?= json_encode($consoleTypes, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
+</script>
+
 <script>
 /**
  * Master-Detail Consoles Controller Script
  */
 let consolesList = [];
 let makersList = [];
+let consoleTypesList = [];
 let selectedId = null;
 const canWrite = <?= json_encode($canWrite) ?>;
 
@@ -542,21 +549,24 @@ document.addEventListener('DOMContentLoaded', () => {
     makersList = [];
   }
 
+  try {
+    const rawTypes = document.getElementById('serverConsoleTypesData').textContent;
+    consoleTypesList = JSON.parse(rawTypes || '[]');
+  } catch (err) {
+    console.error('Failed to parse console types dataset:', err);
+    consoleTypesList = [];
+  }
+
   // 2. Initialize the reusable <data-grid>
   const grid = document.getElementById('consolesGrid');
   if (grid) {
-    // Custom form factor filter dropdown
+    // Custom Console Type filter dropdown
     grid.customFilters = [
       {
-        key: 'form_factor',
+        key: 'console_type_id',
         label: '',
-        allLabel: 'All Form Factors',
-        options: [
-          { value: 'handheld', label: 'Portable Handhelds' },
-          { value: 'computer', label: 'Microcomputers' },
-          { value: 'arcade', label: 'Arcade Hardware' },
-          { value: 'reference', label: 'Reference Only' }
-        ]
+        allLabel: 'All Console Types',
+        options: consoleTypesList.map(ct => ({ value: String(ct.id), label: ct.name }))
       }
     ];
 
@@ -576,14 +586,11 @@ document.addEventListener('DOMContentLoaded', () => {
         render: (val, row) => {
           let flagsHtml = '';
           if (row) {
-            if (Number(row.is_handheld) === 1) {
-              flagsHtml += `<span class="tag-flag tag-handheld">PORTABLE</span>`;
-            }
-            if (Number(row.is_computer) === 1) {
-              flagsHtml += `<span class="tag-flag tag-computer">COMPUTER</span>`;
-            }
-            if (Number(row.is_arcade) === 1) {
-              flagsHtml += `<span class="tag-flag tag-arcade">ARCADE</span>`;
+            const typeName = row.console_type_name || '';
+            const bg = row.badge_bg_color || '#1e3a8a';
+            const font = row.badge_font_color || '#93c5fd';
+            if (typeName) {
+              flagsHtml += `<span class="tag-flag" style="background-color: ${escapeHtml(bg)}; color: ${escapeHtml(font)}; border: 1px solid ${escapeHtml(font)}44;">${escapeHtml(typeName)}</span>`;
             }
             if (Number(row.is_for_reference) === 1) {
               flagsHtml += `<span class="tag-flag tag-reference">REF</span>`;
@@ -678,17 +685,7 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 function mapConsolesDataset(list) {
   list.forEach(row => {
-    if (Number(row.is_handheld) === 1) {
-      row.form_factor = 'handheld';
-    } else if (Number(row.is_computer) === 1) {
-      row.form_factor = 'computer';
-    } else if (Number(row.is_arcade) === 1) {
-      row.form_factor = 'arcade';
-    } else if (Number(row.is_for_reference) === 1) {
-      row.form_factor = 'reference';
-    } else {
-      row.form_factor = 'home';
-    }
+    row.console_type_id = String(row.console_type_id || '1');
   });
 }
 
@@ -708,10 +705,7 @@ function selectConsole(id) {
   document.getElementById('publisherId').value = String(record.publisher_id || '');
   document.getElementById('releaseYear').value = record.year || '';
   document.getElementById('generation').value = record.generation || '';
-
-  document.getElementById('isHandheld').checked = Number(record.is_handheld) === 1;
-  document.getElementById('isComputer').checked = Number(record.is_computer) === 1;
-  document.getElementById('isArcade').checked = Number(record.is_arcade) === 1;
+  document.getElementById('consoleTypeId').value = String(record.console_type_id || '');
   document.getElementById('isForReference').checked = Number(record.is_for_reference) === 1;
 
   document.getElementById('retroarchCore').value = record.retroarch_core || '';
@@ -751,6 +745,8 @@ function resetForm() {
   selectedId = null;
   document.getElementById('consoleForm').reset();
   document.getElementById('consoleId').value = '';
+  document.getElementById('consoleTypeId').value = '';
+  document.getElementById('isForReference').checked = false;
   document.getElementById('deleteImage').value = '0';
   document.getElementById('deleteLogo').value = '0';
 
@@ -1037,6 +1033,18 @@ async function reloadGridData(selectIdAfter = null) {
         select.innerHTML = '<option value="">-- Select Maker --</option>' +
           makersList.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
         select.value = curVal;
+      }
+    }
+
+    const typesArr = (json.data && json.data.console_types) ? json.data.console_types : (json.console_types || []);
+    if (Array.isArray(typesArr) && typesArr.length > 0) {
+      consoleTypesList = typesArr;
+      const typeSelect = document.getElementById('consoleTypeId');
+      if (typeSelect) {
+        const curVal = typeSelect.value;
+        typeSelect.innerHTML = '<option value="">-- Select Type --</option>' +
+          consoleTypesList.map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
+        typeSelect.value = curVal;
       }
     }
 

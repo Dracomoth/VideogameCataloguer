@@ -1,7 +1,7 @@
 <?php
 /**
- * src/Controllers/ConsoleController.php
- * Controller managing game consoles, hardware specifications, and visual assets.
+ * src/Controllers/ConsoleTypeController.php
+ * Controller managing console hardware types, badge styling, and taxonomy datasets.
  */
 
 declare(strict_types=1);
@@ -9,9 +9,7 @@ declare(strict_types=1);
 namespace Vault\Controllers;
 
 use Vault\Auth\Auth;
-use Vault\Repositories\ConsoleRepository;
 use Vault\Repositories\ConsoleTypeRepository;
-use Vault\Repositories\PublisherRepository;
 use Vault\Services\Response;
 use Vault\Services\View;
 use Throwable;
@@ -21,50 +19,42 @@ if (!defined('APP_INIT')) {
     exit('Direct access not permitted.');
 }
 
-final class ConsoleController
+final class ConsoleTypeController
 {
-    private ConsoleRepository $repo;
-    private PublisherRepository $publisherRepo;
-    private ConsoleTypeRepository $typeRepo;
+    private ConsoleTypeRepository $repo;
 
     public function __construct()
     {
-        $this->repo = new ConsoleRepository();
-        $this->publisherRepo = new PublisherRepository();
-        $this->typeRepo = new ConsoleTypeRepository();
+        $this->repo = new ConsoleTypeRepository();
     }
 
     /**
-     * Displays the consoles taxonomy and hardware management view.
+     * Displays the console types taxonomy management view.
      *
      * @param array<string, mixed> $request
      * @return never
      */
     public function index(array $request): void
     {
-        Auth::requireAccess('consoles', 'read');
+        Auth::requireAccess('console_types', 'read');
 
-        $consoles     = $this->repo->getAll();
-        $makers       = $this->publisherRepo->getConsoleMakers();
-        $consoleTypes = $this->typeRepo->getAll();
-        $canWrite     = Auth::canWrite('consoles');
+        $consoleTypes = $this->repo->getAll();
+        $canWrite     = Auth::canWrite('console_types');
 
         $flashMessage = $_SESSION['flash_message'] ?? null;
         $flashError   = $_SESSION['flash_error'] ?? null;
         unset($_SESSION['flash_message'], $_SESSION['flash_error']);
 
         $viewData = [
-            'pageTitle'    => 'Consoles Maintenance',
-            'activeNav'    => 'consoles',
-            'consoles'     => $consoles,
-            'makers'       => $makers,
+            'pageTitle'    => 'Console Types',
+            'activeNav'    => 'console_types',
             'consoleTypes' => $consoleTypes,
             'canWrite'     => $canWrite,
             'flashMessage' => $flashMessage,
             'flashError'   => $flashError,
         ];
 
-        $html = View::render('consoles', $viewData, 'layout');
+        $html = View::render('console_types', $viewData, 'layout');
         Response::html($html);
     }
 
@@ -76,37 +66,33 @@ final class ConsoleController
      */
     public function apiList(array $request): void
     {
-        Auth::requireAccess('consoles', 'read');
+        Auth::requireAccess('console_types', 'read');
 
-        $consoles     = $this->repo->getAll();
-        $makers       = $this->publisherRepo->getConsoleMakers();
-        $consoleTypes = $this->typeRepo->getAll();
-
+        $consoleTypes = $this->repo->getAll();
         Response::json([
-            'consoles'      => $consoles,
-            'makers'        => $makers,
             'console_types' => $consoleTypes,
-            'can_write'     => Auth::canWrite('consoles'),
+            'can_write'     => Auth::canWrite('console_types'),
         ]);
     }
 
     /**
-     * Creates a new console record with visual assets.
+     * Creates a new console type record.
      *
      * @param array<string, mixed> $request
      * @return never
      */
     public function create(array $request): void
     {
-        Auth::requireAccess('consoles', 'write');
+        Auth::requireAccess('console_types', 'write');
 
-        $body  = $request['body'] ?? [];
-        $files = $request['files'] ?? [];
-        $name  = trim((string)($body['name'] ?? ($body['console'] ?? '')));
+        $body           = $request['body'] ?? [];
+        $name           = (string)($body['name'] ?? '');
+        $badgeBgColor   = (string)($body['badge_bg_color'] ?? '#1e3a8a');
+        $badgeFontColor = (string)($body['badge_font_color'] ?? '#93c5fd');
 
         try {
-            $newId = $this->repo->create($body, $files);
-            $msg = "Console '{$name}' created successfully.";
+            $newId = $this->repo->create($name, $badgeBgColor, $badgeFontColor);
+            $msg   = "Console type '{$name}' created successfully.";
 
             if ($this->wantsJson($request)) {
                 Response::json([
@@ -116,34 +102,35 @@ final class ConsoleController
             }
 
             $_SESSION['flash_message'] = $msg;
-            Response::redirect('/consoles');
+            Response::redirect('/console-types');
         } catch (Throwable $e) {
             if ($this->wantsJson($request)) {
                 Response::error($e->getMessage(), 422);
             }
             $_SESSION['flash_error'] = $e->getMessage();
-            Response::redirect('/consoles');
+            Response::redirect('/console-types');
         }
     }
 
     /**
-     * Updates an existing console record.
+     * Updates an existing console type record.
      *
      * @param array<string, mixed> $request
      * @return never
      */
     public function update(array $request): void
     {
-        Auth::requireAccess('consoles', 'write');
+        Auth::requireAccess('console_types', 'write');
 
-        $body  = $request['body'] ?? [];
-        $files = $request['files'] ?? [];
-        $id    = (int)($request['params']['id'] ?? ($body['id'] ?? 0));
-        $name  = trim((string)($body['name'] ?? ($body['console'] ?? '')));
+        $body           = $request['body'] ?? [];
+        $id             = (int)($request['params']['id'] ?? ($body['id'] ?? 0));
+        $name           = (string)($body['name'] ?? '');
+        $badgeBgColor   = (string)($body['badge_bg_color'] ?? '#1e3a8a');
+        $badgeFontColor = (string)($body['badge_font_color'] ?? '#93c5fd');
 
         try {
-            $this->repo->update($id, $body, $files);
-            $msg = "Console updated successfully.";
+            $this->repo->update($id, $name, $badgeBgColor, $badgeFontColor);
+            $msg = "Console type updated successfully.";
 
             if ($this->wantsJson($request)) {
                 Response::json([
@@ -153,31 +140,31 @@ final class ConsoleController
             }
 
             $_SESSION['flash_message'] = $msg;
-            Response::redirect('/consoles');
+            Response::redirect('/console-types');
         } catch (Throwable $e) {
             if ($this->wantsJson($request)) {
                 Response::error($e->getMessage(), 422);
             }
             $_SESSION['flash_error'] = $e->getMessage();
-            Response::redirect('/consoles');
+            Response::redirect('/console-types');
         }
     }
 
     /**
-     * Deletes a console record and purges its visual assets.
+     * Deletes a console type record if unreferenced by consoles.
      *
      * @param array<string, mixed> $request
      * @return never
      */
     public function delete(array $request): void
     {
-        Auth::requireAccess('consoles', 'write');
+        Auth::requireAccess('console_types', 'write');
 
         $id = (int)($request['params']['id'] ?? ($request['body']['id'] ?? 0));
 
         try {
             $this->repo->delete($id);
-            $msg = 'Console deleted successfully.';
+            $msg = 'Console type deleted successfully.';
 
             if ($this->wantsJson($request)) {
                 Response::json([
@@ -187,13 +174,13 @@ final class ConsoleController
             }
 
             $_SESSION['flash_message'] = $msg;
-            Response::redirect('/consoles');
+            Response::redirect('/console-types');
         } catch (Throwable $e) {
             if ($this->wantsJson($request)) {
                 Response::error($e->getMessage(), 422);
             }
             $_SESSION['flash_error'] = $e->getMessage();
-            Response::redirect('/consoles');
+            Response::redirect('/console-types');
         }
     }
 

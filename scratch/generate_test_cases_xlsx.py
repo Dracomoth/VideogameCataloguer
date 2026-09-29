@@ -529,10 +529,10 @@ TEST_CASES = [
         "id": "TC0055",
         "module": "Consoles / Create",
         "scenario": "Create console with hardware specs and emulator links (Happy Path)",
-        "inputs": "name: 'Super Nintendo Entertainment System', publisher_id: 1, year: '1990', generation: '4th Gen', is_handheld: 0, is_computer: 0, is_arcade: 0, emulator: 'Snes9x', emulator_link: 'https://snes9x.com'",
-        "preconditions": "Publisher with id=1 is a console maker.",
-        "steps": "1. Navigate to /consoles.\n2. Fill console form fields.\n3. Click 'Save Console'.",
-        "expected": "Console created; record inserted in DB; grid updates; green toast displayed."
+        "inputs": "name: 'Super Nintendo Entertainment System', publisher_id: 1, year: '1990', generation: '4th Gen', console_type_id: 1 ('Home'), is_for_reference: 0, emulator: 'Snes9x', emulator_link: 'https://snes9x.com'",
+        "preconditions": "Publisher with id=1 is a console maker; Console Type id=1 ('Home') exists.",
+        "steps": "1. Navigate to /consoles.\n2. Select Manufacturer 'Nintendo' and Console Hardware Type 'Home'.\n3. Fill release year, generation, and emulator details.\n4. Click 'Save Console'.",
+        "expected": "Console created; record inserted in DB with console_type_id = 1; grid updates with Home badge; green toast displayed."
     },
     {
         "id": "TC0056",
@@ -1191,6 +1191,100 @@ TEST_CASES = [
         "preconditions": "Record stored in database.",
         "steps": "1. View record in grid.\n2. Inspect DOM element.",
         "expected": "escapeHtml() sanitizes all output (< -> &lt;, > -> &gt;, \" -> &quot;); script tags are not executed."
+    },
+
+    # =========================================================================
+    # MODULE: CONSOLE HARDWARE TYPES TAXONOMY & DYNAMIC BADGES
+    # =========================================================================
+    {
+        "id": "TC0126",
+        "module": "Consoles / Type Selector",
+        "scenario": "Single mandatory dropdown selector replaces contradictory checkboxes (Happy Path)",
+        "inputs": "Console form: name: 'Nintendo Switch', console_type_id: 1 ('Home'), is_for_reference: 0",
+        "preconditions": "Console Types populated in database.",
+        "steps": "1. Navigate to /consoles.\n2. Verify hardware checkboxes (Handheld, Computer, Arcade) are replaced by a single mandatory dropdown.\n3. Verify form cannot submit conflicting categories.\n4. Select 'Home' and save.",
+        "expected": "Form submits with single console_type_id foreign key; conflicting multiple states prevented; console stored cleanly."
+    },
+    {
+        "id": "TC0127",
+        "module": "Consoles / Grid Badge",
+        "scenario": "Console grid renders custom styled type badge followed by REF badge (Happy Path)",
+        "inputs": "Console record with console_type_name='Home', badge_bg_color='#1E3A8A', badge_font_color='#93C5FD', is_for_reference=1",
+        "preconditions": "Console registered with reference flag enabled.",
+        "steps": "1. Navigate to /consoles.\n2. Inspect Console column in <data-grid>.",
+        "expected": "Grid displays console title followed by custom badge with #1E3A8A background and #93C5FD text, immediately followed by red REF badge."
+    },
+    {
+        "id": "TC0128",
+        "module": "Console Types / Create",
+        "scenario": "Create new console hardware type with custom hex colors (Happy Path)",
+        "inputs": "name: 'Hybrid', badge_bg_color: '#0F172A', badge_font_color: '#38BDF8'",
+        "preconditions": "Super Admin or user with console_types write permission.",
+        "steps": "1. Navigate to /console-types.\n2. Enter Type Name 'Hybrid'.\n3. Set background color to #0F172A and font color to #38BDF8.\n4. Click 'Save Console Type'.",
+        "expected": "Record inserted into console_types; returns HTTP 200 JSON; grid refreshes; new type appears in Consoles form dropdown."
+    },
+    {
+        "id": "TC0129",
+        "module": "Console Types / Preview",
+        "scenario": "Live badge preview card reflects typed name and hex colors in real time (Happy Path)",
+        "inputs": "Type name input: 'HYBRID', Background color input: '#1E293B', Font color input: '#60A5FA'",
+        "preconditions": "Console Types workbench open.",
+        "steps": "1. Type 'HYBRID' in Type Name input.\n2. Change background color to '#1E293B'.\n3. Change font color to '#60A5FA'.\n4. Observe live preview box.",
+        "expected": "Live badge preview updates instantly with uppercase text 'HYBRID', background #1E293B, and text color #60A5FA without page reload."
+    },
+    {
+        "id": "TC0130",
+        "module": "Console Types / Color Sync",
+        "scenario": "Bidirectional synchronization between text input and color swatch picker (Happy Path)",
+        "inputs": "Color swatch picker change vs. manual hex text input change",
+        "preconditions": "Console Types workbench open.",
+        "steps": "1. Pick a color using the HTML5 color swatch -> verify text input updates to uppercase hex.\n2. Type '#064E3B' in text input -> verify color swatch updates to matching green.",
+        "expected": "Values remain perfectly synchronized in both directions; live badge preview reflects the change."
+    },
+    {
+        "id": "TC0131",
+        "module": "Console Types / Update",
+        "scenario": "Update console type name and badge styling (Happy Path)",
+        "inputs": "id: 2, name: 'Arcade System Board', badge_bg_color: '#78350F', badge_font_color: '#FDE68A'",
+        "preconditions": "Console Type #2 exists.",
+        "steps": "1. Select Arcade row in <data-grid>.\n2. Update name and colors.\n3. Click 'Save Console Type'.",
+        "expected": "Database record updated; grid reflects new name and badge styling; green success toast displayed."
+    },
+    {
+        "id": "TC0132",
+        "module": "Console Types / Delete",
+        "scenario": "Delete unreferenced console hardware type (Happy Path)",
+        "inputs": "id: 5 (console type with 0 assigned consoles)",
+        "preconditions": "Console type has 0 consoles referencing its ID.",
+        "steps": "1. Select console type #5 in grid.\n2. Click 'Delete'.\n3. Confirm dialog.",
+        "expected": "Record removed from database; grid reloads; form resets to Auto ID state; green success toast displayed."
+    },
+    {
+        "id": "TC0133",
+        "module": "Console Types / Constraint",
+        "scenario": "Delete console type blocked when consoles are linked (Failure Scenario)",
+        "inputs": "id: 1 ('Home' console type referenced by existing consoles)",
+        "preconditions": "At least one console has console_type_id = 1.",
+        "steps": "1. Select console type #1 in grid.\n2. Verify Delete button is disabled or attempting delete throws error.",
+        "expected": "Controller checks getConsolesCount(1) > 0; blocks delete; returns HTTP 422 'Cannot delete: X console(s) are currently assigned to this type.'."
+    },
+    {
+        "id": "TC0134",
+        "module": "Console Types / Validate",
+        "scenario": "Hex color format validation enforces 6-digit hex code (Failure Scenario)",
+        "inputs": "badge_bg_color: 'blue' or '#XYZ' or '#12345'",
+        "preconditions": "Console Types workbench open.",
+        "steps": "1. Enter invalid hex color string in background color field.\n2. Submit form.",
+        "expected": "Frontend pattern validation blocks submission; backend throws InvalidArgumentException 'Background color must be a valid 6-digit hex code.'."
+    },
+    {
+        "id": "TC0135",
+        "module": "Console Types / RBAC",
+        "scenario": "Console Types screen registered in RBAC matrix with dual-device permissions (Security)",
+        "inputs": "GET /roles -> inspect screens list; evaluate access_pc and access_other",
+        "preconditions": "Role 1 has write access; restricted roles have custom permissions.",
+        "steps": "1. Navigate to /roles.\n2. Inspect permissions matrix table for 'Console Types' entry under Taxonomy.\n3. Verify independent PC and Other device permission toggles.",
+        "expected": "Console Types screen appears in matrix; Super Admin has write/write; permissions enforced across devices via Auth::can()."
     }
 ]
 

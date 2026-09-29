@@ -76,6 +76,7 @@ final class DashboardRepository
     {
         return [
             'consoles'      => (int)Database::fetchColumn("SELECT COUNT(*) FROM consoles"),
+            'console_types' => (int)Database::fetchColumn("SELECT COUNT(*) FROM console_types"),
             'publishers'    => (int)Database::fetchColumn("SELECT COUNT(*) FROM publishers"),
             'categories'    => (int)Database::fetchColumn("SELECT COUNT(*) FROM categories"),
             'subcategories' => (int)Database::fetchColumn("SELECT COUNT(*) FROM subcategories"),
@@ -95,12 +96,16 @@ final class DashboardRepository
             SELECT 
                 c.id, 
                 c.name AS console, 
-                c.is_handheld,
+                c.console_type_id,
+                ct.name AS console_type_name,
+                ct.badge_bg_color,
+                ct.badge_font_color,
                 COUNT(g.id) AS total_titles,
                 SUM(CASE WHEN g.in_collection = 1 THEN 1 ELSE 0 END) AS owned_titles
             FROM consoles c
+            LEFT JOIN console_types ct ON c.console_type_id = ct.id
             INNER JOIN games g ON g.console_id = c.id
-            GROUP BY c.id, c.name, c.is_handheld
+            GROUP BY c.id, c.name, c.console_type_id, ct.name, ct.badge_bg_color, ct.badge_font_color
             ORDER BY owned_titles DESC, total_titles DESC
             LIMIT {$limit}
         ";

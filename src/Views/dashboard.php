@@ -24,12 +24,13 @@ if (!defined('APP_INIT')) {
 $canCollection    = Auth::can('collection', 'read');
 $canGames         = Auth::can('games', 'read');
 $canConsoles      = Auth::can('consoles', 'read');
+$canConsoleTypes  = Auth::can('console_types', 'read');
 $canPublishers    = Auth::can('publishers', 'read');
 $canCategories    = Auth::can('categories', 'read');
 $canSubcategories = Auth::can('subcategories', 'read');
 $canLanguages     = Auth::can('languages', 'read');
 
-$hasAnyPortal = $canGames || $canConsoles || $canPublishers || $canCategories || $canSubcategories || $canLanguages;
+$hasAnyPortal = $canGames || $canConsoles || $canConsoleTypes || $canPublishers || $canCategories || $canSubcategories || $canLanguages;
 
 $healthPct   = (float)($kpi['health_pct'] ?? 0);
 $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--warning)' : 'var(--danger)');
@@ -164,8 +165,10 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
                 <tr <?= $canCollection ? "onclick=\"window.location.href='/collection?console_id=" . (int)$c['id'] . "'\" style=\"cursor: pointer;\"" : "" ?>>
                   <td style="font-weight: 600;">
                     <?= View::e($c['console'] ?? '') ?>
-                    <?php if (!empty($c['is_handheld'])): ?>
-                      <span class="tag handheld" style="font-size: 9px; padding: 1px 4px; margin-left: 4px;">Portable</span>
+                    <?php if (!empty($c['console_type_name'])): ?>
+                      <span style="font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px; display: inline-block; background-color: <?= View::e($c['badge_bg_color'] ?? '#1e3a8a') ?>; color: <?= View::e($c['badge_font_color'] ?? '#93c5fd') ?>; border: 1px solid <?= View::e($c['badge_font_color'] ?? '#93c5fd') ?>44; text-transform: uppercase;">
+                        <?= View::e($c['console_type_name']) ?>
+                      </span>
                     <?php endif; ?>
                   </td>
                   <td style="text-align: right; font-weight: 700; color: var(--border-focus);"><?= number_format((int)$c['owned_titles']) ?></td>
@@ -202,6 +205,17 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
             </div>
             <div style="font-size: 15px; font-weight: 700; color: #fff;">Consoles</div>
             <div class="card-desc" style="font-size: 11px;">Hardware specs, logos, photos & emulators.</div>
+          </a>
+        <?php endif; ?>
+
+        <?php if ($canConsoleTypes): ?>
+          <a href="/console-types" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
+            <div class="card-top" style="margin-bottom: 8px;">
+              <span style="font-size: 22px;">🏷️</span>
+              <span class="badge-count"><?= number_format((int)($counts['console_types'] ?? 0)) ?></span>
+            </div>
+            <div style="font-size: 15px; font-weight: 700; color: #fff;">Console Types</div>
+            <div class="card-desc" style="font-size: 11px;">Hardware categories and badge styles.</div>
           </a>
         <?php endif; ?>
 

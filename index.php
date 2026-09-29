@@ -50,6 +50,7 @@ spl_autoload_register(function (string $class): void {
 use Vault\Controllers\AuthController;
 use Vault\Controllers\CategoryController;
 use Vault\Controllers\ConsoleController;
+use Vault\Controllers\ConsoleTypeController;
 use Vault\Controllers\DashboardController;
 use Vault\Controllers\GameController;
 use Vault\Controllers\LanguageController;
@@ -159,6 +160,15 @@ $router->post('/subcategories/create', [SubcategoryController::class, 'create'])
 $router->post('/subcategories/{id}/update', [SubcategoryController::class, 'update']);
 $router->post('/subcategories/{id}/delete', [SubcategoryController::class, 'delete']);
 $router->delete('/subcategories/{id}', [SubcategoryController::class, 'delete']);
+
+// Taxonomy: Console Types Routes
+$router->get('/console-types', [ConsoleTypeController::class, 'index']);
+$router->get('/api/console-types', [ConsoleTypeController::class, 'apiList']);
+$router->post('/console-types', [ConsoleTypeController::class, 'create']);
+$router->post('/console-types/create', [ConsoleTypeController::class, 'create']);
+$router->post('/console-types/{id}/update', [ConsoleTypeController::class, 'update']);
+$router->post('/console-types/{id}/delete', [ConsoleTypeController::class, 'delete']);
+$router->delete('/console-types/{id}', [ConsoleTypeController::class, 'delete']);
 
 // Hardware & Consoles Maintenance Routes
 $router->get('/consoles', [ConsoleController::class, 'index']);

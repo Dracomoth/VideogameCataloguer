@@ -45,7 +45,7 @@ $canView = function (string $screen): bool {
       </a>
     <?php endif; ?>
 
-    <?php if ($canView('games') || $canView('consoles') || $canView('publishers') || $canView('categories') || $canView('subcategories') || $canView('languages')): ?>
+    <?php if ($canView('games') || $canView('consoles') || $canView('console_types') || $canView('publishers') || $canView('categories') || $canView('subcategories') || $canView('languages')): ?>
       <span class="nav-divider nav-desktop-only"></span>
     <?php endif; ?>
 
@@ -59,6 +59,12 @@ $canView = function (string $screen): bool {
     <?php if ($canView('consoles')): ?>
       <a href="/consoles" class="nav-tab nav-desktop-only <?= $active === 'consoles' ? 'active' : '' ?>">
         Consoles
+      </a>
+    <?php endif; ?>
+
+    <?php if ($canView('console_types')): ?>
+      <a href="/console-types" class="nav-tab nav-desktop-only <?= $active === 'console_types' ? 'active' : '' ?>">
+        Console Types
       </a>
     <?php endif; ?>
 

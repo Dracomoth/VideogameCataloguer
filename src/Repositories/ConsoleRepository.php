@@ -47,9 +47,10 @@ final class ConsoleRepository
                 c.publisher_id,
                 c.year,
                 c.generation,
-                c.is_handheld,
-                c.is_computer,
-                c.is_arcade,
+                c.console_type_id,
+                ct.name AS console_type_name,
+                ct.badge_bg_color,
+                ct.badge_font_color,
                 c.is_for_reference,
                 c.image_path,
                 c.logo_path,
@@ -64,6 +65,7 @@ final class ConsoleRepository
                 COUNT(DISTINCT g.id) AS games_count,
                 COUNT(DISTINCT g.id) AS game_count
             FROM `consoles` c
+            LEFT JOIN `console_types` ct ON ct.id = c.console_type_id
             LEFT JOIN `publishers` p ON p.id = c.publisher_id
             LEFT JOIN `games` g ON g.console_id = c.id
             GROUP BY c.id
@@ -92,9 +94,10 @@ final class ConsoleRepository
                 c.publisher_id,
                 c.year,
                 c.generation,
-                c.is_handheld,
-                c.is_computer,
-                c.is_arcade,
+                c.console_type_id,
+                ct.name AS console_type_name,
+                ct.badge_bg_color,
+                ct.badge_font_color,
                 c.is_for_reference,
                 c.image_path,
                 c.logo_path,
@@ -109,6 +112,7 @@ final class ConsoleRepository
                 COUNT(DISTINCT g.id) AS games_count,
                 COUNT(DISTINCT g.id) AS game_count
             FROM `consoles` c
+            LEFT JOIN `console_types` ct ON ct.id = c.console_type_id
             LEFT JOIN `publishers` p ON p.id = c.publisher_id
             LEFT JOIN `games` g ON g.console_id = c.id
             WHERE c.id = :id
@@ -297,9 +301,7 @@ final class ConsoleRepository
         $publisherId        = !empty($data['publisher_id']) ? (int)$data['publisher_id'] : null;
         $year               = trim((string)($data['year'] ?? '')) ?: null;
         $generation         = trim((string)($data['generation'] ?? '')) ?: null;
-        $isHandheld         = !empty($data['is_handheld']) ? 1 : 0;
-        $isComputer         = !empty($data['is_computer']) ? 1 : 0;
-        $isArcade           = !empty($data['is_arcade']) ? 1 : 0;
+        $consoleTypeId      = !empty($data['console_type_id']) ? (int)$data['console_type_id'] : 1;
         $isForReference     = !empty($data['is_for_reference']) ? 1 : 0;
         $comments           = trim((string)($data['comments'] ?? '')) ?: null;
         $emulator           = trim((string)($data['emulator'] ?? '')) ?: null;
@@ -312,14 +314,14 @@ final class ConsoleRepository
         $sql = "
             INSERT INTO `consoles` (
                 `name`, `publisher_id`, `year`, `generation`,
-                `is_handheld`, `is_computer`, `is_arcade`, `is_for_reference`,
+                `console_type_id`, `is_for_reference`,
                 `image_path`, `logo_path`, `comments`,
                 `emulator`, `emulator_link`,
                 `emulator_android`, `emulator_android_link`,
                 `retroarch_core`, `core_link`
             ) VALUES (
                 :name, :publisher_id, :year, :generation,
-                :is_handheld, :is_computer, :is_arcade, :is_for_reference,
+                :console_type_id, :is_for_reference,
                 NULL, NULL, :comments,
                 :emulator, :emulator_link,
                 :emulator_android, :emulator_android_link,
@@ -332,9 +334,7 @@ final class ConsoleRepository
             ':publisher_id'         => $publisherId,
             ':year'                 => $year,
             ':generation'           => $generation,
-            ':is_handheld'          => $isHandheld,
-            ':is_computer'          => $isComputer,
-            ':is_arcade'            => $isArcade,
+            ':console_type_id'      => $consoleTypeId,
             ':is_for_reference'     => $isForReference,
             ':comments'             => $comments,
             ':emulator'             => $emulator,
@@ -412,9 +412,7 @@ final class ConsoleRepository
         $publisherId        = !empty($data['publisher_id']) ? (int)$data['publisher_id'] : null;
         $year               = trim((string)($data['year'] ?? '')) ?: null;
         $generation         = trim((string)($data['generation'] ?? '')) ?: null;
-        $isHandheld         = !empty($data['is_handheld']) ? 1 : 0;
-        $isComputer         = !empty($data['is_computer']) ? 1 : 0;
-        $isArcade           = !empty($data['is_arcade']) ? 1 : 0;
+        $consoleTypeId      = !empty($data['console_type_id']) ? (int)$data['console_type_id'] : 1;
         $isForReference     = !empty($data['is_for_reference']) ? 1 : 0;
         $comments           = trim((string)($data['comments'] ?? '')) ?: null;
         $emulator           = trim((string)($data['emulator'] ?? '')) ?: null;
@@ -460,9 +458,7 @@ final class ConsoleRepository
                 `publisher_id`          = :publisher_id,
                 `year`                  = :year,
                 `generation`            = :generation,
-                `is_handheld`           = :is_handheld,
-                `is_computer`           = :is_computer,
-                `is_arcade`             = :is_arcade,
+                `console_type_id`       = :console_type_id,
                 `is_for_reference`      = :is_for_reference,
                 `image_path`            = :image_path,
                 `logo_path`             = :logo_path,
@@ -481,9 +477,7 @@ final class ConsoleRepository
             ':publisher_id'         => $publisherId,
             ':year'                 => $year,
             ':generation'           => $generation,
-            ':is_handheld'          => $isHandheld,
-            ':is_computer'          => $isComputer,
-            ':is_arcade'            => $isArcade,
+            ':console_type_id'      => $consoleTypeId,
             ':is_for_reference'     => $isForReference,
             ':image_path'           => $currentImagePath,
             ':logo_path'            => $currentLogoPath,
@@ -551,14 +545,15 @@ final class ConsoleRepository
         $imagePath = (string)($row['image_path'] ?? '');
         $logoPath  = (string)($row['logo_path'] ?? '');
 
-        $row['id']               = (int)$row['id'];
-        $row['publisher_id']     = !empty($row['publisher_id']) ? (int)$row['publisher_id'] : null;
-        $row['is_handheld']      = (int)($row['is_handheld'] ?? 0);
-        $row['is_computer']      = (int)($row['is_computer'] ?? 0);
-        $row['is_arcade']        = (int)($row['is_arcade'] ?? 0);
+        $row['id']                = (int)$row['id'];
+        $row['publisher_id']      = !empty($row['publisher_id']) ? (int)$row['publisher_id'] : null;
+        $row['console_type_id']   = (int)($row['console_type_id'] ?? 1);
+        $row['console_type_name'] = (string)($row['console_type_name'] ?? 'Home');
+        $row['badge_bg_color']    = (string)($row['badge_bg_color'] ?? '#1E3A8A');
+        $row['badge_font_color']  = (string)($row['badge_font_color'] ?? '#93C5FD');
         $row['is_for_reference']  = (int)($row['is_for_reference'] ?? 0);
-        $row['games_count']      = (int)($row['games_count'] ?? 0);
-        $row['game_count']       = (int)($row['game_count'] ?? 0);
+        $row['games_count']       = (int)($row['games_count'] ?? 0);
+        $row['game_count']        = (int)($row['game_count'] ?? 0);
 
         // Web accessible URLs for reading with automatic filemtime cache-busting
         $imgVer = '';
