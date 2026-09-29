@@ -13,12 +13,23 @@
 
 declare(strict_types=1);
 
+use Vault\Auth\Auth;
 use Vault\Services\View;
 
 if (!defined('APP_INIT')) {
     http_response_code(403);
     exit('Direct access not permitted.');
 }
+
+$canCollection    = Auth::can('collection', 'read');
+$canGames         = Auth::can('games', 'read');
+$canConsoles      = Auth::can('consoles', 'read');
+$canPublishers    = Auth::can('publishers', 'read');
+$canCategories    = Auth::can('categories', 'read');
+$canSubcategories = Auth::can('subcategories', 'read');
+$canLanguages     = Auth::can('languages', 'read');
+
+$hasAnyPortal = $canGames || $canConsoles || $canPublishers || $canCategories || $canSubcategories || $canLanguages;
 
 $healthPct   = (float)($kpi['health_pct'] ?? 0);
 $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--warning)' : 'var(--danger)');
@@ -74,23 +85,25 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
   </div>
 
   <!-- SECTION 2: Launchpad Banner & Now Playing -->
-  <div class="dashboard-hero-row">
+  <div class="dashboard-hero-row" <?= !$canCollection ? 'style="grid-template-columns: 1fr;"' : '' ?>>
     <!-- Player Mode Launchpad Hero -->
-    <a href="/collection" class="nav-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-color: var(--border-focus); text-decoration: none; padding: 24px;">
-      <div class="card-top">
-        <span style="font-size: 36px;">🎮</span>
-        <span class="badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8; font-size: 12px;">Visual Deck</span>
-      </div>
-      <div>
-        <h2 style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 6px;">Launch Collection & Backlog Hub</h2>
-        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
-          Touch-friendly card deck optimized for portables, handhelds, and mobile screens. Filter by platforms, review cover art, and update play status.
-        </p>
-      </div>
-      <div class="card-action" style="margin-top: 20px; font-size: 14px; font-weight: 700;">
-        Open Player Deck &rarr;
-      </div>
-    </a>
+    <?php if ($canCollection): ?>
+      <a href="/collection" class="nav-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-color: var(--border-focus); text-decoration: none; padding: 24px;">
+        <div class="card-top">
+          <span style="font-size: 36px;">🎮</span>
+          <span class="badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8; font-size: 12px;">Visual Deck</span>
+        </div>
+        <div>
+          <h2 style="font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 6px;">Launch Collection & Backlog Hub</h2>
+          <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+            Touch-friendly card deck optimized for portables, handhelds, and mobile screens. Filter by platforms, review cover art, and update play status.
+          </p>
+        </div>
+        <div class="card-action" style="margin-top: 20px; font-size: 14px; font-weight: 700;">
+          Open Player Deck &rarr;
+        </div>
+      </a>
+    <?php endif; ?>
 
     <!-- Currently Playing Mini-Queue -->
     <div class="grid-card" style="border: 1px solid var(--border); border-radius: var(--radius-md);">
@@ -101,13 +114,23 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
       <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 220px;">
         <?php if (!empty($nowPlaying)): ?>
           <?php foreach ($nowPlaying as $game): ?>
-            <a href="/games?id=<?= (int)$game['id'] ?>" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius-sm); text-decoration: none; color: inherit;">
-              <div>
-                <div style="font-weight: 600; font-size: 13px; color: #fff;"><?= View::e($game['game'] ?? 'Untitled') ?></div>
-                <div style="font-size: 11px; color: var(--text-muted);"><?= View::e($game['console'] ?? 'Unknown') ?> &bull; <?= View::e($game['year'] ?? 'N/A') ?></div>
+            <?php if ($canGames): ?>
+              <a href="/games?id=<?= (int)$game['id'] ?>" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius-sm); text-decoration: none; color: inherit;">
+                <div>
+                  <div style="font-weight: 600; font-size: 13px; color: #fff;"><?= View::e($game['game'] ?? 'Untitled') ?></div>
+                  <div style="font-size: 11px; color: var(--text-muted);"><?= View::e($game['console'] ?? 'Unknown') ?> &bull; <?= View::e((string)($game['year'] ?? 'N/A')) ?></div>
+                </div>
+                <span class="status-badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">Resume &rarr;</span>
+              </a>
+            <?php else: ?>
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius-sm); color: inherit;">
+                <div>
+                  <div style="font-weight: 600; font-size: 13px; color: #fff;"><?= View::e($game['game'] ?? 'Untitled') ?></div>
+                  <div style="font-size: 11px; color: var(--text-muted);"><?= View::e($game['console'] ?? 'Unknown') ?> &bull; <?= View::e((string)($game['year'] ?? 'N/A')) ?></div>
+                </div>
+                <span class="status-badge" style="background: rgba(148, 163, 184, 0.15); color: var(--text-dim);">Active</span>
               </div>
-              <span class="status-badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">Resume &rarr;</span>
-            </a>
+            <?php endif; ?>
           <?php endforeach; ?>
         <?php else: ?>
           <div style="text-align: center; color: var(--text-dim); font-size: 13px; padding: 20px;">No games currently in-progress.</div>
@@ -117,12 +140,14 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
   </div>
 
   <!-- SECTION 3: Consoles Breakdown & Management Portals -->
-  <div class="dashboard-main-row">
+  <div class="dashboard-main-row" <?= !$hasAnyPortal ? 'style="grid-template-columns: 1fr;"' : '' ?>>
     <!-- Top Hardware Breakdown -->
     <div class="grid-card" style="border: 1px solid var(--border); border-radius: var(--radius-md);">
       <div class="grid-header">
         <span style="font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Top Systems (Owned)</span>
-        <a href="/consoles" style="color: var(--border-focus); font-size: 11px; text-decoration: none;">View All &rarr;</a>
+        <?php if ($canConsoles): ?>
+          <a href="/consoles" style="color: var(--border-focus); font-size: 11px; text-decoration: none;">View All &rarr;</a>
+        <?php endif; ?>
       </div>
       <div class="table-container" style="max-height: 280px;">
         <table>
@@ -136,7 +161,7 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
           <tbody>
             <?php if (!empty($topConsoles)): ?>
               <?php foreach ($topConsoles as $c): ?>
-                <tr onclick="window.location.href='/collection?console_id=<?= (int)$c['id'] ?>'">
+                <tr <?= $canCollection ? "onclick=\"window.location.href='/collection?console_id=" . (int)$c['id'] . "'\" style=\"cursor: pointer;\"" : "" ?>>
                   <td style="font-weight: 600;">
                     <?= View::e($c['console'] ?? '') ?>
                     <?php if (!empty($c['is_handheld'])): ?>
@@ -156,60 +181,74 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
     </div>
 
     <!-- Management Portals Directory -->
-    <div class="dashboard-portals-grid">
-      <a href="/games" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
-        <div class="card-top" style="margin-bottom: 8px;">
-          <span style="font-size: 22px;">🎮</span>
-          <span class="badge-count"><?= number_format((int)($kpi['total_games'] ?? 0)) ?></span>
-        </div>
-        <div style="font-size: 15px; font-weight: 700; color: #fff;">Games</div>
-        <div class="card-desc" style="font-size: 11px;">Data entry workbench & media uploader.</div>
-      </a>
+    <?php if ($hasAnyPortal): ?>
+      <div class="dashboard-portals-grid">
+        <?php if ($canGames): ?>
+          <a href="/games" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
+            <div class="card-top" style="margin-bottom: 8px;">
+              <span style="font-size: 22px;">🎮</span>
+              <span class="badge-count"><?= number_format((int)($kpi['total_games'] ?? 0)) ?></span>
+            </div>
+            <div style="font-size: 15px; font-weight: 700; color: #fff;">Games</div>
+            <div class="card-desc" style="font-size: 11px;">Data entry workbench & media uploader.</div>
+          </a>
+        <?php endif; ?>
 
-      <a href="/consoles" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
-        <div class="card-top" style="margin-bottom: 8px;">
-          <span style="font-size: 22px;">🕹</span>
-          <span class="badge-count"><?= number_format((int)($counts['consoles'] ?? 0)) ?></span>
-        </div>
-        <div style="font-size: 15px; font-weight: 700; color: #fff;">Consoles</div>
-        <div class="card-desc" style="font-size: 11px;">Hardware specs, logos, photos & emulators.</div>
-      </a>
+        <?php if ($canConsoles): ?>
+          <a href="/consoles" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
+            <div class="card-top" style="margin-bottom: 8px;">
+              <span style="font-size: 22px;">🕹</span>
+              <span class="badge-count"><?= number_format((int)($counts['consoles'] ?? 0)) ?></span>
+            </div>
+            <div style="font-size: 15px; font-weight: 700; color: #fff;">Consoles</div>
+            <div class="card-desc" style="font-size: 11px;">Hardware specs, logos, photos & emulators.</div>
+          </a>
+        <?php endif; ?>
 
-      <a href="/publishers" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
-        <div class="card-top" style="margin-bottom: 8px;">
-          <span style="font-size: 22px;">🏢</span>
-          <span class="badge-count"><?= number_format((int)($counts['publishers'] ?? 0)) ?></span>
-        </div>
-        <div style="font-size: 15px; font-weight: 700; color: #fff;">Publishers</div>
-        <div class="card-desc" style="font-size: 11px;">Game studios and console manufacturers.</div>
-      </a>
+        <?php if ($canPublishers): ?>
+          <a href="/publishers" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
+            <div class="card-top" style="margin-bottom: 8px;">
+              <span style="font-size: 22px;">🏢</span>
+              <span class="badge-count"><?= number_format((int)($counts['publishers'] ?? 0)) ?></span>
+            </div>
+            <div style="font-size: 15px; font-weight: 700; color: #fff;">Publishers</div>
+            <div class="card-desc" style="font-size: 11px;">Game studios and console manufacturers.</div>
+          </a>
+        <?php endif; ?>
 
-      <a href="/categories" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
-        <div class="card-top" style="margin-bottom: 8px;">
-          <span style="font-size: 22px;">📁</span>
-          <span class="badge-count"><?= number_format((int)($counts['categories'] ?? 0)) ?></span>
-        </div>
-        <div style="font-size: 15px; font-weight: 700; color: #fff;">Categories</div>
-        <div class="card-desc" style="font-size: 11px;">Primary genre taxonomies.</div>
-      </a>
+        <?php if ($canCategories): ?>
+          <a href="/categories" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
+            <div class="card-top" style="margin-bottom: 8px;">
+              <span style="font-size: 22px;">📁</span>
+              <span class="badge-count"><?= number_format((int)($counts['categories'] ?? 0)) ?></span>
+            </div>
+            <div style="font-size: 15px; font-weight: 700; color: #fff;">Categories</div>
+            <div class="card-desc" style="font-size: 11px;">Primary genre taxonomies.</div>
+          </a>
+        <?php endif; ?>
 
-      <a href="/subcategories" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
-        <div class="card-top" style="margin-bottom: 8px;">
-          <span style="font-size: 22px;">📂</span>
-          <span class="badge-count"><?= number_format((int)($counts['subcategories'] ?? 0)) ?></span>
-        </div>
-        <div style="font-size: 15px; font-weight: 700; color: #fff;">Subcategories</div>
-        <div class="card-desc" style="font-size: 11px;">Detailed sub-genre classification.</div>
-      </a>
+        <?php if ($canSubcategories): ?>
+          <a href="/subcategories" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
+            <div class="card-top" style="margin-bottom: 8px;">
+              <span style="font-size: 22px;">📂</span>
+              <span class="badge-count"><?= number_format((int)($counts['subcategories'] ?? 0)) ?></span>
+            </div>
+            <div style="font-size: 15px; font-weight: 700; color: #fff;">Subcategories</div>
+            <div class="card-desc" style="font-size: 11px;">Detailed sub-genre classification.</div>
+          </a>
+        <?php endif; ?>
 
-      <a href="/languages" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
-        <div class="card-top" style="margin-bottom: 8px;">
-          <span style="font-size: 22px;">🌐</span>
-          <span class="badge-count"><?= number_format((int)($counts['languages'] ?? 0)) ?></span>
-        </div>
-        <div style="font-size: 15px; font-weight: 700; color: #fff;">Languages</div>
-        <div class="card-desc" style="font-size: 11px;">Localization and language flags.</div>
-      </a>
-    </div>
+        <?php if ($canLanguages): ?>
+          <a href="/languages" class="nav-card" style="padding: 16px; border-radius: var(--radius-md);">
+            <div class="card-top" style="margin-bottom: 8px;">
+              <span style="font-size: 22px;">🌐</span>
+              <span class="badge-count"><?= number_format((int)($counts['languages'] ?? 0)) ?></span>
+            </div>
+            <div style="font-size: 15px; font-weight: 700; color: #fff;">Languages</div>
+            <div class="card-desc" style="font-size: 11px;">Localization and language flags.</div>
+          </a>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
   </div>
 </div>
