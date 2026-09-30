@@ -8,7 +8,6 @@
  * @var array<string, mixed> $kpi
  * @var array<string, int> $counts
  * @var array<int, array<string, mixed>> $topConsoles
- * @var array<int, array<string, mixed>> $nowPlaying
  */
 
 declare(strict_types=1);
@@ -36,8 +35,8 @@ $healthPct   = (float)($kpi['health_pct'] ?? 0);
 $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--warning)' : 'var(--danger)');
 ?>
 <div class="dashboard-container">
-  <!-- SECTION 1: Top 4 KPI Metric Tiles -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; width: 100%;">
+  <!-- SECTION 1: Top 3 KPI Metric Tiles -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; width: 100%;">
     <!-- 1. Total Games & Owned -->
     <div class="editor-card" style="padding: 18px; position: static;">
       <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Total Games</div>
@@ -49,48 +48,34 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
       </div>
     </div>
 
-    <!-- 2. Completion Rate -->
+    <!-- 2. In Collection (% of total) -->
     <div class="editor-card" style="padding: 18px; position: static;">
-      <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Completion Rate</div>
-      <div style="font-size: 32px; font-weight: 800; color: var(--success); margin-top: 4px; line-height: 1.1;">
-        <?= View::e((string)($kpi['completion_pct'] ?? 0)) ?>%
-      </div>
-      <div style="font-size: 12px; color: var(--text-dim); margin-top: 6px;">
-        <span style="color: #fff; font-weight: 600;"><?= number_format((int)($kpi['won_games'] ?? 0)) ?></span> beaten &bull;
-        <span style="color: var(--warning); font-weight: 600;"><?= number_format((int)($kpi['backlog_games'] ?? 0)) ?></span> in backlog
-      </div>
-    </div>
-
-    <!-- 3. Active Backlog Queue -->
-    <div class="editor-card" style="padding: 18px; position: static;">
-      <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Active Backlog</div>
+      <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">In Collection</div>
       <div style="font-size: 32px; font-weight: 800; color: var(--warning); margin-top: 4px; line-height: 1.1;">
-        <?= number_format((int)($kpi['backlog_games'] ?? 0)) ?>
+        <?= View::e((string)($kpi['owned_pct'] ?? 0)) ?>%
       </div>
       <div style="font-size: 12px; color: var(--text-dim); margin-top: 6px;">
-        Titles waiting to be played (<span style="color: var(--border-focus); font-weight: 600;"><?= number_format((int)($kpi['playing_games'] ?? 0)) ?></span> currently active)
+        <span style="color: #fff; font-weight: 600;"><?= number_format((int)($kpi['owned_games'] ?? 0)) ?></span> of <?= number_format((int)($kpi['total_games'] ?? 0)) ?> titles in collection
       </div>
     </div>
 
-    <!-- 4. Catalog Health -->
+    <!-- 3. Catalog Health -->
     <div class="editor-card" style="padding: 18px; position: static;">
       <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Catalog Health</div>
       <div style="font-size: 32px; font-weight: 800; color: <?= $healthColor ?>; margin-top: 4px; line-height: 1.1;">
         <?= View::e((string)($kpi['health_pct'] ?? 0)) ?>%
       </div>
-      <div style="font-size: 12px; color: var(--text-dim); margin-top: 6px; line-height: 1.4;">
-        <span style="color: var(--danger); font-weight: 600;"><?= number_format((int)($kpi['missing_covers'] ?? 0)) ?></span> games with no cover<br>
-        <span style="color: var(--danger); font-weight: 600;"><?= number_format((int)($kpi['missing_screens'] ?? 0)) ?></span> games with no screenshot
+      <div style="font-size: 12px; color: var(--text-dim); margin-top: 6px;">
+        <span style="color: var(--success); font-weight: 600;"><?= number_format((int)($kpi['complete_games'] ?? 0)) ?></span> complete &bull; <span style="color: var(--warning); font-weight: 600;"><?= number_format((int)($kpi['missing_secondary'] ?? 0)) ?></span> missing secondary &bull; <span style="color: var(--danger); font-weight: 600;"><?= number_format((int)($kpi['missing_basic'] ?? 0)) ?></span> missing basic
       </div>
     </div>
   </div>
 
-  <!-- SECTION 2: Launchpad Banner & Now Playing -->
-  <div class="dashboard-hero-row" <?= !$canCollection ? 'style="grid-template-columns: 1fr;"' : '' ?>>
-    <!-- Player Mode Launchpad Hero -->
-    <?php if ($canCollection): ?>
-      <a href="/collection" class="nav-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-color: var(--border-focus); text-decoration: none; padding: 24px;">
-        <div class="card-top">
+  <!-- SECTION 2: Launchpad Banner -->
+  <?php if ($canCollection): ?>
+    <div style="width: 100%;">
+      <a href="/collection" class="nav-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-color: var(--border-focus); text-decoration: none; padding: 24px; display: block;">
+        <div class="card-top" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <span style="font-size: 36px;">🎮</span>
           <span class="badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8; font-size: 12px;">Visual Deck</span>
         </div>
@@ -104,41 +89,8 @@ $healthColor = $healthPct >= 90 ? 'var(--success)' : ($healthPct >= 70 ? 'var(--
           Open Player Deck &rarr;
         </div>
       </a>
-    <?php endif; ?>
-
-    <!-- Currently Playing Mini-Queue -->
-    <div class="grid-card" style="border: 1px solid var(--border); border-radius: var(--radius-md);">
-      <div class="grid-header">
-        <span style="font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Currently Playing</span>
-        <span class="badge-count"><?= count($nowPlaying) ?> Active</span>
-      </div>
-      <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 220px;">
-        <?php if (!empty($nowPlaying)): ?>
-          <?php foreach ($nowPlaying as $game): ?>
-            <?php if ($canGames): ?>
-              <a href="/games?id=<?= (int)$game['id'] ?>" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius-sm); text-decoration: none; color: inherit;">
-                <div>
-                  <div style="font-weight: 600; font-size: 13px; color: #fff;"><?= View::e($game['game'] ?? 'Untitled') ?></div>
-                  <div style="font-size: 11px; color: var(--text-muted);"><?= View::e($game['console'] ?? 'Unknown') ?> &bull; <?= View::e((string)($game['year'] ?? 'N/A')) ?></div>
-                </div>
-                <span class="status-badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">Resume &rarr;</span>
-              </a>
-            <?php else: ?>
-              <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius-sm); color: inherit;">
-                <div>
-                  <div style="font-weight: 600; font-size: 13px; color: #fff;"><?= View::e($game['game'] ?? 'Untitled') ?></div>
-                  <div style="font-size: 11px; color: var(--text-muted);"><?= View::e($game['console'] ?? 'Unknown') ?> &bull; <?= View::e((string)($game['year'] ?? 'N/A')) ?></div>
-                </div>
-                <span class="status-badge" style="background: rgba(148, 163, 184, 0.15); color: var(--text-dim);">Active</span>
-              </div>
-            <?php endif; ?>
-          <?php endforeach; ?>
-        <?php else: ?>
-          <div style="text-align: center; color: var(--text-dim); font-size: 13px; padding: 20px;">No games currently in-progress.</div>
-        <?php endif; ?>
-      </div>
     </div>
-  </div>
+  <?php endif; ?>
 
   <!-- SECTION 3: Consoles Breakdown & Management Portals -->
   <div class="dashboard-main-row" <?= !$hasAnyPortal ? 'style="grid-template-columns: 1fr;"' : '' ?>>

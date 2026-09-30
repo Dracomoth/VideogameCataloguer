@@ -40,7 +40,6 @@ final class DashboardController
         $kpi         = $this->repo->getKpiMetrics();
         $counts      = $this->repo->getEntityCounts();
         $topConsoles = $this->repo->getTopConsoles(6);
-        $nowPlaying  = $this->repo->getCurrentlyPlaying(4);
 
         $viewData = [
             'pageTitle'   => 'Command Center',
@@ -53,7 +52,6 @@ final class DashboardController
             'kpi'         => $kpi,
             'counts'      => $counts,
             'topConsoles' => $topConsoles,
-            'nowPlaying'  => $nowPlaying,
         ];
 
         $html = View::render('dashboard', $viewData, 'layout');
@@ -73,13 +71,11 @@ final class DashboardController
         $kpi         = $this->repo->getKpiMetrics();
         $counts      = $this->repo->getEntityCounts();
         $topConsoles = $this->repo->getTopConsoles(6);
-        $nowPlaying  = $this->repo->getCurrentlyPlaying(4);
 
         Response::json([
             'kpi'          => $kpi,
             'counts'       => $counts,
             'top_consoles' => $topConsoles,
-            'now_playing'  => $nowPlaying,
         ]);
     }
 }

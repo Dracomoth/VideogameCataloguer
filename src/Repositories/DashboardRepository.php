@@ -28,34 +28,74 @@ final class DashboardRepository
             SELECT 
                 COUNT(*) AS total_games,
                 SUM(CASE WHEN g.in_collection = 1 THEN 1 ELSE 0 END) AS owned_games,
+                SUM(CASE WHEN 
+                    (g.title IS NULL OR TRIM(g.title) = '') OR
+                    (g.year IS NULL OR TRIM(g.year) = '') OR
+                    g.console_id IS NULL OR g.console_id <= 0 OR
+                    g.category_id IS NULL OR g.category_id <= 0 OR
+                    g.subcategory_id IS NULL OR g.subcategory_id <= 0 OR
+                    g.publisher_id IS NULL OR g.publisher_id <= 0 OR
+                    g.language_id IS NULL OR g.language_id <= 0
+                    THEN 1 ELSE 0 END) AS missing_basic,
+                SUM(CASE WHEN 
+                    NOT (
+                        (g.title IS NULL OR TRIM(g.title) = '') OR
+                        (g.year IS NULL OR TRIM(g.year) = '') OR
+                        g.console_id IS NULL OR g.console_id <= 0 OR
+                        g.category_id IS NULL OR g.category_id <= 0 OR
+                        g.subcategory_id IS NULL OR g.subcategory_id <= 0 OR
+                        g.publisher_id IS NULL OR g.publisher_id <= 0 OR
+                        g.language_id IS NULL OR g.language_id <= 0
+                    )
+                    AND (
+                        (g.boxart_path IS NULL OR TRIM(g.boxart_path) = '') OR
+                        (g.screenshot_path IS NULL OR TRIM(g.screenshot_path) = '')
+                    ) THEN 1 ELSE 0 END) AS missing_secondary,
+                SUM(CASE WHEN 
+                    NOT (
+                        (g.title IS NULL OR TRIM(g.title) = '') OR
+                        (g.year IS NULL OR TRIM(g.year) = '') OR
+                        g.console_id IS NULL OR g.console_id <= 0 OR
+                        g.category_id IS NULL OR g.category_id <= 0 OR
+                        g.subcategory_id IS NULL OR g.subcategory_id <= 0 OR
+                        g.publisher_id IS NULL OR g.publisher_id <= 0 OR
+                        g.language_id IS NULL OR g.language_id <= 0
+                    )
+                    AND (g.boxart_path IS NOT NULL AND TRIM(g.boxart_path) != '')
+                    AND (g.screenshot_path IS NOT NULL AND TRIM(g.screenshot_path) != '')
+                    THEN 1 ELSE 0 END) AS complete_games,
                 SUM(CASE WHEN g.boxart_path IS NULL OR TRIM(g.boxart_path) = '' THEN 1 ELSE 0 END) AS missing_covers,
-                SUM(CASE WHEN g.screenshot_path IS NULL OR TRIM(g.screenshot_path) = '' THEN 1 ELSE 0 END) AS missing_screens,
-                SUM(CASE WHEN (g.boxart_path IS NOT NULL AND TRIM(g.boxart_path) != '') 
-                         AND (g.screenshot_path IS NOT NULL AND TRIM(g.screenshot_path) != '') THEN 1 ELSE 0 END) AS fully_documented
+                SUM(CASE WHEN g.screenshot_path IS NULL OR TRIM(g.screenshot_path) = '' THEN 1 ELSE 0 END) AS missing_screens
             FROM games g
         ";
 
         $kpi = Database::fetchOne($sql) ?? [];
 
-        $totalGames      = (int)($kpi['total_games'] ?? 0);
-        $ownedGames      = (int)($kpi['owned_games'] ?? 0);
-        $fullyDocumented = (int)($kpi['fully_documented'] ?? 0);
+        $totalGames       = (int)($kpi['total_games'] ?? 0);
+        $ownedGames       = (int)($kpi['owned_games'] ?? 0);
+        $missingBasic     = (int)($kpi['missing_basic'] ?? 0);
+        $missingSecondary = (int)($kpi['missing_secondary'] ?? 0);
+        $completeGames    = (int)($kpi['complete_games'] ?? 0);
+
+        $ownedPct = $totalGames > 0
+            ? round(($ownedGames / $totalGames) * 100, 1)
+            : 0.0;
 
         $healthPct = $totalGames > 0 
-            ? round(($fullyDocumented / $totalGames) * 100, 1) 
+            ? round(($completeGames / $totalGames) * 100, 1) 
             : 0.0;
 
         return [
-            'total_games'      => $totalGames,
-            'owned_games'      => $ownedGames,
-            'backlog_games'    => $ownedGames,
-            'playing_games'    => 0,
-            'won_games'        => 0,
-            'missing_covers'   => (int)($kpi['missing_covers'] ?? 0),
-            'missing_screens'  => (int)($kpi['missing_screens'] ?? 0),
-            'fully_documented' => $fullyDocumented,
-            'health_pct'       => $healthPct,
-            'completion_pct'   => 0.0,
+            'total_games'       => $totalGames,
+            'owned_games'       => $ownedGames,
+            'owned_pct'         => $ownedPct,
+            'backlog_games'     => $ownedGames,
+            'missing_basic'     => $missingBasic,
+            'missing_secondary' => $missingSecondary,
+            'complete_games'    => $completeGames,
+            'missing_covers'    => (int)($kpi['missing_covers'] ?? 0),
+            'missing_screens'   => (int)($kpi['missing_screens'] ?? 0),
+            'health_pct'        => $healthPct,
         ];
     }
 
