@@ -199,12 +199,12 @@ Enforced `Auth::requireAccess('dashboard', 'read')` on `index` and `api` endpoin
 - `index.php`: Registered routes (`/consoles`, `/api/consoles`, `/consoles/create`, `/consoles/{id}/update`, `/consoles/{id}/delete`).
 
 27) File 26: Game Cataloguer & Asset Hub Maintenance Module (Tested & Complete)
-- `src/Repositories/GameRepository.php`: Full CRUD repository managing game titles, platforms, categories, subcategories, publishers, languages, collection/play status toggles, personal notes, tags, and strict 4-step image lifecycle operations:
+- `src/Repositories/GameRepository.php`: Full CRUD repository managing game titles, platforms, categories, subcategories, publishers, languages, collection status toggle, personal notes, tags, and strict 4-step image lifecycle operations:
   - **Insert**: Uploaded images are renamed before storage using `<ID>_Img.<ext>` for `screenshot_path` and `<ID>_Box.<ext>` for `boxart_path`. Relative paths stored in database.
   - **Update**: Retrieves previous values from DB, unlinks existing files on disk regardless of previous path value, and renames/stores newly uploaded assets with `<ID>_Img.<ext>` and `<ID>_Box.<ext>`. If removal is requested (`delete_screenshot` or `delete_boxart`), unlinks existing file and clears field to `NULL`.
-  - **Read**: Retrieves values directly from fields and exposes web URLs without enforcing naming conventions on read. Computes `collection_status` badge (`CLEARED`, `PLAYED`, `IN COLLECTION`, `BACKLOG`).
+  - **Read**: Retrieves values directly from fields and exposes web URLs without enforcing naming conventions on read. Computes `collection_status` badge.
   - **Delete**: Unlinks whatever files are referenced in `screenshot_path` and `boxart_path` before record deletion.
 - `src/Controllers/GameController.php`: RBAC protected controller handling multipart form uploads, taxonomy reference datasets, and JSON API responses.
-- `src/Views/games.php`: Master-detail split workbench with persistent form editor (500px), platform and dynamic subcategory hierarchy filter, collection status chip toggles (`In Collection`, `Played`, `Cleared / Won`), dual visual asset dropzones (`Upload Box Art` `<ID>_Box.ext` and `Upload Screenshot` `<ID>_Img.ext`) with instant preview & removal, AI Auto-Fill action button (`✨ AI Auto-Fill`) with sparkle icon, tags and personal notes, and high-density searchable `<data-grid>` with platform and genre dropdown filtering (`grid.customFilters`) and completion status badges.
+- `src/Views/games.php`: Master-detail split workbench with persistent form editor (500px), platform and dynamic subcategory hierarchy filter, collection status chip toggle (`In Collection`), dual visual asset dropzones (`Upload Box Art` `<ID>_Box.ext` and `Upload Screenshot` `<ID>_Img.ext`) with instant preview & removal, AI Auto-Fill action button (`✨ AI Auto-Fill`) with sparkle icon, tags and personal notes, and high-density searchable `<data-grid>` with platform and genre dropdown filtering (`grid.customFilters`) and completion status badges.
 - `index.php`: Registered routes (`/games`, `/api/games`, `/games/create`, `/games/{id}/update`, `/games/{id}/delete`).
 

@@ -54,8 +54,6 @@ final class GameRepository
                 g.screenshot_path,
                 g.boxart_path,
                 g.in_collection,
-                g.is_played,
-                g.is_won,
                 g.comments,
                 c.name AS console_name,
                 cat.name AS category_name,
@@ -100,8 +98,6 @@ final class GameRepository
                 g.screenshot_path,
                 g.boxart_path,
                 g.in_collection,
-                g.is_played,
-                g.is_won,
                 g.comments,
                 c.name AS console_name,
                 cat.name AS category_name,
@@ -258,20 +254,18 @@ final class GameRepository
         $comments      = trim((string)($data['comments'] ?? '')) ?: null;
 
         $inCollection  = !empty($data['in_collection']) ? 1 : 0;
-        $isPlayed      = (!empty($data['is_played']) || !empty($data['played'])) ? 1 : 0;
-        $isWon         = (!empty($data['is_won']) || !empty($data['won'])) ? 1 : 0;
 
         $sql = "
             INSERT INTO `games` (
                 `title`, `console_id`, `category_id`, `subcategory_id`,
                 `language_id`, `publisher_id`, `year`, `tags`,
                 `screenshot_path`, `boxart_path`,
-                `in_collection`, `is_played`, `is_won`, `comments`
+                `in_collection`, `comments`
             ) VALUES (
                 :title, :console_id, :category_id, :subcategory_id,
                 :language_id, :publisher_id, :year, :tags,
                 NULL, NULL,
-                :in_collection, :is_played, :is_won, :comments
+                :in_collection, :comments
             )
         ";
 
@@ -285,8 +279,6 @@ final class GameRepository
             ':year'           => $year,
             ':tags'           => $tags,
             ':in_collection'  => $inCollection,
-            ':is_played'      => $isPlayed,
-            ':is_won'         => $isWon,
             ':comments'       => $comments,
         ]);
 
@@ -373,8 +365,6 @@ final class GameRepository
         $comments      = trim((string)($data['comments'] ?? '')) ?: null;
 
         $inCollection  = !empty($data['in_collection']) ? 1 : 0;
-        $isPlayed      = (!empty($data['is_played']) || !empty($data['played'])) ? 1 : 0;
-        $isWon         = (!empty($data['is_won']) || !empty($data['won'])) ? 1 : 0;
 
         $deleteScreenshot = !empty($data['delete_screenshot']) || !empty($data['delete_screen']);
         $deleteBoxart     = !empty($data['delete_boxart']);
@@ -421,8 +411,6 @@ final class GameRepository
                 `screenshot_path` = :screenshot_path,
                 `boxart_path`     = :boxart_path,
                 `in_collection`   = :in_collection,
-                `is_played`       = :is_played,
-                `is_won`          = :is_won,
                 `comments`        = :comments
             WHERE `id` = :id
         ";
@@ -439,8 +427,6 @@ final class GameRepository
             ':screenshot_path' => $currentScreenshotPath,
             ':boxart_path'     => $currentBoxartPath,
             ':in_collection'   => $inCollection,
-            ':is_played'       => $isPlayed,
-            ':is_won'          => $isWon,
             ':comments'        => $comments,
             ':id'              => $id,
         ]);
@@ -501,8 +487,6 @@ final class GameRepository
         $row['language_id']    = !empty($row['language_id']) ? (int)$row['language_id'] : null;
         $row['publisher_id']   = !empty($row['publisher_id']) ? (int)$row['publisher_id'] : null;
         $row['in_collection']  = (int)($row['in_collection'] ?? 0);
-        $row['is_played']      = (int)($row['is_played'] ?? 0);
-        $row['is_won']         = (int)($row['is_won'] ?? 0);
 
         // Web accessible URLs for reading
         $row['screenshot_url'] = $screenshotPath !== '' ? ('/' . ltrim($screenshotPath, '/\\')) : '';

@@ -83,7 +83,11 @@ if (!defined('APP_INIT')) {
   margin-bottom: 8px;
 }
 
-/* Collection & Play Status Chip Toggles */
+/* Collection Status Chip Toggles */
+.chip-group {
+  display: flex;
+  gap: 8px;
+}
 .chip-group-3 {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -100,10 +104,10 @@ if (!defined('APP_INIT')) {
   }
 }
 .chip-toggle {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 8px;
+  padding: 7px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: rgba(15, 23, 42, 0.5);
@@ -399,20 +403,12 @@ if (!defined('APP_INIT')) {
         </div>
       </div>
 
-      <!-- Section 3: Collection & Play Status -->
-      <div class="form-section-title">Collection & Play Status</div>
-      <div class="chip-group-3">
+      <!-- Section 3: Collection Status -->
+      <div class="form-section-title">Collection Status</div>
+      <div class="chip-group">
         <label class="chip-toggle">
           <input type="checkbox" id="inCollection" name="in_collection" value="1" <?= !$canWrite ? 'disabled' : '' ?>>
           📦 In Collection
-        </label>
-        <label class="chip-toggle">
-          <input type="checkbox" id="isPlayed" name="is_played" value="1" <?= !$canWrite ? 'disabled' : '' ?>>
-          🎮 Played
-        </label>
-        <label class="chip-toggle">
-          <input type="checkbox" id="isWon" name="is_won" value="1" <?= !$canWrite ? 'disabled' : '' ?>>
-          🏆 Cleared / Won
         </label>
       </div>
 
@@ -840,8 +836,6 @@ function selectGame(id) {
   document.getElementById('languageId').value = String(record.language_id || '');
 
   document.getElementById('inCollection').checked = Number(record.in_collection) === 1;
-  document.getElementById('isPlayed').checked = Number(record.is_played) === 1;
-  document.getElementById('isWon').checked = Number(record.is_won) === 1;
 
   document.getElementById('tags').value = record.tags || '';
   document.getElementById('comments').value = record.comments || '';

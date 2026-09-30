@@ -67,7 +67,7 @@ final class BulkUploadRepository
                     'label' => 'Games (Catalog Library)',
                     'icon'  => '🎮',
                     'primary_key' => 'id',
-                    'recognized_headers' => 'title, console_id, category_id, subcategory_id, language_id, publisher_id, year, tags, screenshot_path, boxart_path, in_collection, is_played, is_won, comments',
+                    'recognized_headers' => 'title, console_id, category_id, subcategory_id, language_id, publisher_id, year, tags, screenshot_path, boxart_path, in_collection, comments',
                     'columns' => [
                         'title' => [
                             'name' => 'title',
@@ -141,20 +141,6 @@ final class BulkUploadRepository
                         'in_collection' => [
                             'name' => 'in_collection',
                             'label' => 'In Collection',
-                            'type' => 'boolean',
-                            'required' => false,
-                            'default' => 0,
-                        ],
-                        'is_played' => [
-                            'name' => 'is_played',
-                            'label' => 'Played',
-                            'type' => 'boolean',
-                            'required' => false,
-                            'default' => 0,
-                        ],
-                        'is_won' => [
-                            'name' => 'is_won',
-                            'label' => 'Won / Beaten',
                             'type' => 'boolean',
                             'required' => false,
                             'default' => 0,

@@ -55,8 +55,6 @@ final class ReportRepository
         'image_path'            => 'Hardware Image Path',
         'logo_path'             => 'Logo Path',
         'in_collection'         => 'In Collection (Owned)',
-        'is_played'             => 'Played Status',
-        'is_won'                => 'Won / Beaten Status',
         'is_console_maker'      => 'Is Console Maker',
         'is_for_reference'      => 'Is Reference Only',
         'master_reference_id'   => 'Master Platform ID',
@@ -95,12 +93,11 @@ final class ReportRepository
              WHERE `boxart_path` IS NULL OR `boxart_path` = '' 
                 OR `screenshot_path` IS NULL OR `screenshot_path` = ''"
         );
-        $won = Database::fetchOne("SELECT COUNT(*) AS c FROM `games` WHERE `is_won` = 1");
 
         return [
             'physical_inventory' => (int)($owned['c'] ?? 0),
             'incomplete_media'   => (int)($missing['c'] ?? 0),
-            'cleared_beaten'     => (int)($won['c'] ?? 0),
+            'cleared_beaten'     => 0,
         ];
     }
 
@@ -126,8 +123,6 @@ final class ReportRepository
                             COALESCE(g.year, '') AS year,
                             COALESCE(g.tags, '') AS tags,
                             g.in_collection,
-                            g.is_played,
-                            g.is_won,
                             COALESCE(g.comments, '') AS comments
                         FROM `games` g
                         LEFT JOIN `consoles` c ON c.id = g.console_id
@@ -138,7 +133,7 @@ final class ReportRepository
                         ORDER BY g.title ASC";
 
                 $data = Database::fetchAll($sql);
-                $headers = ['id', 'title', 'console', 'category', 'subcategory', 'publisher', 'year', 'tags', 'in_collection', 'is_played', 'is_won', 'comments'];
+                $headers = ['id', 'title', 'console', 'category', 'subcategory', 'publisher', 'year', 'tags', 'in_collection', 'comments'];
                 $rows = [];
                 foreach ($data as $d) {
                     $row = [];
@@ -197,41 +192,11 @@ final class ReportRepository
                 ];
 
             case 'cleared_beaten':
-                $sql = "SELECT 
-                            g.id,
-                            g.title,
-                            COALESCE(c.name, '') AS console,
-                            COALESCE(cat.name, '') AS category,
-                            COALESCE(sub.name, '') AS subcategory,
-                            COALESCE(pub.name, '') AS publisher,
-                            COALESCE(g.year, '') AS year,
-                            g.is_won,
-                            g.is_played,
-                            COALESCE(g.comments, '') AS comments
-                        FROM `games` g
-                        LEFT JOIN `consoles` c ON c.id = g.console_id
-                        LEFT JOIN `categories` cat ON cat.id = g.category_id
-                        LEFT JOIN `subcategories` sub ON sub.id = g.subcategory_id
-                        LEFT JOIN `publishers` pub ON pub.id = g.publisher_id
-                        WHERE g.is_won = 1
-                        ORDER BY g.title ASC";
-
-                $data = Database::fetchAll($sql);
-                $headers = ['id', 'title', 'console', 'category', 'subcategory', 'publisher', 'year', 'is_won', 'is_played', 'comments'];
-                $rows = [];
-                foreach ($data as $d) {
-                    $row = [];
-                    foreach ($headers as $h) {
-                        $row[] = $d[$h] ?? '';
-                    }
-                    $rows[] = $row;
-                }
-
                 return [
                     'title'    => 'Cleared & Beaten Logbook',
                     'filename' => 'cleared_beaten_logbook_' . date('Ymd_His'),
-                    'headers'  => $headers,
-                    'rows'     => $rows,
+                    'headers'  => ['id', 'title', 'console', 'category', 'subcategory', 'publisher', 'year', 'comments'],
+                    'rows'     => [],
                 ];
 
             default:

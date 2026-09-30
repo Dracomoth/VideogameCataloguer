@@ -28,9 +28,6 @@ final class DashboardRepository
             SELECT 
                 COUNT(*) AS total_games,
                 SUM(CASE WHEN g.in_collection = 1 THEN 1 ELSE 0 END) AS owned_games,
-                SUM(CASE WHEN g.in_collection = 1 AND g.is_played = 0 AND g.is_won = 0 THEN 1 ELSE 0 END) AS backlog_games,
-                SUM(CASE WHEN g.in_collection = 1 AND g.is_played = 1 AND g.is_won = 0 THEN 1 ELSE 0 END) AS playing_games,
-                SUM(CASE WHEN g.is_won = 1 THEN 1 ELSE 0 END) AS won_games,
                 SUM(CASE WHEN g.boxart_path IS NULL OR TRIM(g.boxart_path) = '' THEN 1 ELSE 0 END) AS missing_covers,
                 SUM(CASE WHEN g.screenshot_path IS NULL OR TRIM(g.screenshot_path) = '' THEN 1 ELSE 0 END) AS missing_screens,
                 SUM(CASE WHEN (g.boxart_path IS NOT NULL AND TRIM(g.boxart_path) != '') 
@@ -42,28 +39,23 @@ final class DashboardRepository
 
         $totalGames      = (int)($kpi['total_games'] ?? 0);
         $ownedGames      = (int)($kpi['owned_games'] ?? 0);
-        $wonGames        = (int)($kpi['won_games'] ?? 0);
         $fullyDocumented = (int)($kpi['fully_documented'] ?? 0);
 
         $healthPct = $totalGames > 0 
             ? round(($fullyDocumented / $totalGames) * 100, 1) 
             : 0.0;
 
-        $completionPct = $ownedGames > 0 
-            ? round(($wonGames / $ownedGames) * 100, 1) 
-            : 0.0;
-
         return [
             'total_games'      => $totalGames,
             'owned_games'      => $ownedGames,
-            'backlog_games'    => (int)($kpi['backlog_games'] ?? 0),
-            'playing_games'    => (int)($kpi['playing_games'] ?? 0),
-            'won_games'        => $wonGames,
+            'backlog_games'    => $ownedGames,
+            'playing_games'    => 0,
+            'won_games'        => 0,
             'missing_covers'   => (int)($kpi['missing_covers'] ?? 0),
             'missing_screens'  => (int)($kpi['missing_screens'] ?? 0),
             'fully_documented' => $fullyDocumented,
             'health_pct'       => $healthPct,
-            'completion_pct'   => $completionPct,
+            'completion_pct'   => 0.0,
         ];
     }
 
@@ -121,20 +113,6 @@ final class DashboardRepository
      */
     public function getCurrentlyPlaying(int $limit = 4): array
     {
-        $sql = "
-            SELECT 
-                g.id, 
-                g.title AS game, 
-                g.year, 
-                g.boxart_path, 
-                c.name AS console
-            FROM games g
-            LEFT JOIN consoles c ON g.console_id = c.id
-            WHERE g.in_collection = 1 AND g.is_played = 1 AND g.is_won = 0
-            ORDER BY g.id DESC
-            LIMIT {$limit}
-        ";
-
-        return Database::fetchAll($sql);
+        return [];
     }
 }

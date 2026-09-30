@@ -545,7 +545,7 @@ if (!defined('APP_INIT')) {
           </div>
           <h3 class="audit-card-title">CLEARED & BEATEN LOGBOOK</h3>
           <p class="audit-card-desc">
-            Roster of games beaten (Won = 1) accompanied by your gameplay comments.
+            Roster of games beaten accompanied by your gameplay comments.
           </p>
         </div>
         <div class="audit-formats">
