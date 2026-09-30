@@ -193,6 +193,7 @@ $router->delete('/consoles/{id}', [ConsoleController::class, 'delete']);
 // Game Cataloguer & Asset Maintenance Routes
 $router->get('/games', [GameController::class, 'index']);
 $router->get('/api/games', [GameController::class, 'apiList']);
+$router->get('/api/telemetry', [GameController::class, 'apiTelemetry']);
 $router->post('/games', [GameController::class, 'create']);
 $router->post('/games/create', [GameController::class, 'create']);
 $router->post('/games/{id}/update', [GameController::class, 'update']);

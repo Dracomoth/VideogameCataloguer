@@ -1261,6 +1261,10 @@ async function reloadGridData(selectIdAfter = null) {
     if (selectIdAfter) {
       selectConsole(selectIdAfter);
     }
+
+    if (typeof window.refreshHeaderTelemetry === 'function') {
+      window.refreshHeaderTelemetry();
+    }
   } catch (err) {
     console.error('Failed to reload consoles dataset:', err);
   }

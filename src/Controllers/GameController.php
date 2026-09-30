@@ -112,6 +112,18 @@ final class GameController
     }
 
     /**
+     * Supplies quick collection telemetry numbers for real-time header sync.
+     *
+     * @param array<string, mixed> $request
+     * @return never
+     */
+    public function apiTelemetry(array $request): void
+    {
+        $telemetry = $this->repo->getTelemetry();
+        Response::json($telemetry);
+    }
+
+    /**
      * Creates a new game record with optional visual assets.
      *
      * @param array<string, mixed> $request

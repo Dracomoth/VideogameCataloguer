@@ -240,13 +240,34 @@ $isAdminActive    = in_array($active, ['users', 'roles'], true);
     <!-- Sidebar Footer: Session Card & Logout -->
     <div class="sidebar-footer">
       <?php if ($currentUser !== null): ?>
+        <?php
+          $sidebarAvatarUrl = !empty($currentUser['avatar_path']) ? (string)$currentUser['avatar_path'] : null;
+          $sFirst = trim((string)($currentUser['first_name'] ?? ''));
+          $sLast  = trim((string)($currentUser['last_name'] ?? ''));
+          $sInitials = '';
+          if ($sFirst !== '') $sInitials .= substr($sFirst, 0, 1);
+          if ($sLast !== '') $sInitials .= substr($sLast, 0, 1);
+          $sInitials = strtoupper($sInitials ?: 'U');
+        ?>
         <div class="sidebar-user-card">
-          <div class="sidebar-user-avatar">👤</div>
+          <div class="sidebar-user-avatar">
+            <?php if (!empty($sidebarAvatarUrl)): ?>
+              <img src="<?= View::e($sidebarAvatarUrl) ?>" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+            <?php else: ?>
+              <span class="sidebar-avatar-initials"><?= View::e($sInitials) ?></span>
+            <?php endif; ?>
+          </div>
           <div class="sidebar-user-details">
             <span class="sidebar-user-name"><?= View::e($currentUser['first_name'] . ' ' . ($currentUser['last_name'] ?? '')) ?></span>
             <span class="sidebar-user-role"><?= View::e($currentUser['role_name'] ?? 'User') ?></span>
           </div>
-          <a href="/logout" class="sidebar-logout-icon" title="Sign Out">🚪</a>
+          <a href="/logout" class="sidebar-logout-icon" title="Sign Out" aria-label="Sign Out">
+            <svg class="sidebar-logout-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </a>
         </div>
       <?php else: ?>
         <a href="/login" class="sidebar-login-link" onclick="closeSidebar()">🔑 Sign In</a>

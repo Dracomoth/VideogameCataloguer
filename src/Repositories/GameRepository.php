@@ -538,4 +538,28 @@ final class GameRepository
 
         return $row;
     }
+
+    /**
+     * Retrieves lightweight aggregate counts for real-time header telemetry.
+     *
+     * @return array{total_games: int, owned_games: int, total_consoles: int}
+     */
+    public function getTelemetry(): array
+    {
+        $sql = "
+            SELECT 
+                COUNT(*) AS total_games,
+                SUM(CASE WHEN in_collection = 1 THEN 1 ELSE 0 END) AS owned_games
+            FROM `games`
+        ";
+        $row = Database::fetchOne($sql) ?? [];
+        $totalConsoles = (int)Database::fetchColumn("SELECT COUNT(*) FROM `consoles`");
+
+        return [
+            'total_games'    => (int)($row['total_games'] ?? 0),
+            'owned_games'    => (int)($row['owned_games'] ?? 0),
+            'total_consoles' => $totalConsoles,
+        ];
+    }
 }
+

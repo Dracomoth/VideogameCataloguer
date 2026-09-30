@@ -1239,6 +1239,10 @@ async function reloadGridData(selectTargetId = null) {
     } else {
       syncRowHighlight();
     }
+
+    if (typeof window.refreshHeaderTelemetry === 'function') {
+      window.refreshHeaderTelemetry();
+    }
   } catch (err) {
     console.error('Error reloading grid data:', err);
   }

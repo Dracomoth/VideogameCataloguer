@@ -23,10 +23,29 @@ if (!defined('APP_INIT')) {
 $title = !empty($pageTitle) ? View::e($pageTitle) . ' | Videogame Vault' : 'Videogame Vault';
 $navActive = $activeNav ?? 'dashboard';
 
-// Default telemetry badges
-$totalGames   = $stats['total_games'] ?? 0;
-$ownedGames   = $stats['owned_games'] ?? 0;
-$totalSystems = $stats['total_consoles'] ?? 0;
+// Telemetry figures with fallback for views that don't explicitly pass $stats
+if (!isset($stats) || !is_array($stats) || !isset($stats['total_games'])) {
+    try {
+        $tgRow = \Vault\Services\Database::fetchOne("
+            SELECT 
+                COUNT(*) AS total_games,
+                SUM(CASE WHEN in_collection = 1 THEN 1 ELSE 0 END) AS owned_games
+            FROM `games`
+        ");
+        $tcCount = (int)\Vault\Services\Database::fetchColumn("SELECT COUNT(*) FROM `consoles`");
+        $stats = [
+            'total_games'    => (int)($tgRow['total_games'] ?? 0),
+            'owned_games'    => (int)($tgRow['owned_games'] ?? 0),
+            'total_consoles' => $tcCount,
+        ];
+    } catch (\Throwable $e) {
+        $stats = ['total_games' => 0, 'owned_games' => 0, 'total_consoles' => 0];
+    }
+}
+
+$totalGames   = (int)($stats['total_games'] ?? 0);
+$ownedGames   = (int)($stats['owned_games'] ?? 0);
+$totalSystems = (int)($stats['total_consoles'] ?? 0);
 
 $stylePath = __DIR__ . '/../../assets/css/style.css';
 $styleVer  = file_exists($stylePath) ? (string)filemtime($stylePath) : '1.0';
@@ -87,6 +106,53 @@ function showToast(msg, type = 'success') {
   }, 3200);
 }
 window.showToast = showToast;
+
+/**
+ * Global Header Telemetry Real-Time Synchronizer
+ * Queries /api/telemetry and updates the header telemetry pills in real time.
+ */
+window.refreshHeaderTelemetry = async function() {
+  try {
+    const res = await fetch(`/api/telemetry?_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
+    if (!res.ok) return;
+
+    const json = await res.json();
+    const data = (json && json.data) ? json.data : json;
+    if (!data) return;
+
+    const gEl = document.getElementById('headerTotalGames');
+    const oEl = document.getElementById('headerOwnedGames');
+    const cEl = document.getElementById('headerTotalConsoles');
+
+    if (gEl && data.total_games !== undefined) {
+      gEl.textContent = Number(data.total_games).toLocaleString();
+    }
+    if (oEl && data.owned_games !== undefined) {
+      oEl.textContent = Number(data.owned_games).toLocaleString();
+    }
+    if (cEl && data.total_consoles !== undefined) {
+      cEl.textContent = Number(data.total_consoles).toLocaleString();
+    }
+
+    window.dispatchEvent(new CustomEvent('vault-telemetry-updated', { detail: data }));
+  } catch (err) {
+    console.debug('Header telemetry sync deferred:', err);
+  }
+};
+
+// Auto-refresh when switching tabs / returning to window
+window.addEventListener('focus', () => {
+  if (typeof window.refreshHeaderTelemetry === 'function') {
+    window.refreshHeaderTelemetry();
+  }
+});
 </script>
 
 <!-- Universal Web Components -->

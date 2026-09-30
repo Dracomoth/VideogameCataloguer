@@ -1176,6 +1176,9 @@ document.addEventListener('DOMContentLoaded', () => {
       btnExecuteBatch.disabled = false;
     }
     setStatus(statusMsg, dotType);
+    if (dotType === 'success' && typeof window.refreshHeaderTelemetry === 'function') {
+      window.refreshHeaderTelemetry();
+    }
   }
 
   function escapeHtml(str) {
