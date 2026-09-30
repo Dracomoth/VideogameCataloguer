@@ -56,6 +56,7 @@ use Vault\Controllers\DashboardController;
 use Vault\Controllers\GameController;
 use Vault\Controllers\LanguageController;
 use Vault\Controllers\PublisherController;
+use Vault\Controllers\ReportController;
 use Vault\Controllers\RoleController;
 use Vault\Controllers\SubcategoryController;
 use Vault\Controllers\UserController;
@@ -195,6 +196,12 @@ $router->get('/api/bulk-upload/schema', [BulkUploadController::class, 'schema'])
 $router->get('/api/bulk-upload/schema/{table}', [BulkUploadController::class, 'schema']);
 $router->post('/api/bulk-upload/validate', [BulkUploadController::class, 'validateBatch']);
 $router->post('/api/bulk-upload/execute', [BulkUploadController::class, 'executeBatch']);
+
+// Reports & Curated Collection Audits
+$router->get('/reports', [ReportController::class, 'index']);
+$router->get('/api/reports/premade', [ReportController::class, 'apiPremade']);
+$router->post('/api/reports/custom', [ReportController::class, 'apiCustom']);
+$router->get('/api/reports/export', [ReportController::class, 'export']);
 
 // 7. Dispatch the Request
 $router->dispatch($requestUri, $requestMethod);
