@@ -55,6 +55,7 @@ use Vault\Controllers\ConsoleTypeController;
 use Vault\Controllers\DashboardController;
 use Vault\Controllers\GameController;
 use Vault\Controllers\LanguageController;
+use Vault\Controllers\PlayerHubController;
 use Vault\Controllers\PublisherController;
 use Vault\Controllers\ReportController;
 use Vault\Controllers\RoleController;
@@ -110,6 +111,14 @@ $router->get('/', [DashboardController::class, 'index']);
 
 // Dashboard JSON Telemetry API
 $router->get('/api/dashboard', [DashboardController::class, 'api']);
+
+// Player Hub & Catalog Spotlight Experience
+$router->get('/collection', [PlayerHubController::class, 'index']);
+$router->get('/player-hub', [PlayerHubController::class, 'index']);
+$router->get('/api/player-hub/count', [PlayerHubController::class, 'apiCount']);
+$router->get('/api/player-hub/pick', [PlayerHubController::class, 'apiPick']);
+$router->get('/api/player-hub/games', [PlayerHubController::class, 'apiList']);
+$router->get('/api/player-hub/game/{id}', [PlayerHubController::class, 'apiGetGame']);
 
 // User Management Routes
 $router->get('/users', [UserController::class, 'index']);
