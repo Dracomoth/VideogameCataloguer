@@ -1,4 +1,81 @@
-Project Context & Role Briefing
+# Videogame Cataloguer
+
+## Description
+
+**Videogame Cataloguer** is a modern, lightweight web application for managing a personal video‑game collection. Built with pure PHP 8.2+ (no third‑party dependencies) and a responsive, dark‑slate UI, it provides a full‑stack CRUD experience for games, consoles, taxonomies, users, and roles while enforcing granular, dual‑device role‑based access control (RBAC).
+
+## Main Features
+
+- **Modular Architecture** – Separate view components (`header.php`, `navbar.php`, `footer.php`) and a reusable vanilla‑JS `data‑grid` web component for fast, client‑side sorting, filtering, and pagination.
+- **Rich UI** – Dark‑slate theme with CSS design tokens, responsive breakpoints, and micro‑animations for a premium feel.
+- **RBAC & Device Awareness** – Permissions (`none`, `read`, `write`) are scoped per screen and per device type (PC vs. mobile/other), with a Super‑Admin bypass.
+- **Comprehensive CRUD** – Manage games, consoles, categories, sub‑categories, publishers, languages, and users through clean JSON APIs and server‑rendered PHP views.
+- **Secure Authentication** – Bcrypt‑hashed passwords, session handling, and automatic logout on inactivity.
+- **Asset Lifecycle** – Automatic image handling for screenshots, box‑art, console logos, etc., with safe upload, rename, and cleanup.
+- **Zero‑Dependency Deployment** – Runs on PHP’s built‑in web server; no Composer or external packages required.
+- **Extensible Design** – Easily add new taxonomies or UI components without touching core logic.
+
+## Installation
+
+1. **Prerequisites**
+   - PHP 8.2 or newer (CLI and web server)
+   - MariaDB/MySQL database
+   - Git (to clone the repository)
+   - (Optional) A local development web server like `php -S` or any LAMP stack.
+
+2. **Clone the repository**
+   ```bash
+   git clone https://github.com/your-org/VideogameCataloguer.git
+   cd VideogameCataloguer
+   ```
+
+3. **Configure the application**
+   - Copy the example config and edit your secrets:
+     ```bash
+     cp config/config.example.php config/config.php
+     ```
+   - Open `config/config.php` and set:
+     - Database host, name, username, and password
+     - Any other environment‑specific constants (e.g., `BASE_URL`).
+   - Ensure `config/config.php` is listed in `.gitignore` (it already is) so credentials are not committed.
+
+4. **Create the database schema**
+   - Import the provided SQL files in order:
+     ```bash
+     mysql -u <user> -p < database/01_schema_init.sql
+     mysql -u <user> -p < database/02_users_and_roles.sql
+     ```
+   - This will create tables for games, consoles, taxonomies, users, roles, and RBAC mappings, plus a default Super‑Admin account (`admin@videogamevault.local` / `Password#2026!`). Keep in mind you need to replacer this email and password on script 02_users_and_roles.sql with your own before you run this script on your database. The password must be hashed, so before adding it to the script you need to generate the hash from the password string. Just open a terminal window and run the following command:
+   ```bash
+   php -r "echo password_hash('YourNewPasswordHere!', PASSWORD_BCRYPT, ['cost' => 12]) . PHP_EOL;"
+   ```
+   Copy the result into the script, in the last insert.
+
+5. **Start the development server**
+   ```bash
+   php -S localhost:8000 router.php
+   ```
+   - Open a browser and navigate to `http://localhost:8000`. The app will redirect to the login page if you are not authenticated.
+
+6. **Deploy to production (Hostinger example)**
+   - Upload the entire project to the sub‑domain’s `public_html/vdgn-test/` directory.
+   - Ensure `.htaccess` is present to route all requests to `index.php`.
+   - Update `config/config.php` with the production database credentials.
+   - Secure the `config/` directory via the web‑server configuration (already blocked by `.htaccess`).
+
+## Running the Application
+
+- **Local**: `php -S localhost:8000 router.php`
+- **Production**: Access through the configured domain/sub‑domain; the built‑in router works with the provided `.htaccess` rules.
+
+## Contributing
+
+Contributions are welcome! Please fork the repository, make your changes, and submit a pull request. Follow the existing coding style (PSR‑12) and keep the zero‑dependency philosophy.
+
+## License
+
+This project is licensed under the MIT License.
+
 
 I. Roles & Working Agreement:
 
