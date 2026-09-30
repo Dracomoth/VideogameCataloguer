@@ -45,7 +45,7 @@ final class PlayerHubController
         $initialPlatformId = (int)($_GET['console_id'] ?? ($_GET['platform_id'] ?? 0));
         $initialCategoryId = (int)($_GET['category_id'] ?? 0);
         $initialSubcategoryId = (int)($_GET['subcategory_id'] ?? 0);
-        $initialSearch = trim((string)($_GET['q'] ?? ''));
+        $initialSearch = trim((string)($_GET['q'] ?? ($_GET['contains'] ?? '')));
 
         $initialFilters = [
             'platform_id'    => $initialPlatformId,
@@ -166,7 +166,7 @@ final class PlayerHubController
         $platform = $_GET['platform_id'] ?? ($_GET['console_id'] ?? ($request['platform_id'] ?? null));
         $category = $_GET['category_id'] ?? ($request['category_id'] ?? null);
         $subcategory = $_GET['subcategory_id'] ?? ($request['subcategory_id'] ?? null);
-        $search = $_GET['q'] ?? ($_GET['query'] ?? ($request['q'] ?? ''));
+        $search = $_GET['contains'] ?? ($_GET['q'] ?? ($_GET['query'] ?? ($request['contains'] ?? ($request['q'] ?? ''))));
 
         return [
             'platform_id'    => !empty($platform) ? (int)$platform : 0,

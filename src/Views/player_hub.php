@@ -129,50 +129,78 @@ $subcategories = $taxonomies['subcategories'] ?? [];
   transition: all var(--transition-fast);
 }
 
-/* Expandable Search Input Row */
-.hub-search-expanded {
-  display: none;
-  align-items: center;
-  gap: 8px;
-  background: rgba(12, 18, 30, 0.85);
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  border-radius: 4px;
-  padding: 6px 12px;
-  animation: fadeInDown 0.2s ease;
-}
-.hub-search-expanded.open {
+/* Contains Input Row (Permanently Visible Above Dropdowns) */
+.hub-contains-row {
   display: flex;
+  align-items: center;
+  width: 100%;
 }
-.hub-search-icon {
+
+.criteria-col-contains {
+  width: 100%;
+}
+
+.contains-input-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.contains-search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
   color: #64748b;
   font-size: 13px;
+  pointer-events: none;
 }
-.hub-search-input {
-  flex: 1;
-  background: transparent;
-  border: none;
+
+.contains-text-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 34px 0 34px;
+  font-size: 12.5px;
+  font-weight: 500;
   color: #f1f5f9;
-  font-size: 12px;
+  background: var(--surface-alt, #0c121e);
+  border: 1px solid var(--border, #1e293b);
+  border-radius: 4px;
   outline: none;
+  box-sizing: border-box;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
 }
-.hub-search-input::placeholder {
+
+.contains-text-input::placeholder {
   color: #64748b;
+  font-weight: 400;
 }
-.hub-search-clear {
+
+.contains-text-input:focus {
+  border-color: var(--border-focus, #38bdf8);
+  box-shadow: 0 0 0 1px var(--border-focus, #38bdf8), 0 0 12px rgba(56, 189, 248, 0.2);
+  background: rgba(12, 18, 30, 0.95);
+}
+
+.contains-clear-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
   background: transparent;
   border: none;
   color: #94a3b8;
   font-size: 14px;
   cursor: pointer;
-  padding: 0 4px;
-}
-.hub-search-clear:hover {
-  color: #f8fafc;
+  padding: 2px 6px;
+  border-radius: 50%;
+  transition: all var(--transition-fast);
 }
 
-@keyframes fadeInDown {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+.contains-clear-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* Criteria Dropdowns Row */
@@ -667,9 +695,6 @@ $subcategories = $taxonomies['subcategories'] ?? [];
         <button type="button" class="btn-hub-action" onclick="resetCriteria()" title="Clear all search filters">
           ↺ Reset
         </button>
-        <button type="button" id="btnToggleSearch" class="btn-hub-action" onclick="toggleSearchBox()" title="Toggle keyword filter">
-          🔍 Search
-        </button>
         <button type="button" class="btn-hub-action btn-pick-me" onclick="pickGame()" title="Randomly select game from matching titles">
           🎲 Pick For Me
         </button>
@@ -681,13 +706,28 @@ $subcategories = $taxonomies['subcategories'] ?? [];
       </span>
     </div>
 
-    <!-- Expandable Keyword Search Box (Under buttons) -->
-    <div id="hubSearchBoxRow" class="hub-search-expanded">
-      <span class="hub-search-icon">🔍</span>
-      <input type="text" id="hubSearchInput" class="hub-search-input"
-             placeholder="Filter by title name, tags, or gameplay comments..."
-             oninput="onSearchInput(this.value)">
-      <button type="button" class="hub-search-clear" onclick="clearSearchInput()" title="Clear search text">✕</button>
+    <!-- Contains Keyword Search Field Row (Permanently Visible Above Dropdowns) -->
+    <div class="hub-contains-row">
+      <div class="criteria-col criteria-col-contains">
+        <label class="criteria-label" for="hubContainsInput">Contains</label>
+        <div class="contains-input-wrap">
+          <span class="contains-search-icon">🔍</span>
+          <input type="text"
+                 id="hubContainsInput"
+                 class="contains-text-input"
+                 placeholder="Filter by name, tags or comments..."
+                 value="<?= View::e($initialFilters['q'] ?? '') ?>"
+                 oninput="onContainsInput(this.value)"
+                 onkeydown="if(event.key === 'Enter'){ event.preventDefault(); onContainsEnter(); }"
+                 autocomplete="off">
+          <button type="button"
+                  id="btnContainsClear"
+                  class="contains-clear-btn"
+                  onclick="clearContainsInput()"
+                  title="Clear text"
+                  style="<?= empty($initialFilters['q']) ? 'display: none;' : '' ?>">✕</button>
+        </div>
+      </div>
     </div>
 
     <!-- Filter Criteria Row: Platform, Category, Subcategory -->
@@ -870,7 +910,7 @@ const ALL_SUBCATEGORIES = <?= json_encode($subcategories, JSON_UNESCAPED_SLASHES
 
 // State management
 let searchDebounceTimer = null;
-let currentSearchQuery = '';
+let currentSearchQuery = '<?= addslashes($initialFilters['q'] ?? '') ?>';
 let isOthersOpen = false;
 let galleryLoaded = false;
 let currentPickedId = <?= !empty($initialGame['id']) ? (int)$initialGame['id'] : 'null' ?>;
@@ -883,11 +923,14 @@ document.addEventListener('DOMContentLoaded', () => {
  * Returns current criteria filters object from DOM inputs.
  */
 function getActiveFilters() {
+  const containsInput = document.getElementById('hubContainsInput');
+  const qVal = containsInput ? containsInput.value.trim() : currentSearchQuery.trim();
+
   return {
     platform_id: document.getElementById('platformSelect').value || '',
     category_id: document.getElementById('categorySelect').value || '',
     subcategory_id: document.getElementById('subcategorySelect').value || '',
-    q: currentSearchQuery.trim(),
+    q: qVal,
   };
 }
 
@@ -897,13 +940,16 @@ function getActiveFilters() {
 function resetCriteria() {
   document.getElementById('platformSelect').value = '';
   document.getElementById('categorySelect').value = '';
-  document.getElementById('hubSearchInput').value = '';
-  currentSearchQuery = '';
 
-  // Close search box
-  const searchBox = document.getElementById('hubSearchBoxRow');
-  searchBox.classList.remove('open');
-  document.getElementById('btnToggleSearch').classList.remove('active');
+  const containsInput = document.getElementById('hubContainsInput');
+  if (containsInput) {
+    containsInput.value = '';
+  }
+  const clearBtn = document.getElementById('btnContainsClear');
+  if (clearBtn) {
+    clearBtn.style.display = 'none';
+  }
+  currentSearchQuery = '';
 
   // Reset subcategory dropdown to all
   onCategoryChange();
@@ -920,40 +966,49 @@ function resetCriteria() {
 }
 
 /**
- * Toggles the keyword search text box under buttons.
+ * Handles text input in Contains box with debounce and real-time count sync.
  */
-function toggleSearchBox() {
-  const box = document.getElementById('hubSearchBoxRow');
-  const btn = document.getElementById('btnToggleSearch');
-  const isOpen = box.classList.toggle('open');
-  btn.classList.toggle('active', isOpen);
+function onContainsInput(val) {
+  currentSearchQuery = val;
 
-  if (isOpen) {
-    const input = document.getElementById('hubSearchInput');
-    input.focus();
+  const clearBtn = document.getElementById('btnContainsClear');
+  if (clearBtn) {
+    clearBtn.style.display = val.trim() ? 'block' : 'none';
+  }
+
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    updateMatchCount();
+    updateShowcaseBreadcrumb();
+    if (isOthersOpen) {
+      loadGallery();
+    }
+  }, 220);
+}
+
+/**
+ * Immediate search/pick when user hits Enter key in Contains field.
+ */
+function onContainsEnter() {
+  clearTimeout(searchDebounceTimer);
+  updateMatchCount();
+  updateShowcaseBreadcrumb();
+  pickGame();
+  if (isOthersOpen) {
+    loadGallery();
   }
 }
 
 /**
- * Handles text input in search box with debounce.
+ * Clears Contains search box text.
  */
-function onSearchInput(val) {
-  currentSearchQuery = val;
-  clearTimeout(searchDebounceTimer);
-  searchDebounceTimer = setTimeout(() => {
-    updateMatchCount();
-    if (isOthersOpen) {
-      loadGallery();
-    }
-  }, 250);
-}
-
-/**
- * Clears search box text.
- */
-function clearSearchInput() {
-  document.getElementById('hubSearchInput').value = '';
-  onSearchInput('');
+function clearContainsInput() {
+  const input = document.getElementById('hubContainsInput');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  onContainsInput('');
 }
 
 /**
@@ -1025,13 +1080,22 @@ function updateShowcaseBreadcrumb() {
   const pSelect = document.getElementById('platformSelect');
   const cSelect = document.getElementById('categorySelect');
   const sSelect = document.getElementById('subcategorySelect');
+  const containsInput = document.getElementById('hubContainsInput');
 
-  const pName = pSelect.selectedIndex > 0 ? pSelect.options[pSelect.selectedIndex].text : 'ALL';
-  const cName = cSelect.selectedIndex > 0 ? cSelect.options[cSelect.selectedIndex].text : 'ALL';
-  const sName = sSelect.selectedIndex > 0 ? sSelect.options[sSelect.selectedIndex].text : 'ALL';
+  const pName = pSelect && pSelect.selectedIndex > 0 ? pSelect.options[pSelect.selectedIndex].text : 'ALL';
+  const cName = cSelect && cSelect.selectedIndex > 0 ? cSelect.options[cSelect.selectedIndex].text : 'ALL';
+  const sName = sSelect && sSelect.selectedIndex > 0 ? sSelect.options[sSelect.selectedIndex].text : 'ALL';
+  const qVal = containsInput ? containsInput.value.trim() : '';
 
-  document.getElementById('activeFilterBreadcrumbs').textContent =
-    `Platform: ${pName} | Category: ${cName} | Subcat: ${sName}`;
+  let breadcrumb = `Platform: ${pName} | Category: ${cName} | Subcat: ${sName}`;
+  if (qVal) {
+    breadcrumb += ` | Contains: "${qVal}"`;
+  }
+
+  const el = document.getElementById('activeFilterBreadcrumbs');
+  if (el) {
+    el.textContent = breadcrumb;
+  }
 }
 
 /**

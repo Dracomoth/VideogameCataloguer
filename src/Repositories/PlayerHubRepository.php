@@ -85,10 +85,13 @@ final class PlayerHubRepository
             $params[':subcategory_id'] = $subcategoryId;
         }
 
-        $query = trim((string)($filters['q'] ?? ($filters['query'] ?? '')));
+        $query = trim((string)($filters['q'] ?? ($filters['contains'] ?? ($filters['query'] ?? ''))));
         if ($query !== '') {
-            $conditions[] = "(g.title LIKE :search OR g.tags LIKE :search OR g.comments LIKE :search)";
-            $params[':search'] = '%' . $query . '%';
+            $conditions[] = "(g.title LIKE :search1 OR g.tags LIKE :search2 OR g.comments LIKE :search3)";
+            $searchPattern = '%' . $query . '%';
+            $params[':search1'] = $searchPattern;
+            $params[':search2'] = $searchPattern;
+            $params[':search3'] = $searchPattern;
         }
 
         $sql = !empty($conditions) ? 'WHERE ' . implode(' AND ', $conditions) : '';
