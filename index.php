@@ -48,6 +48,7 @@ spl_autoload_register(function (string $class): void {
 });
 
 use Vault\Controllers\AuthController;
+use Vault\Controllers\BulkUploadController;
 use Vault\Controllers\CategoryController;
 use Vault\Controllers\ConsoleController;
 use Vault\Controllers\ConsoleTypeController;
@@ -187,6 +188,13 @@ $router->post('/games/create', [GameController::class, 'create']);
 $router->post('/games/{id}/update', [GameController::class, 'update']);
 $router->post('/games/{id}/delete', [GameController::class, 'delete']);
 $router->delete('/games/{id}', [GameController::class, 'delete']);
+
+// Database Bulk Ingestion Workbench Routes
+$router->get('/bulk-upload', [BulkUploadController::class, 'index']);
+$router->get('/api/bulk-upload/schema', [BulkUploadController::class, 'schema']);
+$router->get('/api/bulk-upload/schema/{table}', [BulkUploadController::class, 'schema']);
+$router->post('/api/bulk-upload/validate', [BulkUploadController::class, 'validateBatch']);
+$router->post('/api/bulk-upload/execute', [BulkUploadController::class, 'executeBatch']);
 
 // 7. Dispatch the Request
 $router->dispatch($requestUri, $requestMethod);

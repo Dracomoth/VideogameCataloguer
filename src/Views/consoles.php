@@ -636,7 +636,8 @@ document.addEventListener('DOMContentLoaded', () => {
               flagsHtml += `<span class="tag-flag" style="background-color: ${escapeHtml(bg)}; color: ${escapeHtml(font)}; border: 1px solid ${escapeHtml(font)}44;">${escapeHtml(typeName)}</span>`;
             }
             if (Number(row.is_for_reference) === 1) {
-              const masterTip = row.master_console_name ? ` title="Master: ${escapeHtml(row.master_console_name)}"` : ' title="Reference-only platform"';
+              const masterName = row.master_console_name || (consolesList.find(c => Number(c.id) === Number(row.master_reference_id || row.master_console_id))?.name) || '';
+              const masterTip = masterName ? ` title="Master: ${escapeHtml(masterName)}"` : ' title="Reference-only platform"';
               flagsHtml += `<span class="tag-flag tag-reference"${masterTip}>REF</span>`;
             }
           }
@@ -754,15 +755,21 @@ function selectConsole(id) {
   const isRef = Number(record.is_for_reference) === 1;
   document.getElementById('isForReference').checked = isRef;
 
-  // Rebuild candidate master platform dropdown excluding this console and any reference consoles
-  populateMasterDropdown(selectedId);
+  const targetMasterId = (isRef && (record.master_reference_id || record.master_console_id))
+    ? String(record.master_reference_id || record.master_console_id)
+    : null;
+
+  // Rebuild candidate master platform dropdown excluding this console and selecting its master platform
+  populateMasterDropdown(selectedId, targetMasterId);
   const masterGroup = document.getElementById('masterPlatformGroup');
   const masterSelect = document.getElementById('masterReferenceId');
   if (isRef) {
     if (masterGroup) masterGroup.style.display = 'block';
     if (masterSelect) {
       masterSelect.required = true;
-      masterSelect.value = String(record.master_reference_id || '');
+      if (targetMasterId) {
+        masterSelect.value = targetMasterId;
+      }
     }
   } else {
     if (masterGroup) masterGroup.style.display = 'none';
@@ -824,7 +831,7 @@ function resetForm() {
     masterSelect.required = false;
     masterSelect.value = '';
   }
-  populateMasterDropdown(null);
+  populateMasterDropdown(null, null);
 
   document.getElementById('deleteImage').value = '0';
   document.getElementById('deleteLogo').value = '0';
@@ -927,7 +934,7 @@ function handleReferenceChange(isChecked) {
   }
 
   // Re-populate master candidates excluding self and any reference consoles
-  populateMasterDropdown(selectedId);
+  populateMasterDropdown(selectedId, null);
 
   // Each time the checkbox is marked the dropdown must appear but clear
   if (masterSelect) {
@@ -942,11 +949,14 @@ function handleReferenceChange(isChecked) {
 /**
  * Re-populates the master platform dropdown options dynamically
  */
-function populateMasterDropdown(excludeId = null) {
+function populateMasterDropdown(excludeId = null, selectedMasterId = null) {
   const masterSelect = document.getElementById('masterReferenceId');
   if (!masterSelect) return;
 
-  const currentVal = masterSelect.value;
+  const targetVal = (selectedMasterId !== null && selectedMasterId !== undefined && selectedMasterId !== '')
+    ? String(selectedMasterId)
+    : (masterSelect.value || '');
+
   masterSelect.innerHTML = '<option value="">-- Select Master Platform --</option>';
 
   // Master platform candidates: not marked as reference, and not the console itself
@@ -956,15 +966,29 @@ function populateMasterDropdown(excludeId = null) {
     return true;
   }).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
+  // Ensure targetVal is included in candidates if it represents an existing console in consolesList
+  if (targetVal && !candidates.some(c => String(c.id) === targetVal)) {
+    const existingMaster = consolesList.find(c => String(c.id) === targetVal);
+    if (existingMaster) {
+      candidates.push(existingMaster);
+      candidates.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    }
+  }
+
   candidates.forEach(c => {
     const opt = document.createElement('option');
     opt.value = String(c.id);
     opt.textContent = c.name;
+    if (targetVal && String(c.id) === targetVal) {
+      opt.selected = true;
+    }
     masterSelect.appendChild(opt);
   });
 
-  if (currentVal && candidates.some(c => String(c.id) === currentVal)) {
-    masterSelect.value = currentVal;
+  if (targetVal && candidates.some(c => String(c.id) === targetVal)) {
+    masterSelect.value = targetVal;
+  } else if (!targetVal) {
+    masterSelect.value = '';
   }
 }
 
@@ -1120,8 +1144,9 @@ async function handleSave(e) {
     const payload = result.data || result;
     showToast(payload.message || 'Console saved successfully.', 'success');
 
+    const targetId = isUpdate ? parseInt(id, 10) : parseInt(payload.id, 10);
     // Reload latest dataset from API and re-select record
-    await reloadGridData(isUpdate ? parseInt(id, 10) : payload.id);
+    await reloadGridData(targetId);
   } catch (err) {
     showToast(err.message, 'error');
   } finally {
@@ -1229,7 +1254,9 @@ async function reloadGridData(selectIdAfter = null) {
     }
 
     // Refresh master candidates dropdown
-    populateMasterDropdown(selectedId);
+    const masterSelect = document.getElementById('masterReferenceId');
+    const curMasterVal = masterSelect ? masterSelect.value : null;
+    populateMasterDropdown(selectedId, curMasterVal);
 
     if (selectIdAfter) {
       selectConsole(selectIdAfter);
