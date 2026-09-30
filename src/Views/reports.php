@@ -4,7 +4,7 @@
  * Curated Collection Audits & Custom Dynamic Report Engine.
  *
  * Variables provided by ReportController:
- * @var array{physical_inventory: int, incomplete_media: int, cleared_beaten: int} $stats
+ * @var array{physical_inventory: int, catalog_health: int, incomplete_media: int} $stats
  * @var array<string, array{table: string, label: string, icon: string, total_records: int, columns: array<int, array<string, mixed>>}> $catalog
  * @var string $pageTitle
  * @var string $activeNav
@@ -67,10 +67,10 @@ if (!defined('APP_INIT')) {
    -------------------------------------------------------------------------- */
 .audits-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
 }
-@media (max-width: 1024px) {
+@media (max-width: 860px) {
   .audits-grid {
     grid-template-columns: 1fr;
   }
@@ -517,41 +517,22 @@ if (!defined('APP_INIT')) {
         </div>
       </div>
 
-      <!-- 2. Incomplete Media Audit -->
-      <div class="audit-card" data-report="incomplete_media">
+      <!-- 2. Catalog Health Report -->
+      <div class="audit-card" data-report="catalog_health">
         <div>
           <div class="audit-card-top">
-            <span class="audit-card-icon" title="Missing Assets Audit">🖼️</span>
-            <span class="audit-badge" id="badgeFlagged"><?= number_format($stats['incomplete_media']) ?> Flagged</span>
+            <span class="audit-card-icon" title="Catalog Health Audit">🩺</span>
+            <span class="audit-badge" id="badgeFlagged"><?= number_format($stats['catalog_health'] ?? $stats['incomplete_media'] ?? 0) ?> Flagged</span>
           </div>
-          <h3 class="audit-card-title">INCOMPLETE MEDIA AUDIT</h3>
+          <h3 class="audit-card-title">CATALOG HEALTH REPORT</h3>
           <p class="audit-card-desc">
-            Audit identifying every game missing either its cover BoxArt or gameplay Screenshot.
+            Audit listing all game entries missing information, detailing lacking fields and media.
           </p>
         </div>
         <div class="audit-formats">
-          <button type="button" class="btn-format" onclick="exportPremade('incomplete_media', 'csv', this)">.CSV</button>
-          <button type="button" class="btn-format" onclick="exportPremade('incomplete_media', 'xlsx', this)">.XLSX</button>
-          <button type="button" class="btn-format" onclick="exportPremade('incomplete_media', 'txt', this)">.TXT</button>
-        </div>
-      </div>
-
-      <!-- 3. Cleared & Beaten Logbook -->
-      <div class="audit-card" data-report="cleared_beaten">
-        <div>
-          <div class="audit-card-top">
-            <span class="audit-card-icon" title="Beaten Games Log">★</span>
-            <span class="audit-badge" id="badgeCleared"><?= number_format($stats['cleared_beaten']) ?> Cleared</span>
-          </div>
-          <h3 class="audit-card-title">CLEARED & BEATEN LOGBOOK</h3>
-          <p class="audit-card-desc">
-            Roster of games beaten accompanied by your gameplay comments.
-          </p>
-        </div>
-        <div class="audit-formats">
-          <button type="button" class="btn-format" onclick="exportPremade('cleared_beaten', 'csv', this)">.CSV</button>
-          <button type="button" class="btn-format" onclick="exportPremade('cleared_beaten', 'xlsx', this)">.XLSX</button>
-          <button type="button" class="btn-format" onclick="exportPremade('cleared_beaten', 'txt', this)">.TXT</button>
+          <button type="button" class="btn-format" onclick="exportPremade('catalog_health', 'csv', this)">.CSV</button>
+          <button type="button" class="btn-format" onclick="exportPremade('catalog_health', 'xlsx', this)">.XLSX</button>
+          <button type="button" class="btn-format" onclick="exportPremade('catalog_health', 'txt', this)">.TXT</button>
         </div>
       </div>
     </div>

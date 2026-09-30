@@ -81,23 +81,32 @@ final class ReportRepository
     ];
 
     /**
-     * Returns real-time counts for the three curated collection audits.
+     * Returns real-time counts for curated collection audits.
      *
-     * @return array{physical_inventory: int, incomplete_media: int, cleared_beaten: int}
+     * @return array{physical_inventory: int, catalog_health: int, incomplete_media: int}
      */
     public function getPremadeStats(): array
     {
         $owned = Database::fetchOne("SELECT COUNT(*) AS c FROM `games` WHERE `in_collection` = 1");
-        $missing = Database::fetchOne(
-            "SELECT COUNT(*) AS c FROM `games` 
-             WHERE `boxart_path` IS NULL OR `boxart_path` = '' 
-                OR `screenshot_path` IS NULL OR `screenshot_path` = ''"
+        $healthIssues = Database::fetchOne(
+            "SELECT COUNT(*) AS c FROM `games` g
+             WHERE (g.title IS NULL OR TRIM(g.title) = '')
+                OR (g.year IS NULL OR TRIM(g.year) = '')
+                OR g.console_id IS NULL OR g.console_id <= 0
+                OR g.category_id IS NULL OR g.category_id <= 0
+                OR g.subcategory_id IS NULL OR g.subcategory_id <= 0
+                OR g.publisher_id IS NULL OR g.publisher_id <= 0
+                OR g.language_id IS NULL OR g.language_id <= 0
+                OR g.boxart_path IS NULL OR TRIM(g.boxart_path) = ''
+                OR g.screenshot_path IS NULL OR TRIM(g.screenshot_path) = ''"
         );
+
+        $healthCount = (int)($healthIssues['c'] ?? 0);
 
         return [
             'physical_inventory' => (int)($owned['c'] ?? 0),
-            'incomplete_media'   => (int)($missing['c'] ?? 0),
-            'cleared_beaten'     => 0,
+            'catalog_health'     => $healthCount,
+            'incomplete_media'   => $healthCount,
         ];
     }
 
@@ -150,43 +159,76 @@ final class ReportRepository
                     'rows'     => $rows,
                 ];
 
+            case 'catalog_health':
             case 'incomplete_media':
                 $sql = "SELECT 
                             g.id,
                             g.title,
-                            COALESCE(c.name, '') AS console,
-                            COALESCE(cat.name, '') AS category,
-                            COALESCE(pub.name, '') AS publisher,
-                            COALESCE(g.year, '') AS year,
-                            CASE 
-                                WHEN (g.boxart_path IS NULL OR g.boxart_path = '') AND (g.screenshot_path IS NULL OR g.screenshot_path = '') THEN 'Missing BoxArt & Screenshot'
-                                WHEN (g.boxart_path IS NULL OR g.boxart_path = '') THEN 'Missing BoxArt'
-                                WHEN (g.screenshot_path IS NULL OR g.screenshot_path = '') THEN 'Missing Screenshot'
-                                ELSE 'Complete'
-                            END AS media_status,
-                            COALESCE(g.boxart_path, '') AS boxart_path,
-                            COALESCE(g.screenshot_path, '') AS screenshot_path
+                            g.year,
+                            g.console_id,
+                            g.publisher_id,
+                            g.category_id,
+                            g.subcategory_id,
+                            g.language_id,
+                            g.boxart_path,
+                            g.screenshot_path
                         FROM `games` g
-                        LEFT JOIN `consoles` c ON c.id = g.console_id
-                        LEFT JOIN `categories` cat ON cat.id = g.category_id
-                        LEFT JOIN `publishers` pub ON pub.id = g.publisher_id
-                        WHERE (g.boxart_path IS NULL OR g.boxart_path = '') OR (g.screenshot_path IS NULL OR g.screenshot_path = '')
+                        WHERE (g.title IS NULL OR TRIM(g.title) = '')
+                           OR (g.year IS NULL OR TRIM(g.year) = '')
+                           OR g.console_id IS NULL OR g.console_id <= 0
+                           OR g.category_id IS NULL OR g.category_id <= 0
+                           OR g.subcategory_id IS NULL OR g.subcategory_id <= 0
+                           OR g.publisher_id IS NULL OR g.publisher_id <= 0
+                           OR g.language_id IS NULL OR g.language_id <= 0
+                           OR g.boxart_path IS NULL OR TRIM(g.boxart_path) = ''
+                           OR g.screenshot_path IS NULL OR TRIM(g.screenshot_path) = ''
                         ORDER BY g.title ASC";
 
                 $data = Database::fetchAll($sql);
-                $headers = ['id', 'title', 'console', 'category', 'publisher', 'year', 'media_status', 'boxart_path', 'screenshot_path'];
+                $headers = ['id', 'title', 'missing'];
                 $rows = [];
+
                 foreach ($data as $d) {
-                    $row = [];
-                    foreach ($headers as $h) {
-                        $row[] = $d[$h] ?? '';
+                    $missing = [];
+
+                    if ($d['title'] === null || trim((string)$d['title']) === '') {
+                        $missing[] = 'Title';
                     }
-                    $rows[] = $row;
+                    if ($d['year'] === null || trim((string)$d['year']) === '') {
+                        $missing[] = 'Release Year';
+                    }
+                    if (empty($d['console_id']) || (int)$d['console_id'] <= 0) {
+                        $missing[] = 'Console';
+                    }
+                    if (empty($d['publisher_id']) || (int)$d['publisher_id'] <= 0) {
+                        $missing[] = 'Publisher';
+                    }
+                    if (empty($d['category_id']) || (int)$d['category_id'] <= 0) {
+                        $missing[] = 'Category';
+                    }
+                    if (empty($d['subcategory_id']) || (int)$d['subcategory_id'] <= 0) {
+                        $missing[] = 'Subcategory';
+                    }
+                    if (empty($d['language_id']) || (int)$d['language_id'] <= 0) {
+                        $missing[] = 'Language';
+                    }
+                    if ($d['boxart_path'] === null || trim((string)$d['boxart_path']) === '') {
+                        $missing[] = 'BoxArt';
+                    }
+                    if ($d['screenshot_path'] === null || trim((string)$d['screenshot_path']) === '') {
+                        $missing[] = 'Screenshot';
+                    }
+
+                    $rows[] = [
+                        (int)$d['id'],
+                        (string)($d['title'] ?? ''),
+                        implode(', ', $missing),
+                    ];
                 }
 
                 return [
-                    'title'    => 'Incomplete Media Audit',
-                    'filename' => 'incomplete_media_audit_' . date('Ymd_His'),
+                    'title'    => 'Catalog Health Report',
+                    'filename' => 'catalog_health_report_' . date('Ymd_His'),
                     'headers'  => $headers,
                     'rows'     => $rows,
                 ];
@@ -195,7 +237,7 @@ final class ReportRepository
                 return [
                     'title'    => 'Cleared & Beaten Logbook',
                     'filename' => 'cleared_beaten_logbook_' . date('Ymd_His'),
-                    'headers'  => ['id', 'title', 'console', 'category', 'subcategory', 'publisher', 'year', 'comments'],
+                    'headers'  => ['id', 'title', 'comments'],
                     'rows'     => [],
                 ];
 
