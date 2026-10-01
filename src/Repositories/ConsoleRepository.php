@@ -80,8 +80,17 @@ final class ConsoleRepository
 
         $rows = Database::fetchAll($sql);
 
-        return array_map(function (array $row): array {
-            return $this->formatConsoleRecord($row);
+        // Fetch attached downloadable files for all consoles
+        $allFiles = Database::fetchAll("SELECT * FROM `downloadable_files` WHERE console_id IS NOT NULL ORDER BY display_name ASC");
+        $filesByConsole = [];
+        foreach ($allFiles as $f) {
+            $filesByConsole[(int)$f['console_id']][] = $f;
+        }
+
+        return array_map(function (array $row) use ($filesByConsole): array {
+            $record = $this->formatConsoleRecord($row);
+            $record['downloadable_files'] = $filesByConsole[(int)$row['id']] ?? [];
+            return $record;
         }, $rows);
     }
 
@@ -136,7 +145,13 @@ final class ConsoleRepository
             return null;
         }
 
-        return $this->formatConsoleRecord($row);
+        $record = $this->formatConsoleRecord($row);
+        $record['downloadable_files'] = Database::fetchAll(
+            "SELECT * FROM `downloadable_files` WHERE console_id = :id ORDER BY display_name ASC",
+            [':id' => $id]
+        );
+
+        return $record;
     }
 
     /**
@@ -218,6 +233,77 @@ final class ConsoleRepository
         $clean = preg_replace('/[^a-zA-Z0-9_-]+/', '_', trim($name));
         $clean = trim(preg_replace('/_+/', '_', (string)$clean), '_');
         return $clean !== '' ? $clean : 'console';
+    }
+
+    /**
+     * Synchronizes downloadable files for a given console.
+     *
+     * @param int $consoleId
+     * @param mixed $filesData JSON string or array of files
+     */
+    public function syncDownloadableFiles(int $consoleId, mixed $filesData): void
+    {
+        if ($filesData === null || $filesData === '') {
+            return;
+        }
+
+        $files = is_string($filesData) ? json_decode($filesData, true) : $filesData;
+        if (!is_array($files)) {
+            return;
+        }
+
+        $downloadRepo = new \Vault\Repositories\DownloadRepository();
+        $existingFiles = $downloadRepo->getByConsoleId($consoleId);
+        $existingMap = [];
+        foreach ($existingFiles as $ef) {
+            $existingMap[(int)$ef['id']] = $ef;
+        }
+
+        $retainedIds = [];
+
+        foreach ($files as $file) {
+            if (!is_array($file)) continue;
+
+            $displayName     = trim((string)($file['display_name'] ?? ''));
+            $storageProvider = ($file['storage_provider'] ?? '') === 'blackblaze' ? 'blackblaze' : 'external';
+            $fileKeyOrUrl    = trim((string)($file['file_key_or_url'] ?? ($file['path_or_url'] ?? '')));
+            $fileId          = !empty($file['id']) && is_numeric($file['id']) ? (int)$file['id'] : null;
+
+            if ($displayName === '' && $fileKeyOrUrl === '') {
+                continue;
+            }
+
+            if ($fileId !== null && isset($existingMap[$fileId])) {
+                // Update existing record
+                $downloadRepo->update($fileId, [
+                    'console_id'       => $consoleId,
+                    'game_id'          => null,
+                    'display_name'     => $displayName,
+                    'storage_provider' => $storageProvider,
+                    'file_key_or_url'  => $fileKeyOrUrl,
+                ]);
+                $retainedIds[] = $fileId;
+            } else {
+                // Create new record
+                $newFileId = $downloadRepo->create([
+                    'console_id'       => $consoleId,
+                    'game_id'          => null,
+                    'display_name'     => $displayName,
+                    'storage_provider' => $storageProvider,
+                    'file_key_or_url'  => $fileKeyOrUrl,
+                    'download_count'   => 0,
+                ]);
+                $retainedIds[] = $newFileId;
+            }
+        }
+
+        // Delete any existing files that were removed in the editor
+        foreach ($existingFiles as $ef) {
+            $efId = (int)$ef['id'];
+            if (!in_array($efId, $retainedIds, true)) {
+                $downloadRepo->delete($efId);
+            }
+        }
     }
 
     /**
@@ -350,11 +436,11 @@ final class ConsoleRepository
         $isForReference     = !empty($data['is_for_reference']) ? 1 : 0;
         $comments           = trim((string)($data['comments'] ?? '')) ?: null;
         $emulator           = trim((string)($data['emulator'] ?? '')) ?: null;
-        $emulatorLink       = trim((string)($data['emulator_link'] ?? '')) ?: null;
+        $emulatorLink       = trim(trim((string)($data['emulator_link'] ?? '')), '#') ?: null;
         $emulatorAndroid    = trim((string)($data['emulator_android'] ?? '')) ?: null;
-        $emulatorAndroidLink= trim((string)($data['emulator_android_link'] ?? '')) ?: null;
+        $emulatorAndroidLink= trim(trim((string)($data['emulator_android_link'] ?? '')), '#') ?: null;
         $retroarchCore      = trim((string)($data['retroarch_core'] ?? '')) ?: null;
-        $coreLink           = trim((string)($data['core_link'] ?? '')) ?: null;
+        $coreLink           = trim(trim((string)($data['core_link'] ?? '')), '#') ?: null;
 
         $masterReferenceId  = null;
         if ($isForReference) {
@@ -435,6 +521,10 @@ final class ConsoleRepository
             ]);
         }
 
+        if (isset($data['downloadable_files_json']) || isset($data['downloadable_files'])) {
+            $this->syncDownloadableFiles($newId, $data['downloadable_files_json'] ?? $data['downloadable_files']);
+        }
+
         return $newId;
     }
 
@@ -484,11 +574,11 @@ final class ConsoleRepository
         $isForReference     = !empty($data['is_for_reference']) ? 1 : 0;
         $comments           = trim((string)($data['comments'] ?? '')) ?: null;
         $emulator           = trim((string)($data['emulator'] ?? '')) ?: null;
-        $emulatorLink       = trim((string)($data['emulator_link'] ?? '')) ?: null;
+        $emulatorLink       = trim(trim((string)($data['emulator_link'] ?? '')), '#') ?: null;
         $emulatorAndroid    = trim((string)($data['emulator_android'] ?? '')) ?: null;
-        $emulatorAndroidLink= trim((string)($data['emulator_android_link'] ?? '')) ?: null;
+        $emulatorAndroidLink= trim(trim((string)($data['emulator_android_link'] ?? '')), '#') ?: null;
         $retroarchCore      = trim((string)($data['retroarch_core'] ?? '')) ?: null;
-        $coreLink           = trim((string)($data['core_link'] ?? '')) ?: null;
+        $coreLink           = trim(trim((string)($data['core_link'] ?? '')), '#') ?: null;
 
         $masterReferenceId  = null;
         if ($isForReference) {
@@ -595,6 +685,10 @@ final class ConsoleRepository
             ':id'                   => $id,
         ]);
 
+        if (isset($data['downloadable_files_json']) || isset($data['downloadable_files'])) {
+            $this->syncDownloadableFiles($id, $data['downloadable_files_json'] ?? $data['downloadable_files']);
+        }
+
         return $affected >= 0;
     }
 
@@ -670,6 +764,9 @@ final class ConsoleRepository
         $row['game_count']               = (int)($row['game_count'] ?? 0);
         $row['created']                  = !empty($row['created']) ? (string)$row['created'] : '';
         $row['updated']                  = !empty($row['updated']) ? (string)$row['updated'] : '';
+        $row['core_link']             = trim((string)($row['core_link'] ?? ''), "# \t\n\r\0\x0B");
+        $row['emulator_link']         = trim((string)($row['emulator_link'] ?? ''), "# \t\n\r\0\x0B");
+        $row['emulator_android_link'] = trim((string)($row['emulator_android_link'] ?? ''), "# \t\n\r\0\x0B");
 
         // Web accessible URLs for reading with automatic filemtime cache-busting
         $imgVer = '';

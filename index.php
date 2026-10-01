@@ -53,6 +53,7 @@ use Vault\Controllers\CategoryController;
 use Vault\Controllers\ConsoleController;
 use Vault\Controllers\ConsoleTypeController;
 use Vault\Controllers\DashboardController;
+use Vault\Controllers\DownloadController;
 use Vault\Controllers\GameController;
 use Vault\Controllers\LanguageController;
 use Vault\Controllers\PlayerHubController;
@@ -212,6 +213,12 @@ $router->get('/reports', [ReportController::class, 'index']);
 $router->get('/api/reports/premade', [ReportController::class, 'apiPremade']);
 $router->post('/api/reports/custom', [ReportController::class, 'apiCustom']);
 $router->get('/api/reports/export', [ReportController::class, 'export']);
+
+// Download & Asset Dispatch Routes
+$router->get('/download/{id}', [DownloadController::class, 'download']);
+$router->get('/api/download/{id}', [DownloadController::class, 'apiDownload']);
+$router->get('/api/downloads/console/{id}', [DownloadController::class, 'byConsole']);
+$router->get('/api/downloads/game/{id}', [DownloadController::class, 'byGame']);
 
 // 7. Dispatch the Request
 $router->dispatch($requestUri, $requestMethod);

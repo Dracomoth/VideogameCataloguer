@@ -196,6 +196,99 @@ if (!defined('APP_INIT')) {
   margin-top: 10px;
 }
 
+/* Collapsible BIOS / Additional Files Section */
+.bios-files-details {
+  margin-top: 8px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+.bios-bullet-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bios-bullet-list li {
+  color: var(--text-main);
+  font-size: 12px;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bios-file-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+.bios-icon-internal {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+.bios-icon-external {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.bios-download-link {
+  color: #38bdf8;
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+.bios-download-link:hover {
+  color: #7dd3fc;
+  text-decoration: underline;
+}
+.bios-text-only {
+  color: var(--text-main);
+  font-weight: 500;
+}
+.bios-edit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.bios-edit-table th {
+  padding: 5px 6px;
+  font-weight: 600;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  background: rgba(30, 41, 59, 0.7);
+  text-align: left;
+}
+.bios-edit-table td {
+  padding: 4px;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.bios-edit-table input,
+.bios-edit-table select {
+  width: 100%;
+  padding: 4px 6px;
+  font-size: 11px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  box-sizing: border-box;
+}
+.bios-edit-table input:focus,
+.bios-edit-table select:focus {
+  border-color: var(--border-focus);
+  outline: none;
+}
+
 /* Console Tag Flags in Table */
 .tag-flag {
   display: inline-flex;
@@ -283,7 +376,7 @@ if (!defined('APP_INIT')) {
       <span id="activeIdBadge" class="badge-record">(Auto ID)</span>
     </div>
 
-    <form id="consoleForm" onsubmit="handleSave(event)">
+    <form id="consoleForm" onsubmit="handleSave(event)" novalidate>
       <input type="hidden" id="consoleId" name="id" value="">
       <input type="hidden" id="deleteImage" name="delete_image" value="0">
       <input type="hidden" id="deleteLogo" name="delete_logo" value="0">
@@ -484,7 +577,20 @@ if (!defined('APP_INIT')) {
         </div>
       </div>
 
-      <!-- Collapsible Emulation & Technical Links -->
+      <!-- Personal Notes / Specs -->
+      <div class="form-group">
+        <label for="comments">Personal Notes / Specs</label>
+        <textarea 
+          id="comments" 
+          name="comments" 
+          class="form-control" 
+          rows="2" 
+          placeholder="BIOS requirements, serial numbers, region notes..."
+          <?= !$canWrite ? 'disabled' : '' ?>
+        ></textarea>
+      </div>
+
+      <!-- Collapsible Emulation & Technical Links (Relocated Below Personal Notes) -->
       <details class="emulation-details">
         <summary class="emulation-summary">
           <span>▶ Emulation & Technical Links</span>
@@ -498,7 +604,7 @@ if (!defined('APP_INIT')) {
             </div>
             <div class="form-group">
               <label for="coreLink">Core URL</label>
-              <input type="url" id="coreLink" name="core_link" class="form-control" placeholder="https://..." <?= !$canWrite ? 'disabled' : '' ?>>
+              <input type="text" inputmode="url" id="coreLink" name="core_link" class="form-control" placeholder="https://..." <?= !$canWrite ? 'disabled' : '' ?>>
             </div>
           </div>
 
@@ -509,7 +615,7 @@ if (!defined('APP_INIT')) {
             </div>
             <div class="form-group">
               <label for="emulatorLink">Desktop URL</label>
-              <input type="url" id="emulatorLink" name="emulator_link" class="form-control" placeholder="https://..." <?= !$canWrite ? 'disabled' : '' ?>>
+              <input type="text" inputmode="url" id="emulatorLink" name="emulator_link" class="form-control" placeholder="https://..." <?= !$canWrite ? 'disabled' : '' ?>>
             </div>
           </div>
 
@@ -520,24 +626,84 @@ if (!defined('APP_INIT')) {
             </div>
             <div class="form-group">
               <label for="emulatorAndroidLink">Android URL</label>
-              <input type="url" id="emulatorAndroidLink" name="emulator_android_link" class="form-control" placeholder="https://..." <?= !$canWrite ? 'disabled' : '' ?>>
+              <input type="text" inputmode="url" id="emulatorAndroidLink" name="emulator_android_link" class="form-control" placeholder="https://..." <?= !$canWrite ? 'disabled' : '' ?>>
             </div>
           </div>
         </div>
       </details>
 
-      <!-- Personal Notes / Specs -->
-      <div class="form-group">
-        <label for="comments">Personal Notes / Specs</label>
-        <textarea 
-          id="comments" 
-          name="comments" 
-          class="form-control" 
-          rows="2" 
-          placeholder="BIOS requirements, serial numbers, region notes..."
-          <?= !$canWrite ? 'disabled' : '' ?>
-        ></textarea>
-      </div>
+      <!-- Collapsible BIOS/Additional Files Section -->
+      <details class="emulation-details bios-files-details" id="biosFilesSection">
+        <summary class="emulation-summary">
+          <span>▶ BIOS/Additional Files</span>
+          <span style="font-size: 10px;">▾</span>
+        </summary>
+        <div class="bios-files-content" style="padding-top: 8px;">
+          <!-- Hidden input storing serialized JSON of files to be saved with console -->
+          <input type="hidden" id="downloadableFilesJson" name="downloadable_files_json" value="">
+
+          <!-- VIEW MODE: Bulleted list of links or text -->
+          <div id="biosFilesViewMode">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;">Available Files</span>
+              <?php if ($canWrite): ?>
+                <button type="button" id="editBiosFilesBtn" class="btn" style="padding: 2px 8px; font-size: 10px; height: 22px;" onclick="openBiosEditMode()">
+                  ✏️ Edit
+                </button>
+              <?php endif; ?>
+            </div>
+
+            <!-- Bulleted List -->
+            <ul id="biosFilesList" class="bios-bullet-list">
+              <!-- Populated dynamically via JS -->
+            </ul>
+
+            <div id="biosFilesEmptyMsg" style="display: none; font-size: 11px; color: var(--text-muted); font-style: italic; padding: 4px 0;">
+              No BIOS or additional files linked.
+            </div>
+
+            <!-- Message asking to save whole record to persist pending changes -->
+            <div id="biosFilesPendingNotice" style="display: none; margin-top: 8px; font-size: 11px; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-sm); padding: 6px 8px;">
+              ⚠️ Changes made to file list. Please click <strong>💾 Save Console</strong> below to persist your changes.
+            </div>
+          </div>
+
+          <!-- EDIT MODE: Small Grid of Editable Files -->
+          <div id="biosFilesEditMode" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 11px; font-weight: 700; color: var(--text-main); text-transform: uppercase;">Edit Files</span>
+              <button type="button" class="btn primary" style="padding: 2px 8px; font-size: 10px; height: 22px;" onclick="addBiosGridRow()">
+                + Add File
+              </button>
+            </div>
+
+            <div style="max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: rgba(15, 23, 42, 0.6); margin-bottom: 8px;">
+              <table class="bios-edit-table">
+                <thead>
+                  <tr>
+                    <th style="width: 32%;">Display Name</th>
+                    <th style="width: 25%;">Storage</th>
+                    <th style="width: 35%;">Path or URL</th>
+                    <th style="width: 8%; text-align: center;"></th>
+                  </tr>
+                </thead>
+                <tbody id="biosGridBody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 6px;">
+              <button type="button" class="btn" style="padding: 4px 10px; font-size: 11px;" onclick="cancelBiosEditMode()">
+                ✕ Cancel
+              </button>
+              <button type="button" class="btn primary" style="padding: 4px 12px; font-size: 11px;" onclick="acceptBiosEditMode()">
+                ✓ Accept
+              </button>
+            </div>
+          </div>
+        </div>
+      </details>
 
       <!-- Action Buttons -->
       <div class="editor-actions">
@@ -599,6 +765,12 @@ let consoleTypesList = [];
 let masterConsolesList = [];
 let selectedId = null;
 const canWrite = <?= json_encode($canWrite) ?>;
+
+// BIOS / Additional Files State
+let currentConsoleFiles = [];
+let workingConsoleFiles = [];
+let pendingConsoleFiles = [];
+let hasPendingFileChanges = false;
 
 document.addEventListener('DOMContentLoaded', () => {
   // 1. Ingest initial server pre-rendered datasets
@@ -816,11 +988,11 @@ function selectConsole(id) {
   }
 
   document.getElementById('retroarchCore').value = record.retroarch_core || '';
-  document.getElementById('coreLink').value = record.core_link || '';
+  document.getElementById('coreLink').value = (record.core_link || '').replace(/^#+|#+$/g, '');
   document.getElementById('emulator').value = record.emulator || '';
-  document.getElementById('emulatorLink').value = record.emulator_link || '';
+  document.getElementById('emulatorLink').value = (record.emulator_link || '').replace(/^#+|#+$/g, '');
   document.getElementById('emulatorAndroid').value = record.emulator_android || '';
-  document.getElementById('emulatorAndroidLink').value = record.emulator_android_link || '';
+  document.getElementById('emulatorAndroidLink').value = (record.emulator_android_link || '').replace(/^#+|#+$/g, '');
   document.getElementById('comments').value = record.comments || '';
 
   // Set Visual Asset Previews (3. Read: retrieves values from fields, doesn't enforce convention)
@@ -858,6 +1030,19 @@ function selectConsole(id) {
       deleteBtn.title = `Delete ${record.name}`;
     }
   }
+
+  // Initialize and render BIOS / Additional Files
+  currentConsoleFiles = Array.isArray(record.downloadable_files) ? JSON.parse(JSON.stringify(record.downloadable_files)) : [];
+  pendingConsoleFiles = [];
+  workingConsoleFiles = [];
+  hasPendingFileChanges = false;
+  const jsonInput = document.getElementById('downloadableFilesJson');
+  if (jsonInput) jsonInput.value = '';
+  const editMode = document.getElementById('biosFilesEditMode');
+  const viewMode = document.getElementById('biosFilesViewMode');
+  if (editMode) editMode.style.display = 'none';
+  if (viewMode) viewMode.style.display = 'block';
+  renderBiosViewMode();
 
   syncRowHighlight();
   document.getElementById('consoleName').focus();
@@ -903,10 +1088,246 @@ function resetForm() {
     deleteBtn.removeAttribute('title');
   }
 
+  // Reset attached downloadable files
+  currentConsoleFiles = [];
+  pendingConsoleFiles = [];
+  workingConsoleFiles = [];
+  hasPendingFileChanges = false;
+  const jsonInput = document.getElementById('downloadableFilesJson');
+  if (jsonInput) jsonInput.value = '';
+  const editMode = document.getElementById('biosFilesEditMode');
+  const viewMode = document.getElementById('biosFilesViewMode');
+  if (editMode) editMode.style.display = 'none';
+  if (viewMode) viewMode.style.display = 'block';
+  renderBiosViewMode();
+
   syncRowHighlight();
   const input = document.getElementById('consoleName');
   if (input && !input.disabled) {
     input.focus();
+  }
+}
+
+/**
+ * BIOS / Additional Files Management Functions
+ */
+
+/**
+ * Opens edit mode for BIOS / Additional Files
+ */
+function openBiosEditMode() {
+  if (!canWrite) return;
+  const source = hasPendingFileChanges ? pendingConsoleFiles : currentConsoleFiles;
+  workingConsoleFiles = JSON.parse(JSON.stringify(source));
+  renderBiosEditGrid();
+  document.getElementById('biosFilesViewMode').style.display = 'none';
+  document.getElementById('biosFilesEditMode').style.display = 'block';
+  const details = document.getElementById('biosFilesSection');
+  if (details) details.open = true;
+}
+
+/**
+ * Renders the small grid in edit mode
+ */
+function renderBiosEditGrid() {
+  const tbody = document.getElementById('biosGridBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (workingConsoleFiles.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 12px; font-style: italic;">No files in list. Click "+ Add File" above.</td></tr>';
+    return;
+  }
+
+  workingConsoleFiles.forEach((file, index) => {
+    const tr = document.createElement('tr');
+    tr.dataset.index = String(index);
+
+    const displayName = file.display_name || '';
+    const storage = file.storage_provider === 'blackblaze' ? 'blackblaze' : 'external';
+    const pathOrUrl = file.file_key_or_url || '';
+
+    tr.innerHTML = `
+      <td>
+        <input type="text" class="bios-input-name" placeholder="Display name" value="${escapeHtml(displayName)}" onchange="updateWorkingFile(${index}, 'display_name', this.value)">
+      </td>
+      <td>
+        <select class="bios-select-storage" onchange="updateWorkingFile(${index}, 'storage_provider', this.value)">
+          <option value="blackblaze"${storage === 'blackblaze' ? ' selected' : ''}>blackblaze</option>
+          <option value="external"${storage === 'external' ? ' selected' : ''}>external</option>
+        </select>
+      </td>
+      <td>
+        <input type="text" class="bios-input-path" placeholder="Key or URL" value="${escapeHtml(pathOrUrl)}" onchange="updateWorkingFile(${index}, 'file_key_or_url', this.value)">
+      </td>
+      <td style="text-align: center;">
+        <button type="button" class="btn danger" style="padding: 2px 6px; font-size: 11px; line-height: 1; min-width: 0;" title="Delete file" onclick="deleteBiosGridRow(${index})">✕</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/**
+ * Updates a field on a working file item
+ */
+function updateWorkingFile(index, field, value) {
+  if (workingConsoleFiles[index]) {
+    workingConsoleFiles[index][field] = value;
+  }
+}
+
+/**
+ * Appends a new blank row to the edit grid
+ */
+function addBiosGridRow() {
+  workingConsoleFiles.push({
+    id: null,
+    display_name: '',
+    storage_provider: 'blackblaze',
+    file_key_or_url: ''
+  });
+  renderBiosEditGrid();
+  setTimeout(() => {
+    const inputs = document.querySelectorAll('.bios-input-name');
+    if (inputs.length > 0) {
+      inputs[inputs.length - 1].focus();
+    }
+  }, 20);
+}
+
+/**
+ * Deletes a row from the edit grid
+ */
+function deleteBiosGridRow(index) {
+  workingConsoleFiles.splice(index, 1);
+  renderBiosEditGrid();
+}
+
+/**
+ * Cancels editing mode without storing changes
+ */
+function cancelBiosEditMode() {
+  workingConsoleFiles = [];
+  document.getElementById('biosFilesEditMode').style.display = 'none';
+  document.getElementById('biosFilesViewMode').style.display = 'block';
+  renderBiosViewMode();
+}
+
+/**
+ * Accepts edits from the grid
+ */
+function acceptBiosEditMode() {
+  syncWorkingFilesFromDom();
+
+  // Filter out empty rows
+  const cleanWorking = workingConsoleFiles.filter(f => 
+    (f.display_name && f.display_name.trim() !== '') || 
+    (f.file_key_or_url && f.file_key_or_url.trim() !== '')
+  );
+
+  const hasChanges = detectFilesChanged(currentConsoleFiles, cleanWorking);
+
+  if (!hasChanges) {
+    hasPendingFileChanges = false;
+    pendingConsoleFiles = [];
+    document.getElementById('downloadableFilesJson').value = '';
+  } else {
+    hasPendingFileChanges = true;
+    pendingConsoleFiles = cleanWorking;
+    document.getElementById('downloadableFilesJson').value = JSON.stringify(pendingConsoleFiles);
+  }
+
+  document.getElementById('biosFilesEditMode').style.display = 'none';
+  document.getElementById('biosFilesViewMode').style.display = 'block';
+  renderBiosViewMode();
+}
+
+/**
+ * Syncs DOM inputs to workingConsoleFiles array
+ */
+function syncWorkingFilesFromDom() {
+  const rows = document.querySelectorAll('#biosGridBody tr');
+  rows.forEach((tr, i) => {
+    const idx = tr.dataset.index !== undefined ? parseInt(tr.dataset.index, 10) : i;
+    if (!isNaN(idx) && workingConsoleFiles[idx]) {
+      const nameInput = tr.querySelector('.bios-input-name');
+      const storageSelect = tr.querySelector('.bios-select-storage');
+      const pathInput = tr.querySelector('.bios-input-path');
+      if (nameInput) workingConsoleFiles[idx].display_name = nameInput.value.trim();
+      if (storageSelect) workingConsoleFiles[idx].storage_provider = storageSelect.value;
+      if (pathInput) workingConsoleFiles[idx].file_key_or_url = pathInput.value.trim();
+    }
+  });
+}
+
+/**
+ * Checks whether the files list differs from the canonical saved list
+ */
+function detectFilesChanged(original, modified) {
+  if (original.length !== modified.length) return true;
+  for (let i = 0; i < original.length; i++) {
+    const o = original[i];
+    const m = modified[i];
+    if ((o.display_name || '').trim() !== (m.display_name || '').trim()) return true;
+    if ((o.storage_provider || 'external') !== (m.storage_provider || 'external')) return true;
+    if ((o.file_key_or_url || '').trim() !== (m.file_key_or_url || '').trim()) return true;
+  }
+  return false;
+}
+
+/**
+ * Returns icon markup representing internal/owned storage vs external link
+ */
+function getBiosFileIcon(provider) {
+  if (provider === 'blackblaze') {
+    return `<span class="bios-file-icon bios-icon-internal" title="Internal File"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></span>`;
+  }
+  return `<span class="bios-file-icon bios-icon-external" title="External File"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg></span>`;
+}
+
+/**
+ * Renders the view mode list (links if saved, text only if pending changes)
+ */
+function renderBiosViewMode() {
+  const ul = document.getElementById('biosFilesList');
+  const emptyMsg = document.getElementById('biosFilesEmptyMsg');
+  const pendingNotice = document.getElementById('biosFilesPendingNotice');
+  if (!ul) return;
+
+  ul.innerHTML = '';
+  const filesToDisplay = hasPendingFileChanges ? pendingConsoleFiles : currentConsoleFiles;
+
+  if (!filesToDisplay || filesToDisplay.length === 0) {
+    if (emptyMsg) emptyMsg.style.display = 'block';
+    if (pendingNotice) pendingNotice.style.display = hasPendingFileChanges ? 'block' : 'none';
+    return;
+  }
+
+  if (emptyMsg) emptyMsg.style.display = 'none';
+
+  filesToDisplay.forEach(f => {
+    const li = document.createElement('li');
+    const name = f.display_name || '(Unnamed File)';
+    const provider = f.storage_provider || 'external';
+    const iconHtml = getBiosFileIcon(provider);
+
+    if (hasPendingFileChanges) {
+      // TEXT ONLY (no links) while changes are pending
+      li.innerHTML = `${iconHtml}<span class="bios-text-only">${escapeHtml(name)}</span>`;
+    } else {
+      // LIVE CLICKABLE LINK to server download handler
+      if (f.id) {
+        li.innerHTML = `${iconHtml}<a href="/download/${f.id}" target="_blank" class="bios-download-link" title="Download ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
+      } else {
+        li.innerHTML = `${iconHtml}<span class="bios-text-only">${escapeHtml(name)}</span>`;
+      }
+    }
+    ul.appendChild(li);
+  });
+
+  if (pendingNotice) {
+    pendingNotice.style.display = hasPendingFileChanges ? 'block' : 'none';
   }
 }
 
@@ -1179,6 +1600,12 @@ async function handleSave(e) {
   try {
     const isUpdate = Boolean(id);
     const url = isUpdate ? `/consoles/${id}/update` : '/consoles/create';
+
+    // If user is currently editing files in the grid, auto-accept before submit
+    const editMode = document.getElementById('biosFilesEditMode');
+    if (editMode && editMode.style.display !== 'none') {
+      acceptBiosEditMode();
+    }
 
     const formElement = document.getElementById('consoleForm');
     const formData = new FormData(formElement);

@@ -73,8 +73,17 @@ final class GameRepository
 
         $rows = Database::fetchAll($sql);
 
-        return array_map(function (array $row): array {
-            return $this->formatGameRecord($row);
+        // Fetch attached downloadable files for all games
+        $allFiles = Database::fetchAll("SELECT * FROM `downloadable_files` WHERE game_id IS NOT NULL ORDER BY display_name ASC");
+        $filesByGame = [];
+        foreach ($allFiles as $f) {
+            $filesByGame[(int)$f['game_id']][] = $f;
+        }
+
+        return array_map(function (array $row) use ($filesByGame): array {
+            $record = $this->formatGameRecord($row);
+            $record['downloadable_files'] = $filesByGame[(int)$row['id']] ?? [];
+            return $record;
         }, $rows);
     }
 
@@ -123,7 +132,13 @@ final class GameRepository
             return null;
         }
 
-        return $this->formatGameRecord($row);
+        $record = $this->formatGameRecord($row);
+        $record['downloadable_files'] = Database::fetchAll(
+            "SELECT * FROM `downloadable_files` WHERE game_id = :id ORDER BY display_name ASC",
+            [':id' => $id]
+        );
+
+        return $record;
     }
 
     /**
@@ -143,6 +158,77 @@ final class GameRepository
 
         if (file_exists($fullPath) && is_file($fullPath)) {
             @unlink($fullPath);
+        }
+    }
+
+    /**
+     * Synchronizes downloadable files for a given game.
+     *
+     * @param int $gameId
+     * @param mixed $filesData JSON string or array of files
+     */
+    public function syncDownloadableFiles(int $gameId, mixed $filesData): void
+    {
+        if ($filesData === null || $filesData === '') {
+            return;
+        }
+
+        $files = is_string($filesData) ? json_decode($filesData, true) : $filesData;
+        if (!is_array($files)) {
+            return;
+        }
+
+        $downloadRepo = new \Vault\Repositories\DownloadRepository();
+        $existingFiles = $downloadRepo->getByGameId($gameId);
+        $existingMap = [];
+        foreach ($existingFiles as $ef) {
+            $existingMap[(int)$ef['id']] = $ef;
+        }
+
+        $retainedIds = [];
+
+        foreach ($files as $file) {
+            if (!is_array($file)) continue;
+
+            $displayName     = trim((string)($file['display_name'] ?? ''));
+            $storageProvider = ($file['storage_provider'] ?? '') === 'blackblaze' ? 'blackblaze' : 'external';
+            $fileKeyOrUrl    = trim((string)($file['file_key_or_url'] ?? ($file['path_or_url'] ?? '')));
+            $fileId          = !empty($file['id']) && is_numeric($file['id']) ? (int)$file['id'] : null;
+
+            if ($displayName === '' && $fileKeyOrUrl === '') {
+                continue;
+            }
+
+            if ($fileId !== null && isset($existingMap[$fileId])) {
+                // Update existing record
+                $downloadRepo->update($fileId, [
+                    'console_id'       => null,
+                    'game_id'          => $gameId,
+                    'display_name'     => $displayName,
+                    'storage_provider' => $storageProvider,
+                    'file_key_or_url'  => $fileKeyOrUrl,
+                ]);
+                $retainedIds[] = $fileId;
+            } else {
+                // Create new record
+                $newFileId = $downloadRepo->create([
+                    'console_id'       => null,
+                    'game_id'          => $gameId,
+                    'display_name'     => $displayName,
+                    'storage_provider' => $storageProvider,
+                    'file_key_or_url'  => $fileKeyOrUrl,
+                    'download_count'   => 0,
+                ]);
+                $retainedIds[] = $newFileId;
+            }
+        }
+
+        // Delete any existing files that were removed in the editor
+        foreach ($existingFiles as $ef) {
+            $efId = (int)$ef['id'];
+            if (!in_array($efId, $retainedIds, true)) {
+                $downloadRepo->delete($efId);
+            }
         }
     }
 
@@ -319,6 +405,10 @@ final class GameRepository
             ]);
         }
 
+        if (isset($data['downloadable_files_json']) || isset($data['downloadable_files'])) {
+            $this->syncDownloadableFiles($newId, $data['downloadable_files_json'] ?? $data['downloadable_files']);
+        }
+
         return $newId;
     }
 
@@ -445,6 +535,10 @@ final class GameRepository
             ':updated'         => $now,
             ':id'              => $id,
         ]);
+
+        if (isset($data['downloadable_files_json']) || isset($data['downloadable_files'])) {
+            $this->syncDownloadableFiles($id, $data['downloadable_files_json'] ?? $data['downloadable_files']);
+        }
 
         return $affected >= 0;
     }

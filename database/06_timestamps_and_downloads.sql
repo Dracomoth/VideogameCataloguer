@@ -2,7 +2,8 @@
 -- MariaDB / MySQL Schema Migration: 06_console_timestamps.sql
 -- Project: Videogame Vault / Cataloguer
 -- Purpose: Adds created and updated timestamp fields to consoles and games tables,
---          and initializes all existing records with current timestamp.
+--          initializes all existing records with current timestamp, and creates
+--          the downloadable_files table with foreign keys to consoles and games.
 -- ============================================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
@@ -101,4 +102,27 @@ UPDATE `games`
 SET `created` = CURRENT_TIMESTAMP, 
     `updated` = CURRENT_TIMESTAMP;
 
+-- --------------------------------------------------------
+-- 7. Table structure for table: downloadable_files
+-- Pointers to downloadable files (BIOS, configs, patches, manuals) for consoles and games
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `downloadable_files` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `console_id` int(11) DEFAULT NULL,
+  `game_id` int(11) DEFAULT NULL,
+  `display_name` varchar(255) NOT NULL,
+  `storage_provider` enum('blackblaze','external') NOT NULL DEFAULT 'external',
+  `file_key_or_url` text NOT NULL,
+  `download_count` int(11) NOT NULL DEFAULT 0,
+  `last_download` datetime DEFAULT NULL,
+  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `fk_downloadable_files_console` (`console_id`),
+  KEY `fk_downloadable_files_game` (`game_id`),
+  CONSTRAINT `fk_downloadable_files_console` FOREIGN KEY (`console_id`) REFERENCES `consoles` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_downloadable_files_game` FOREIGN KEY (`game_id`) REFERENCES `games` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
+

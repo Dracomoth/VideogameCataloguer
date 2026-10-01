@@ -330,6 +330,112 @@ if (!defined('APP_INIT')) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Collapsible ROMS / Additional Files Section */
+.rom-files-details {
+  margin-top: 8px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+.rom-summary {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.rom-summary:hover {
+  color: var(--text-main);
+}
+.rom-bullet-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rom-bullet-list li {
+  color: var(--text-main);
+  font-size: 12px;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rom-file-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+.rom-icon-internal {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+.rom-icon-external {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.rom-download-link {
+  color: #38bdf8;
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+.rom-download-link:hover {
+  color: #7dd3fc;
+  text-decoration: underline;
+}
+.rom-text-only {
+  color: var(--text-main);
+  font-weight: 500;
+}
+.rom-edit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.rom-edit-table th {
+  padding: 5px 6px;
+  font-weight: 600;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  background: rgba(30, 41, 59, 0.7);
+  text-align: left;
+}
+.rom-edit-table td {
+  padding: 4px;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.rom-edit-table input,
+.rom-edit-table select {
+  width: 100%;
+  padding: 4px 6px;
+  font-size: 11px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  box-sizing: border-box;
+}
+.rom-edit-table input:focus,
+.rom-edit-table select:focus {
+  border-color: var(--border-focus);
+  outline: none;
+}
 </style>
 
 <div class="workspace-games">
@@ -343,7 +449,7 @@ if (!defined('APP_INIT')) {
       <span id="activeIdBadge" class="badge-record">(Auto ID)</span>
     </div>
 
-    <form id="gameForm" onsubmit="handleSave(event)">
+    <form id="gameForm" onsubmit="handleSave(event)" novalidate>
       <input type="hidden" id="gameId" name="id" value="">
       <input type="hidden" id="deleteBoxart" name="delete_boxart" value="0">
       <input type="hidden" id="deleteScreenshot" name="delete_screenshot" value="0">
@@ -562,6 +668,7 @@ if (!defined('APP_INIT')) {
           Tags (Comma-separated)
         </label>
         <!-- AI Assistant Action Button (Prepared for future API activation) -->
+        <?php if ($canWrite): ?>
         <button 
           type="button" 
           id="aiAutoFillBtn" 
@@ -570,6 +677,7 @@ if (!defined('APP_INIT')) {
         >
           <span class="ai-sparkle-icon">✨</span> AI Auto-Fill
         </button>
+        <?php endif; ?>
       </div>
       <div class="form-group" style="margin-bottom: 10px;">
         <input 
@@ -593,6 +701,79 @@ if (!defined('APP_INIT')) {
           <?= !$canWrite ? 'disabled' : '' ?>
         ></textarea>
       </div>
+
+      <!-- Collapsible ROMS/Files Section -->
+      <details class="rom-files-details" id="romFilesSection">
+        <summary class="rom-summary">
+          <span>▶ ROMS/Files</span>
+          <span style="font-size: 10px;">▾</span>
+        </summary>
+        <div class="rom-files-content" style="padding-top: 8px;">
+          <!-- Hidden input storing serialized JSON of files to be saved with game -->
+          <input type="hidden" id="downloadableFilesJson" name="downloadable_files_json" value="">
+
+          <!-- VIEW MODE: List of links or text with status icons -->
+          <div id="romFilesViewMode">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;">Available Files</span>
+              <?php if ($canWrite): ?>
+                <button type="button" id="editRomFilesBtn" class="btn" style="padding: 2px 8px; font-size: 10px; height: 22px;" onclick="openRomEditMode()">
+                  ✏️ Edit
+                </button>
+              <?php endif; ?>
+            </div>
+
+            <!-- Bulleted List with Custom Icons -->
+            <ul id="romFilesList" class="rom-bullet-list">
+              <!-- Populated dynamically via JS -->
+            </ul>
+
+            <div id="romFilesEmptyMsg" style="display: none; font-size: 11px; color: var(--text-muted); font-style: italic; padding: 4px 0;">
+              No ROMs or files linked.
+            </div>
+
+            <!-- Message asking to save whole record to persist pending changes -->
+            <div id="romFilesPendingNotice" style="display: none; margin-top: 8px; font-size: 11px; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-sm); padding: 6px 8px;">
+              ⚠️ Changes made to file list. Please click <strong>💾 Save Game</strong> below to persist your changes.
+            </div>
+          </div>
+
+          <!-- EDIT MODE: Small Grid of Editable Files -->
+          <div id="romFilesEditMode" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 11px; font-weight: 700; color: var(--text-main); text-transform: uppercase;">Edit Files</span>
+              <button type="button" class="btn primary" style="padding: 2px 8px; font-size: 10px; height: 22px;" onclick="addRomGridRow()">
+                + Add File
+              </button>
+            </div>
+
+            <div style="max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: rgba(15, 23, 42, 0.6); margin-bottom: 8px;">
+              <table class="rom-edit-table">
+                <thead>
+                  <tr>
+                    <th style="width: 32%;">Display Name</th>
+                    <th style="width: 25%;">Storage</th>
+                    <th style="width: 35%;">Path or URL</th>
+                    <th style="width: 8%; text-align: center;"></th>
+                  </tr>
+                </thead>
+                <tbody id="romGridBody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 6px;">
+              <button type="button" class="btn" style="padding: 4px 10px; font-size: 11px;" onclick="cancelRomEditMode()">
+                ✕ Cancel
+              </button>
+              <button type="button" class="btn primary" style="padding: 4px 12px; font-size: 11px;" onclick="acceptRomEditMode()">
+                ✓ Accept
+              </button>
+            </div>
+          </div>
+        </div>
+      </details>
 
       <!-- Action Buttons -->
       <div class="editor-actions">
@@ -654,6 +835,12 @@ let categoriesList = [];
 let subcategoriesList = [];
 let selectedId = null;
 const canWrite = <?= json_encode($canWrite) ?>;
+
+// ROMS / Additional Files State
+let currentGameFiles = [];
+let workingGameFiles = [];
+let pendingGameFiles = [];
+let hasPendingFileChanges = false;
 
 document.addEventListener('DOMContentLoaded', () => {
   // 1. Ingest initial server pre-rendered datasets
@@ -902,6 +1089,19 @@ function selectGame(id) {
     deleteBtn.title = `Delete ${record.title}`;
   }
 
+  // Initialize and render ROMS / Additional Files
+  currentGameFiles = Array.isArray(record.downloadable_files) ? JSON.parse(JSON.stringify(record.downloadable_files)) : [];
+  pendingGameFiles = [];
+  workingGameFiles = [];
+  hasPendingFileChanges = false;
+  const jsonInput = document.getElementById('downloadableFilesJson');
+  if (jsonInput) jsonInput.value = '';
+  const editMode = document.getElementById('romFilesEditMode');
+  const viewMode = document.getElementById('romFilesViewMode');
+  if (editMode) editMode.style.display = 'none';
+  if (viewMode) viewMode.style.display = 'block';
+  renderRomViewMode();
+
   syncRowHighlight();
   document.getElementById('gameTitle').focus();
 }
@@ -935,6 +1135,19 @@ function resetForm() {
     deleteBtn.disabled = true;
     deleteBtn.removeAttribute('title');
   }
+
+  // Reset attached downloadable files
+  currentGameFiles = [];
+  pendingGameFiles = [];
+  workingGameFiles = [];
+  hasPendingFileChanges = false;
+  const jsonInput = document.getElementById('downloadableFilesJson');
+  if (jsonInput) jsonInput.value = '';
+  const editMode = document.getElementById('romFilesEditMode');
+  const viewMode = document.getElementById('romFilesViewMode');
+  if (editMode) editMode.style.display = 'none';
+  if (viewMode) viewMode.style.display = 'block';
+  renderRomViewMode();
 
   syncRowHighlight();
   const input = document.getElementById('gameTitle');
@@ -1083,6 +1296,229 @@ function syncRowHighlight() {
 }
 
 /**
+ * ROMS / Additional Files Management Functions
+ */
+
+/**
+ * Returns icon markup representing internal/owned storage vs external link
+ */
+function getRomFileIcon(provider) {
+  if (provider === 'blackblaze') {
+    return `<span class="rom-file-icon rom-icon-internal" title="Internal File"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></span>`;
+  }
+  return `<span class="rom-file-icon rom-icon-external" title="External File"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg></span>`;
+}
+
+/**
+ * Opens edit mode for ROMS / Additional Files
+ */
+function openRomEditMode() {
+  if (!canWrite) return;
+  const source = hasPendingFileChanges ? pendingGameFiles : currentGameFiles;
+  workingGameFiles = JSON.parse(JSON.stringify(source));
+  renderRomEditGrid();
+  document.getElementById('romFilesViewMode').style.display = 'none';
+  document.getElementById('romFilesEditMode').style.display = 'block';
+  const details = document.getElementById('romFilesSection');
+  if (details) details.open = true;
+}
+
+/**
+ * Renders the small grid in edit mode
+ */
+function renderRomEditGrid() {
+  const tbody = document.getElementById('romGridBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (workingGameFiles.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 12px; font-style: italic;">No files in list. Click "+ Add File" above.</td></tr>';
+    return;
+  }
+
+  workingGameFiles.forEach((file, index) => {
+    const tr = document.createElement('tr');
+    tr.dataset.index = String(index);
+
+    const displayName = file.display_name || '';
+    const storage = file.storage_provider === 'blackblaze' ? 'blackblaze' : 'external';
+    const pathOrUrl = file.file_key_or_url || '';
+
+    tr.innerHTML = `
+      <td>
+        <input type="text" class="rom-input-name" placeholder="Display name" value="${escapeHtml(displayName)}" onchange="updateWorkingGameFile(${index}, 'display_name', this.value)">
+      </td>
+      <td>
+        <select class="rom-select-storage" onchange="updateWorkingGameFile(${index}, 'storage_provider', this.value)">
+          <option value="blackblaze"${storage === 'blackblaze' ? ' selected' : ''}>blackblaze</option>
+          <option value="external"${storage === 'external' ? ' selected' : ''}>external</option>
+        </select>
+      </td>
+      <td>
+        <input type="text" class="rom-input-path" placeholder="Key or URL" value="${escapeHtml(pathOrUrl)}" onchange="updateWorkingGameFile(${index}, 'file_key_or_url', this.value)">
+      </td>
+      <td style="text-align: center;">
+        <button type="button" class="btn danger" style="padding: 2px 6px; font-size: 11px; line-height: 1; min-width: 0;" title="Delete file" onclick="deleteRomGridRow(${index})">✕</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/**
+ * Updates a field on a working game file item
+ */
+function updateWorkingGameFile(index, field, value) {
+  if (workingGameFiles[index]) {
+    workingGameFiles[index][field] = value;
+  }
+}
+
+/**
+ * Appends a new blank row to the edit grid
+ */
+function addRomGridRow() {
+  workingGameFiles.push({
+    id: null,
+    display_name: '',
+    storage_provider: 'blackblaze',
+    file_key_or_url: ''
+  });
+  renderRomEditGrid();
+  setTimeout(() => {
+    const inputs = document.querySelectorAll('.rom-input-name');
+    if (inputs.length > 0) {
+      inputs[inputs.length - 1].focus();
+    }
+  }, 20);
+}
+
+/**
+ * Deletes a row from the edit grid
+ */
+function deleteRomGridRow(index) {
+  workingGameFiles.splice(index, 1);
+  renderRomEditGrid();
+}
+
+/**
+ * Cancels editing mode without storing changes
+ */
+function cancelRomEditMode() {
+  workingGameFiles = [];
+  document.getElementById('romFilesEditMode').style.display = 'none';
+  document.getElementById('romFilesViewMode').style.display = 'block';
+  renderRomViewMode();
+}
+
+/**
+ * Accepts edits from the grid
+ */
+function acceptRomEditMode() {
+  syncWorkingGameFilesFromDom();
+
+  // Filter out empty rows
+  const cleanWorking = workingGameFiles.filter(f => 
+    (f.display_name && f.display_name.trim() !== '') || 
+    (f.file_key_or_url && f.file_key_or_url.trim() !== '')
+  );
+
+  const hasChanges = detectGameFilesChanged(currentGameFiles, cleanWorking);
+
+  if (!hasChanges) {
+    hasPendingFileChanges = false;
+    pendingGameFiles = [];
+    document.getElementById('downloadableFilesJson').value = '';
+  } else {
+    hasPendingFileChanges = true;
+    pendingGameFiles = cleanWorking;
+    document.getElementById('downloadableFilesJson').value = JSON.stringify(pendingGameFiles);
+  }
+
+  document.getElementById('romFilesEditMode').style.display = 'none';
+  document.getElementById('romFilesViewMode').style.display = 'block';
+  renderRomViewMode();
+}
+
+/**
+ * Syncs DOM inputs to workingGameFiles array
+ */
+function syncWorkingGameFilesFromDom() {
+  const rows = document.querySelectorAll('#romGridBody tr');
+  rows.forEach((tr, i) => {
+    const idx = tr.dataset.index !== undefined ? parseInt(tr.dataset.index, 10) : i;
+    if (!isNaN(idx) && workingGameFiles[idx]) {
+      const nameInput = tr.querySelector('.rom-input-name');
+      const storageSelect = tr.querySelector('.rom-select-storage');
+      const pathInput = tr.querySelector('.rom-input-path');
+      if (nameInput) workingGameFiles[idx].display_name = nameInput.value.trim();
+      if (storageSelect) workingGameFiles[idx].storage_provider = storageSelect.value;
+      if (pathInput) workingGameFiles[idx].file_key_or_url = pathInput.value.trim();
+    }
+  });
+}
+
+/**
+ * Checks whether the files list differs from the canonical saved list
+ */
+function detectGameFilesChanged(original, modified) {
+  if (original.length !== modified.length) return true;
+  for (let i = 0; i < original.length; i++) {
+    const o = original[i];
+    const m = modified[i];
+    if ((o.display_name || '').trim() !== (m.display_name || '').trim()) return true;
+    if ((o.storage_provider || 'external') !== (m.storage_provider || 'external')) return true;
+    if ((o.file_key_or_url || '').trim() !== (m.file_key_or_url || '').trim()) return true;
+  }
+  return false;
+}
+
+/**
+ * Renders the view mode list (links if saved, text only if pending changes)
+ */
+function renderRomViewMode() {
+  const ul = document.getElementById('romFilesList');
+  const emptyMsg = document.getElementById('romFilesEmptyMsg');
+  const pendingNotice = document.getElementById('romFilesPendingNotice');
+  if (!ul) return;
+
+  ul.innerHTML = '';
+  const filesToDisplay = hasPendingFileChanges ? pendingGameFiles : currentGameFiles;
+
+  if (!filesToDisplay || filesToDisplay.length === 0) {
+    if (emptyMsg) emptyMsg.style.display = 'block';
+    if (pendingNotice) pendingNotice.style.display = hasPendingFileChanges ? 'block' : 'none';
+    return;
+  }
+
+  if (emptyMsg) emptyMsg.style.display = 'none';
+
+  filesToDisplay.forEach(f => {
+    const li = document.createElement('li');
+    const name = f.display_name || '(Unnamed File)';
+    const provider = f.storage_provider || 'external';
+    const iconHtml = getRomFileIcon(provider);
+
+    if (hasPendingFileChanges) {
+      // TEXT ONLY (no links) while changes are pending
+      li.innerHTML = `${iconHtml}<span class="rom-text-only">${escapeHtml(name)}</span>`;
+    } else {
+      // LIVE CLICKABLE LINK to server download handler
+      if (f.id) {
+        li.innerHTML = `${iconHtml}<a href="/download/${f.id}" target="_blank" class="rom-download-link" title="Download ${escapeHtml(name)}">${escapeHtml(name)}</a>`;
+      } else {
+        li.innerHTML = `${iconHtml}<span class="rom-text-only">${escapeHtml(name)}</span>`;
+      }
+    }
+    ul.appendChild(li);
+  });
+
+  if (pendingNotice) {
+    pendingNotice.style.display = hasPendingFileChanges ? 'block' : 'none';
+  }
+}
+
+/**
  * Handles Form Submission (Create or Update with Multipart FormData)
  */
 async function handleSave(e) {
@@ -1112,6 +1548,12 @@ async function handleSave(e) {
   try {
     const isUpdate = Boolean(id);
     const url = isUpdate ? `/games/${id}/update` : '/games/create';
+
+    // If user is currently editing files in the grid, auto-accept before submit
+    const editMode = document.getElementById('romFilesEditMode');
+    if (editMode && editMode.style.display !== 'none') {
+      acceptRomEditMode();
+    }
 
     const formElement = document.getElementById('gameForm');
     const formData = new FormData(formElement);

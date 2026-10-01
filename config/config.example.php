@@ -44,4 +44,23 @@ return [
         'images'  => dirname(__DIR__) . '/images',
         'storage' => dirname(__DIR__) . '/storage',
     ],
+
+    'blackblaze' => [
+        // Backblaze B2 Application Key ID (or S3 Access Key ID)
+        'key_id'          => 'your_blackblaze_key_id',
+        // Backblaze B2 Application Key (or S3 Secret Access Key)
+        'application_key' => 'your_blackblaze_application_key',
+        // Target private bucket name
+        'bucket_name'     => 'your_bucket_name',
+        // Bucket ID (optional: auto-discovered via API if key has bucket scope or list access)
+        'bucket_id'       => '',
+        // Server URL / API Endpoint (default: 'https://api.backblazeb2.com')
+        'server_url'      => 'https://api.backblazeb2.com',
+        // Optional S3-compatible endpoint (e.g. 'https://s3.us-west-004.backblazeb2.com')
+        's3_endpoint'     => '',
+        // Region (e.g. 'us-west-004')
+        'region'          => '',
+        // Validity duration for temporary download URLs in seconds (default: 3600 = 1 hour)
+        'download_expiry' => 3600,
+    ],
 ];
