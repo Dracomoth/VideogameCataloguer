@@ -54,6 +54,8 @@ final class ConsoleRepository
                 c.is_for_reference,
                 c.master_reference_id,
                 mc.name AS master_console_name,
+                c.created,
+                c.updated,
                 (SELECT COUNT(*) FROM `consoles` sub_ref WHERE sub_ref.master_reference_id = c.id) AS reference_consoles_count,
                 c.image_path,
                 c.logo_path,
@@ -105,6 +107,8 @@ final class ConsoleRepository
                 c.is_for_reference,
                 c.master_reference_id,
                 mc.name AS master_console_name,
+                c.created,
+                c.updated,
                 (SELECT COUNT(*) FROM `consoles` sub_ref WHERE sub_ref.master_reference_id = c.id) AS reference_consoles_count,
                 c.image_path,
                 c.logo_path,
@@ -367,6 +371,8 @@ final class ConsoleRepository
             }
         }
 
+        $now = date('Y-m-d H:i:s');
+
         $sql = "
             INSERT INTO `consoles` (
                 `name`, `publisher_id`, `year`, `generation`,
@@ -374,14 +380,16 @@ final class ConsoleRepository
                 `image_path`, `logo_path`, `comments`,
                 `emulator`, `emulator_link`,
                 `emulator_android`, `emulator_android_link`,
-                `retroarch_core`, `core_link`
+                `retroarch_core`, `core_link`,
+                `created`, `updated`
             ) VALUES (
                 :name, :publisher_id, :year, :generation,
                 :console_type_id, :is_for_reference, :master_reference_id,
                 NULL, NULL, :comments,
                 :emulator, :emulator_link,
                 :emulator_android, :emulator_android_link,
-                :retroarch_core, :core_link
+                :retroarch_core, :core_link,
+                :created, :updated
             )
         ";
 
@@ -400,6 +408,8 @@ final class ConsoleRepository
             ':emulator_android_link'=> $emulatorAndroidLink,
             ':retroarch_core'       => $retroarchCore,
             ':core_link'            => $coreLink,
+            ':created'              => $now,
+            ':updated'              => $now,
         ]);
 
         $newId = (int)Database::lastInsertId();
@@ -417,10 +427,11 @@ final class ConsoleRepository
         }
 
         if ($newImagePath !== null || $newLogoPath !== null) {
-            Database::execute("UPDATE `consoles` SET `image_path` = :img, `logo_path` = :logo WHERE `id` = :id", [
-                ':img'  => $newImagePath,
-                ':logo' => $newLogoPath,
-                ':id'   => $newId,
+            Database::execute("UPDATE `consoles` SET `image_path` = :img, `logo_path` = :logo, `updated` = :updated WHERE `id` = :id", [
+                ':img'     => $newImagePath,
+                ':logo'    => $newLogoPath,
+                ':updated' => $now,
+                ':id'      => $newId,
             ]);
         }
 
@@ -539,6 +550,8 @@ final class ConsoleRepository
             $currentLogoPath = null;
         }
 
+        $now = date('Y-m-d H:i:s');
+
         $sql = "
             UPDATE `consoles` SET
                 `name`                  = :name,
@@ -556,7 +569,8 @@ final class ConsoleRepository
                 `emulator_android`      = :emulator_android,
                 `emulator_android_link` = :emulator_android_link,
                 `retroarch_core`        = :retroarch_core,
-                `core_link`             = :core_link
+                `core_link`             = :core_link,
+                `updated`               = :updated
             WHERE `id` = :id
         ";
 
@@ -577,6 +591,7 @@ final class ConsoleRepository
             ':emulator_android_link'=> $emulatorAndroidLink,
             ':retroarch_core'       => $retroarchCore,
             ':core_link'            => $coreLink,
+            ':updated'              => $now,
             ':id'                   => $id,
         ]);
 
@@ -653,6 +668,8 @@ final class ConsoleRepository
         $row['reference_consoles_count'] = (int)($row['reference_consoles_count'] ?? 0);
         $row['games_count']              = (int)($row['games_count'] ?? 0);
         $row['game_count']               = (int)($row['game_count'] ?? 0);
+        $row['created']                  = !empty($row['created']) ? (string)$row['created'] : '';
+        $row['updated']                  = !empty($row['updated']) ? (string)$row['updated'] : '';
 
         // Web accessible URLs for reading with automatic filemtime cache-busting
         $imgVer = '';

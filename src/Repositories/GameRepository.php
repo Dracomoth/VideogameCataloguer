@@ -55,6 +55,8 @@ final class GameRepository
                 g.boxart_path,
                 g.in_collection,
                 g.comments,
+                g.created,
+                g.updated,
                 c.name AS console_name,
                 cat.name AS category_name,
                 sub.name AS subcategory_name,
@@ -99,6 +101,8 @@ final class GameRepository
                 g.boxart_path,
                 g.in_collection,
                 g.comments,
+                g.created,
+                g.updated,
                 c.name AS console_name,
                 cat.name AS category_name,
                 sub.name AS subcategory_name,
@@ -255,17 +259,21 @@ final class GameRepository
 
         $inCollection  = !empty($data['in_collection']) ? 1 : 0;
 
+        $now = date('Y-m-d H:i:s');
+
         $sql = "
             INSERT INTO `games` (
                 `title`, `console_id`, `category_id`, `subcategory_id`,
                 `language_id`, `publisher_id`, `year`, `tags`,
                 `screenshot_path`, `boxart_path`,
-                `in_collection`, `comments`
+                `in_collection`, `comments`,
+                `created`, `updated`
             ) VALUES (
                 :title, :console_id, :category_id, :subcategory_id,
                 :language_id, :publisher_id, :year, :tags,
                 NULL, NULL,
-                :in_collection, :comments
+                :in_collection, :comments,
+                :created, :updated
             )
         ";
 
@@ -280,6 +288,8 @@ final class GameRepository
             ':tags'           => $tags,
             ':in_collection'  => $inCollection,
             ':comments'       => $comments,
+            ':created'        => $now,
+            ':updated'        => $now,
         ]);
 
         $newId = (int)Database::lastInsertId();
@@ -301,10 +311,11 @@ final class GameRepository
         }
 
         if ($newScreenshotPath !== null || $newBoxartPath !== null) {
-            Database::execute("UPDATE `games` SET `screenshot_path` = :screen, `boxart_path` = :box WHERE `id` = :id", [
-                ':screen' => $newScreenshotPath,
-                ':box'    => $newBoxartPath,
-                ':id'     => $newId,
+            Database::execute("UPDATE `games` SET `screenshot_path` = :screen, `boxart_path` = :box, `updated` = :updated WHERE `id` = :id", [
+                ':screen'  => $newScreenshotPath,
+                ':box'     => $newBoxartPath,
+                ':updated' => $now,
+                ':id'      => $newId,
             ]);
         }
 
@@ -398,6 +409,8 @@ final class GameRepository
             $currentBoxartPath = null;
         }
 
+        $now = date('Y-m-d H:i:s');
+
         $sql = "
             UPDATE `games` SET
                 `title`           = :title,
@@ -411,7 +424,8 @@ final class GameRepository
                 `screenshot_path` = :screenshot_path,
                 `boxart_path`     = :boxart_path,
                 `in_collection`   = :in_collection,
-                `comments`        = :comments
+                `comments`        = :comments,
+                `updated`         = :updated
             WHERE `id` = :id
         ";
 
@@ -428,6 +442,7 @@ final class GameRepository
             ':boxart_path'     => $currentBoxartPath,
             ':in_collection'   => $inCollection,
             ':comments'        => $comments,
+            ':updated'         => $now,
             ':id'              => $id,
         ]);
 
@@ -487,6 +502,8 @@ final class GameRepository
         $row['language_id']    = !empty($row['language_id']) ? (int)$row['language_id'] : null;
         $row['publisher_id']   = !empty($row['publisher_id']) ? (int)$row['publisher_id'] : null;
         $row['in_collection']  = (int)($row['in_collection'] ?? 0);
+        $row['created']        = !empty($row['created']) ? (string)$row['created'] : '';
+        $row['updated']        = !empty($row['updated']) ? (string)$row['updated'] : '';
 
         // Web accessible URLs for reading
         $row['screenshot_url'] = $screenshotPath !== '' ? ('/' . ltrim($screenshotPath, '/\\')) : '';

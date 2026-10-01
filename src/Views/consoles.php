@@ -237,13 +237,49 @@ if (!defined('APP_INIT')) {
   letter-spacing: 0.05em;
   margin-top: 2px;
 }
+
+/* Custom Header Styling for Consoles Workbench */
+.console-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+.console-header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.console-card-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-main, #f8fafc);
+  line-height: 1.2;
+}
+.record-timestamps {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted, #94a3b8);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 </style>
 
 <div class="workspace-consoles">
   <!-- LEFT PANE: Master-Detail Persistent Form Editor -->
   <aside class="editor-card">
-    <div class="card-header">
-      <span id="formModeTitle" class="card-title">NEW CONSOLE</span>
+    <div class="card-header console-card-header">
+      <div class="console-header-titles">
+        <span id="formModeTitle" class="card-title console-card-title">NEW CONSOLE</span>
+        <div id="recordTimestamps" class="record-timestamps" style="display: none;"></div>
+      </div>
       <span id="activeIdBadge" class="badge-record">(Auto ID)</span>
     </div>
 
@@ -794,6 +830,19 @@ function selectConsole(id) {
   document.getElementById('formModeTitle').textContent = 'EDIT CONSOLE';
   document.getElementById('activeIdBadge').textContent = `#${record.id}`;
 
+  const timestampsLabel = document.getElementById('recordTimestamps');
+  if (timestampsLabel) {
+    const createdVal = record.created || '';
+    const updatedVal = record.updated || '';
+    if (createdVal || updatedVal) {
+      timestampsLabel.textContent = `Created: ${createdVal} • Last Modified: ${updatedVal}`;
+      timestampsLabel.style.display = 'block';
+    } else {
+      timestampsLabel.textContent = '';
+      timestampsLabel.style.display = 'none';
+    }
+  }
+
   const deleteBtn = document.getElementById('deleteBtn');
   if (deleteBtn) {
     deleteBtn.disabled = false;
@@ -841,6 +890,12 @@ function resetForm() {
 
   document.getElementById('formModeTitle').textContent = 'NEW CONSOLE';
   document.getElementById('activeIdBadge').textContent = '(Auto ID)';
+
+  const timestampsLabel = document.getElementById('recordTimestamps');
+  if (timestampsLabel) {
+    timestampsLabel.textContent = '';
+    timestampsLabel.style.display = 'none';
+  }
 
   const deleteBtn = document.getElementById('deleteBtn');
   if (deleteBtn) {
