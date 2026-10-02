@@ -17,6 +17,7 @@ if (!file_exists($configFile)) {
     exit("Configuration file missing. Please copy 'config/config.example.php' to 'config/config.php' and enter your environment settings.");
 }
 $config = require $configFile;
+$GLOBALS['config'] = $config;
 
 // 3. Configure environment error reporting
 if (!empty($config['app']['debug'])) {

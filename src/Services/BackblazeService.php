@@ -33,7 +33,20 @@ final class BackblazeService
         if ($config !== null) {
             $this->config = $config;
         } else {
-            $globalConfig = $GLOBALS['config'] ?? [];
+            $globalConfig = $GLOBALS['config'] ?? null;
+            if (empty($globalConfig)) {
+                $configFile = dirname(__DIR__, 2) . '/config/config.php';
+                if (file_exists($configFile)) {
+                    if (!defined('APP_INIT')) {
+                        define('APP_INIT', true);
+                    }
+                    $loaded = require $configFile;
+                    if (is_array($loaded)) {
+                        $globalConfig = $loaded;
+                        $GLOBALS['config'] = $loaded;
+                    }
+                }
+            }
             $this->config = $globalConfig['blackblaze'] ?? $globalConfig['backblaze'] ?? [];
         }
     }
