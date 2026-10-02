@@ -329,11 +329,6 @@ $subcategories = $taxonomies['subcategories'] ?? [];
   flex-direction: row;
   align-items: stretch;
 }
-@media (max-width: 860px) {
-  .picked-card-container {
-    flex-direction: column;
-  }
-}
 
 /* Left Media Strip */
 .picked-media-strip {
@@ -346,14 +341,6 @@ $subcategories = $taxonomies['subcategories'] ?? [];
   flex: 0 0 310px;
   align-items: center;
   justify-content: center;
-}
-@media (max-width: 860px) {
-  .picked-media-strip {
-    border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    flex: auto;
-    width: 100%;
-  }
 }
 
 /* Fixed Media Box: Box Art */
@@ -434,17 +421,28 @@ $subcategories = $taxonomies['subcategories'] ?? [];
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   min-height: 100%;
 }
 
 /* Badges Strip */
 .picked-badge-strip {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
   gap: 8px;
-  margin-bottom: 8px;
+  height: 28px;
+  min-height: 28px;
+  max-height: 28px;
+  margin-bottom: 24px;
+  align-items: center;
+  scrollbar-width: none;
 }
+.picked-badge-strip::-webkit-scrollbar {
+  display: none;
+}
+
 .tag-pill {
   font-size: 11px;
   font-weight: 600;
@@ -455,6 +453,7 @@ $subcategories = $taxonomies['subcategories'] ?? [];
   background: rgba(255, 255, 255, 0.08);
   color: #cbd5e1;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .tag-platform {
   background: rgba(0, 168, 255, 0.18);
@@ -476,24 +475,19 @@ $subcategories = $taxonomies['subcategories'] ?? [];
   border: 1px solid rgba(168, 85, 247, 0.35);
 }
 
-/* Centered Title & Metadata Body Container */
-.picked-body-center {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 20px 10px;
+/* Header Group: Centered Title & Meta Info Line with balanced spacing */
+.picked-header-group {
   width: 100%;
+  margin-bottom: 16px;
+  text-align: center;
 }
 
 .picked-title {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   color: #f8fafc;
-  margin: 0 0 8px 0;
   line-height: 1.25;
+  margin: 0 0 6px 0;
   text-align: center !important;
   width: 100%;
 }
@@ -502,22 +496,102 @@ $subcategories = $taxonomies['subcategories'] ?? [];
   font-size: 13px;
   color: #94a3b8;
   line-height: 1.4;
-  margin-bottom: 0;
+  margin: 0;
   text-align: center !important;
   width: 100%;
 }
 
+/* Flexible Body Content Container for Notes, Tags, and Download Button */
+.picked-body-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  width: 100%;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Personal Notes: content only, justified, no border or decoration */
 .picked-notes {
-  font-size: 12px;
+  font-size: 13px;
   color: #cbd5e1;
-  background: rgba(0, 0, 0, 0.25);
-  padding: 10px 14px;
-  border-radius: 6px;
-  border-left: 3px solid #38bdf8;
-  margin-top: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
+  text-align: justify;
+  margin: 0 0 14px 0;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  max-width: 100% !important;
+}
+
+/* Tags Row: aligned to the left with previous text */
+.picked-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 16px 0;
   text-align: left;
-  max-width: 90%;
+}
+.game-tag-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #93c5fd;
+  background: rgba(30, 58, 138, 0.35);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  padding: 3px 9px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  letter-spacing: 0.2px;
+}
+
+/* Download Row */
+.picked-download-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px 0;
+}
+.btn-hub-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  border: 1px solid #34d399;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 7px 16px;
+  border-radius: 5px;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 3px 12px rgba(16, 185, 129, 0.3);
+  transition: all var(--transition-fast);
+  align-self: flex-start;
+}
+.btn-hub-download:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  box-shadow: 0 5px 16px rgba(16, 185, 129, 0.45);
+  transform: translateY(-1px);
+  color: #ffffff;
+}
+.hub-not-in-collection-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  padding: 6px 14px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  align-self: flex-start;
 }
 
 /* Bottom Bar of Picked Card */
@@ -679,6 +753,360 @@ $subcategories = $taxonomies['subcategories'] ?? [];
   -webkit-box-orient: vertical;
   overflow: hidden;
   min-height: 26px;
+}
+
+/* --------------------------------------------------------------------------
+   Mobile Viewport Responsive Rules (Scoped strictly to Player Hub)
+   -------------------------------------------------------------------------- */
+@media (max-width: 860px) {
+  .player-hub-wrapper {
+    padding: 10px 8px 32px;
+    gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  /* Filter Card on Mobile */
+  .hub-filter-card {
+    padding: 12px 10px;
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .hub-toolbar-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .hub-btn-group {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+    box-sizing: border-box;
+  }
+
+  .hub-btn-group .btn-hub-action {
+    flex: 1;
+    justify-content: center;
+    padding: 0 8px;
+    height: 36px;
+    font-size: 12px;
+  }
+
+  .hub-count-pill {
+    align-self: center;
+    margin: 0 auto;
+    font-size: 11px;
+    padding: 4px 12px;
+  }
+
+  .hub-criteria-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .criteria-col {
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .criteria-label {
+    min-width: 70px;
+    font-size: 10.5px;
+  }
+
+  .criteria-select-wrap {
+    flex: 1;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .criteria-select {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    height: 34px;
+    font-size: 12px;
+  }
+
+  .showcase-header-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+    padding-top: 8px;
+  }
+
+  .showcase-header-breadcrumbs {
+    white-space: normal;
+    word-break: break-word;
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  /* Spotlight Card on Mobile */
+  .picked-display-area {
+    min-height: auto;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .picked-card-container {
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    margin: 4px auto !important;
+    overflow: hidden !important;
+    border-radius: 10px;
+  }
+
+  /* Media Column on Mobile: Centered, Contained, Never Overflowing */
+  .picked-media-strip {
+    border-right: none !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    flex: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    padding: 14px 10px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 12px !important;
+  }
+
+  .fixed-media-box {
+    width: 100% !important;
+    max-width: min(280px, 100%) !important;
+    height: 250px !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+    padding: 6px !important;
+  }
+
+  .fixed-media-screenshot {
+    width: 100% !important;
+    max-width: min(280px, 100%) !important;
+    height: 180px !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+    padding: 6px !important;
+  }
+
+  /* Details Column on Mobile */
+  .picked-details {
+    padding: 16px 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    flex: none !important;
+  }
+
+  /* Badges Strip on Mobile: Smooth Horizontal Swipe without Parent Expansion */
+  .picked-badge-strip {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    margin-bottom: 14px !important;
+    gap: 6px !important;
+    padding-bottom: 2px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    max-height: 26px !important;
+  }
+
+  .tag-pill {
+    font-size: 10px !important;
+    padding: 2.5px 8px !important;
+  }
+
+  /* Header Group: Title & Meta Info Centered */
+  .picked-header-group {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    margin-bottom: 12px !important;
+    text-align: center !important;
+  }
+
+  .picked-title {
+    font-size: 19px !important;
+    line-height: 1.25 !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    margin: 0 0 5px 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    text-align: center !important;
+  }
+
+  .picked-meta {
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    text-align: center !important;
+  }
+
+  /* Content Body on Mobile */
+  .picked-body-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    padding-right: 0 !important;
+  }
+
+  .picked-notes {
+    font-size: 12.5px !important;
+    line-height: 1.55 !important;
+    margin: 0 0 12px 0 !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    text-align: justify !important;
+  }
+
+  .picked-tags-row {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    gap: 5px !important;
+    margin: 0 0 12px 0 !important;
+  }
+
+  .game-tag-badge {
+    font-size: 10.5px !important;
+    padding: 2.5px 8px !important;
+    word-break: break-word !important;
+  }
+
+  .picked-download-row {
+    margin: 0 0 14px 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .btn-hub-download {
+    font-size: 12px !important;
+    padding: 6px 14px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .hub-not-in-collection-label {
+    font-size: 11.5px !important;
+    padding: 5px 12px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Bottom Actions on Mobile: Re-roll button full width */
+  .picked-actions {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    padding-top: 10px !important;
+  }
+
+  .btn-reroll {
+    width: 100% !important;
+    justify-content: center !important;
+    height: 36px !important;
+    font-size: 12px !important;
+  }
+
+  .record-id-badge {
+    text-align: center !important;
+    font-size: 10.5px !important;
+  }
+
+  /* Others Drawer on Mobile */
+  .others-section-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .picked-toggle-link {
+    width: 100% !important;
+    max-width: 280px !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+  }
+
+  .picked-results-drawer {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 10px 8px !important;
+  }
+
+  .picked-gallery-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    padding-right: 0 !important;
+  }
+}
+
+/* Extra small smartphones (<= 400px width) */
+@media (max-width: 400px) {
+  .player-hub-wrapper {
+    padding: 8px 5px 28px;
+  }
+
+  .fixed-media-box {
+    max-width: 240px !important;
+    height: 220px !important;
+  }
+
+  .fixed-media-screenshot {
+    max-width: 240px !important;
+    height: 160px !important;
+  }
+
+  .picked-title {
+    font-size: 17px !important;
+  }
 }
 </style>
 
@@ -851,14 +1279,56 @@ $subcategories = $taxonomies['subcategories'] ?? [];
             <?php endif; ?>
           </div>
 
-          <!-- Centered Body: Title and Meta (Platform, Category, etc.) centered on the given space -->
-          <div class="picked-body-center">
+          <!-- Centered Header Group: Title & Meta Info Line -->
+          <div class="picked-header-group">
             <h2 class="picked-title" id="cardTitle"><?= View::e($initialGame['title']) ?></h2>
             <div class="picked-meta" id="cardMeta"><?= View::e($initialGame['meta_string']) ?></div>
+          </div>
 
-            <?php if (!empty($initialGame['comments'])): ?>
-              <div class="picked-notes" id="cardNotes"><?= nl2br(View::e($initialGame['comments'])) ?></div>
+          <!-- Flexible Body Content: Notes, Tags, Download Action -->
+          <div class="picked-body-content">
+            <?php 
+              $comments = trim((string)($initialGame['comments'] ?? ''));
+              $tagsStr = trim((string)($initialGame['tags'] ?? ''));
+              $tagsList = $tagsStr !== '' ? array_filter(array_map('trim', explode(',', $tagsStr))) : [];
+              $downloadFileId = $initialGame['download_file_id'] ?? null;
+              $hasDownloadFiles = !empty($initialGame['has_download_files']);
+              $inCollection = !empty($initialGame['in_collection']);
+            ?>
+
+            <?php if ($comments !== ''): ?>
+              <div class="picked-notes" id="cardNotes"><?= nl2br(View::e($comments)) ?></div>
             <?php endif; ?>
+
+            <?php if (!empty($tagsList)): ?>
+              <div class="picked-tags-row" id="cardTags">
+                <?php foreach ($tagsList as $tag): ?>
+                  <span class="game-tag-badge"><?= View::e($tag) ?></span>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+
+            <div class="picked-download-row" id="cardDownloadRow">
+              <?php if ($downloadFileId): ?>
+                <a href="/download/<?= (int)$downloadFileId ?>" target="_blank" class="btn-hub-download" id="cardDownloadBtn" title="Download ROM">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  <span>Download</span>
+                </a>
+              <?php elseif (!$hasDownloadFiles && !$inCollection): ?>
+                <span class="hub-not-in-collection-label" id="cardNotInCollection">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                  </svg>
+                  Not in collection
+                </span>
+              <?php endif; ?>
+            </div>
           </div>
 
           <!-- Bottom Row: Re-roll button & Record ID -->
@@ -1187,10 +1657,54 @@ function renderGameCard(game) {
     badgesHtml += `<span class="tag-pill tag-core">EMULATOR: ${escapeHtml(game.emulator.toUpperCase())}</span>`;
   }
 
-  // Comments / Notes
+  // Comments / Notes (content only, justified)
   let notesHtml = '';
   if (game.comments && game.comments.trim() !== '') {
     notesHtml = `<div class="picked-notes" id="cardNotes">${escapeHtml(game.comments).replace(/\n/g, '<br>')}</div>`;
+  }
+
+  // Tags (aligned to the left with previous text)
+  let tagsHtml = '';
+  const tagsStr = (game.tags || '').trim();
+  if (tagsStr !== '') {
+    const tags = tagsStr.split(',').map(t => t.trim()).filter(Boolean);
+    if (tags.length > 0) {
+      tagsHtml = `
+        <div class="picked-tags-row" id="cardTags">
+          ${tags.map(t => `<span class="game-tag-badge">${escapeHtml(t)}</span>`).join('')}
+        </div>
+      `;
+    }
+  }
+
+  // Download Action Row
+  let downloadActionHtml = '';
+  if (game.download_file_id) {
+    downloadActionHtml = `
+      <div class="picked-download-row" id="cardDownloadRow">
+        <a href="/download/${game.download_file_id}" target="_blank" class="btn-hub-download" id="cardDownloadBtn" title="Download ROM">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Download</span>
+        </a>
+      </div>
+    `;
+  } else if (!game.has_download_files && !game.in_collection) {
+    downloadActionHtml = `
+      <div class="picked-download-row" id="cardDownloadRow">
+        <span class="hub-not-in-collection-label" id="cardNotInCollection">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+          </svg>
+          Not in collection
+        </span>
+      </div>
+    `;
   }
 
   container.innerHTML = `
@@ -1220,11 +1734,17 @@ function renderGameCard(game) {
           ${badgesHtml}
         </div>
 
-        <!-- Centered Body: Title and Meta (Platform, Category, etc.) centered on the given space -->
-        <div class="picked-body-center">
+        <!-- Centered Header Group: Title & Meta Info Line -->
+        <div class="picked-header-group">
           <h2 class="picked-title" id="cardTitle">${escapeHtml(game.title)}</h2>
           <div class="picked-meta" id="cardMeta">${escapeHtml(game.meta_string)}</div>
+        </div>
+
+        <!-- Flexible Body Content: Notes, Tags, Download Action -->
+        <div class="picked-body-content">
           ${notesHtml}
+          ${tagsHtml}
+          ${downloadActionHtml}
         </div>
 
         <!-- Lower Actions Row -->

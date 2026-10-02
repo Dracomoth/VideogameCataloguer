@@ -281,22 +281,41 @@ final class PlayerHubRepository
 
         $metaString = implode(' • ', $metaSegments);
 
+        $gameId = (int)$game['id'];
+
+        // Latest downloadable file for this game marked as blackblaze (by creation date)
+        $latestBlackblaze = Database::fetchOne("
+            SELECT id, display_name, storage_provider, created
+            FROM `downloadable_files`
+            WHERE game_id = :game_id AND storage_provider = 'blackblaze'
+            ORDER BY created DESC, id DESC
+            LIMIT 1
+        ", [':game_id' => $gameId]);
+
+        // Check if game has any downloadable files at all
+        $hasAnyFiles = (bool)Database::fetchOne("
+            SELECT id FROM `downloadable_files` WHERE game_id = :game_id LIMIT 1
+        ", [':game_id' => $gameId]);
+
         return [
-            'id'                => (int)$game['id'],
-            'title'             => (string)$game['title'],
-            'year'              => $year,
-            'meta_string'       => $metaString,
-            'boxart_path'       => $this->normalizeImagePath($game['boxart_path'], 'no_cover.jpg'),
-            'screenshot_path'   => $this->normalizeImagePath($game['screenshot_path'], 'no_screen.jpg'),
-            'in_collection'     => (int)($game['in_collection'] ?? 0),
-            'console_name'      => $console,
-            'console_type_name' => (string)($game['console_type_name'] ?? ''),
-            'badge_bg_color'    => (string)($game['badge_bg_color'] ?? '#1e293b'),
-            'badge_font_color'  => (string)($game['badge_font_color'] ?? '#38bdf8'),
-            'language_name'     => (string)($game['language_name'] ?? ''),
-            'retroarch_core'    => (string)($game['retroarch_core'] ?? ''),
-            'emulator'          => (string)($game['emulator'] ?? ''),
-            'comments'          => (string)($game['comments'] ?? ''),
+            'id'                 => $gameId,
+            'title'              => (string)$game['title'],
+            'year'               => $year,
+            'meta_string'        => $metaString,
+            'boxart_path'        => $this->normalizeImagePath($game['boxart_path'], 'no_cover.jpg'),
+            'screenshot_path'    => $this->normalizeImagePath($game['screenshot_path'], 'no_screen.jpg'),
+            'in_collection'      => (int)($game['in_collection'] ?? 0),
+            'console_name'       => $console,
+            'console_type_name'  => (string)($game['console_type_name'] ?? ''),
+            'badge_bg_color'     => (string)($game['badge_bg_color'] ?? '#1e293b'),
+            'badge_font_color'   => (string)($game['badge_font_color'] ?? '#38bdf8'),
+            'language_name'      => (string)($game['language_name'] ?? ''),
+            'retroarch_core'     => (string)($game['retroarch_core'] ?? ''),
+            'emulator'           => (string)($game['emulator'] ?? ''),
+            'comments'           => (string)($game['comments'] ?? ''),
+            'tags'               => (string)($game['tags'] ?? ''),
+            'download_file_id'   => $latestBlackblaze ? (int)$latestBlackblaze['id'] : null,
+            'has_download_files' => $hasAnyFiles,
         ];
     }
 
