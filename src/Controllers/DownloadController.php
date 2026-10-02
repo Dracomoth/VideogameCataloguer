@@ -11,6 +11,7 @@ namespace Vault\Controllers;
 use Vault\Repositories\DownloadRepository;
 use Vault\Services\DownloadHelper;
 use Vault\Services\Response;
+use Vault\Auth\Auth;
 use Throwable;
 
 if (!defined('APP_INIT')) {
@@ -44,8 +45,15 @@ final class DownloadController
             Response::error('Invalid file ID provided.', 400);
         }
 
+        // Ensure user is authenticated to track downloads
+        if (!Auth::check()) {
+            Response::redirect('/login');
+        }
+
+        $playerId = Auth::id();
+
         try {
-            $result = $this->helper->processDownload($id);
+            $result = $this->helper->processDownload($id, $playerId);
             $record = $result['record'];
             $url    = $result['url'];
 
@@ -85,8 +93,14 @@ final class DownloadController
             Response::error('Invalid file ID provided.', 400);
         }
 
+        if (!Auth::check()) {
+            Response::error('Unauthorized: Please log in to download files.', 401);
+        }
+
+        $playerId = Auth::id();
+
         try {
-            $result = $this->helper->processDownload($id);
+            $result = $this->helper->processDownload($id, $playerId);
             $record = $result['record'];
             $url    = $result['url'];
 
