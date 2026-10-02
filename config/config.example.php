@@ -63,4 +63,17 @@ return [
         // Validity duration for temporary download URLs in seconds (default: 3600 = 1 hour)
         'download_expiry' => 3600,
     ],
+
+    'gemini' => [
+        // Google Gemini API Key for AI specifications and catalog auto-fill
+        'api_key' => 'your_gemini_api_key',
+        // Priority list of models: tries first, falls back on high demand / rate limits / unavailability
+        'models'  => [
+            'gemini-3.8-flash',
+            'gemini-3.7-flash',
+            'gemini-3.5-flash',
+        ],
+        // Timeout per model request in seconds (default: 20)
+        'timeout' => 20,
+    ],
 ];

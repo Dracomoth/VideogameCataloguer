@@ -185,6 +185,7 @@ $router->delete('/console-types/{id}', [ConsoleTypeController::class, 'delete'])
 // Hardware & Consoles Maintenance Routes
 $router->get('/consoles', [ConsoleController::class, 'index']);
 $router->get('/api/consoles', [ConsoleController::class, 'apiList']);
+$router->post('/api/consoles/autofill-specs', [ConsoleController::class, 'autofillSpecs']);
 $router->post('/consoles', [ConsoleController::class, 'create']);
 $router->post('/consoles/create', [ConsoleController::class, 'create']);
 $router->post('/consoles/{id}/update', [ConsoleController::class, 'update']);
@@ -195,6 +196,7 @@ $router->delete('/consoles/{id}', [ConsoleController::class, 'delete']);
 $router->get('/games', [GameController::class, 'index']);
 $router->get('/api/games', [GameController::class, 'apiList']);
 $router->get('/api/telemetry', [GameController::class, 'apiTelemetry']);
+$router->post('/api/games/autofill-metadata', [GameController::class, 'autofillMetadata']);
 $router->post('/games', [GameController::class, 'create']);
 $router->post('/games/create', [GameController::class, 'create']);
 $router->post('/games/{id}/update', [GameController::class, 'update']);

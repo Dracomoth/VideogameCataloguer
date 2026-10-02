@@ -363,6 +363,44 @@ if (!defined('APP_INIT')) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* AI Auto-Fill Sparkle Button */
+.btn-ai-autofill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #c084fc;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(56, 189, 248, 0.15) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+.btn-ai-autofill:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.28) 0%, rgba(56, 189, 248, 0.28) 100%);
+  border-color: #c084fc;
+  color: #f3e8ff;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+  transform: translateY(-1px);
+}
+.btn-ai-autofill:active:not(:disabled) {
+  transform: translateY(0);
+}
+.btn-ai-autofill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.ai-sparkle-icon {
+  font-size: 12px;
+  line-height: 1;
+  filter: drop-shadow(0 0 2px rgba(168, 85, 247, 0.6));
+}
 </style>
 
 <div class="workspace-consoles">
@@ -578,13 +616,26 @@ if (!defined('APP_INIT')) {
       </div>
 
       <!-- Personal Notes / Specs -->
-      <div class="form-group">
-        <label for="comments">Personal Notes / Specs</label>
+      <div class="form-group" style="margin-top: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label for="comments" style="margin: 0;">Personal Notes / Specs</label>
+          <?php if ($canWrite): ?>
+          <button 
+            type="button" 
+            id="aiAutoFillBtn" 
+            class="btn-ai-autofill" 
+            title="Auto-fill Specs & BIOS Notes with Gemini AI"
+            onclick="autofillConsoleSpecs()"
+          >
+            <span class="ai-sparkle-icon">✨</span> AI Auto-Fill
+          </button>
+          <?php endif; ?>
+        </div>
         <textarea 
           id="comments" 
           name="comments" 
           class="form-control" 
-          rows="2" 
+          rows="3" 
           placeholder="BIOS requirements, serial numbers, region notes..."
           <?= !$canWrite ? 'disabled' : '' ?>
         ></textarea>
@@ -1786,5 +1837,96 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+/**
+ * Auto-fills Personal Notes / Specs using Gemini AI
+ */
+async function autofillConsoleSpecs() {
+  if (!canWrite) return;
+
+  const nameInput = document.getElementById('consoleName');
+  const name = nameInput ? nameInput.value.trim() : '';
+
+  if (!name) {
+    showToast('Please enter a Console Name first before auto-filling specs.', 'error');
+    if (nameInput) nameInput.focus();
+    return;
+  }
+
+  const btn = document.getElementById('aiAutoFillBtn');
+  const commentsArea = document.getElementById('comments');
+  const publisherSelect = document.getElementById('publisherId');
+  const typeSelect = document.getElementById('consoleTypeId');
+  const generationInput = document.getElementById('generation');
+  const yearInput = document.getElementById('releaseYear');
+
+  const payload = {
+    name: name,
+    publisher_id: publisherSelect ? publisherSelect.value : '',
+    maker: publisherSelect && publisherSelect.selectedIndex > 0 ? publisherSelect.options[publisherSelect.selectedIndex].text : '',
+    console_type_id: typeSelect ? typeSelect.value : '',
+    type: typeSelect && typeSelect.selectedIndex > 0 ? typeSelect.options[typeSelect.selectedIndex].text : '',
+    generation: generationInput ? generationInput.value.trim() : '',
+    year: yearInput ? yearInput.value.trim() : ''
+  };
+
+  let origBtnHtml = '';
+  if (btn) {
+    origBtnHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="ai-sparkle-icon">⏳</span> Auto-filling...';
+  }
+
+  try {
+    const res = await fetch('/api/consoles/autofill-specs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const rawText = await res.text();
+    let json;
+    try {
+      json = JSON.parse(rawText);
+    } catch (e) {
+      console.error('Non-JSON response from AI service:', rawText);
+      const cleanErr = rawText.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      throw new Error(cleanErr || 'Server returned an invalid or non-JSON response.');
+    }
+
+    if (!res.ok || json.success === false) {
+      throw new Error(json.error || (json.data && json.data.error) || 'Failed to auto-fill console specifications.');
+    }
+
+    const respData = json.data || json;
+    const specs = respData.specs || '';
+
+    if (!specs) {
+      throw new Error('No specifications returned from Gemini API.');
+    }
+
+    if (commentsArea) {
+      if (commentsArea.value.trim() !== '') {
+        commentsArea.value = commentsArea.value.trim() + "\n\n" + specs;
+      } else {
+        commentsArea.value = specs;
+      }
+      commentsArea.focus();
+      const modelInfo = respData.model_used ? ` (via ${escapeHtml(respData.model_used)})` : '';
+      showToast('Personal Notes / Specs filled by Gemini AI' + modelInfo + '.', 'success');
+    }
+  } catch (err) {
+    console.error('AI Auto-Fill Error:', err);
+    showToast(err.message || 'Error generating console specs.', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origBtnHtml;
+    }
+  }
 }
 </script>

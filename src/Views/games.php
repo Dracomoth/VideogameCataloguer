@@ -226,15 +226,21 @@ if (!defined('APP_INIT')) {
   transition: all var(--transition-fast);
   user-select: none;
 }
-.btn-ai-autofill:hover {
+.btn-ai-autofill:hover:not(:disabled) {
   background: linear-gradient(135deg, rgba(168, 85, 247, 0.28) 0%, rgba(56, 189, 248, 0.28) 100%);
   border-color: #c084fc;
   color: #f3e8ff;
   box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
   transform: translateY(-1px);
 }
-.btn-ai-autofill:active {
+.btn-ai-autofill:active:not(:disabled) {
   transform: translateY(0);
+}
+.btn-ai-autofill:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 .ai-sparkle-icon {
   font-size: 12px;
@@ -663,17 +669,17 @@ if (!defined('APP_INIT')) {
       </div>
 
       <!-- Section 5: Metadata, AI Button & Notes -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; margin-bottom: 6px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; margin-bottom: 8px;">
         <label for="tags" class="form-label" style="margin: 0; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.04em;">
           Tags (Comma-separated)
         </label>
-        <!-- AI Assistant Action Button (Prepared for future API activation) -->
         <?php if ($canWrite): ?>
         <button 
           type="button" 
           id="aiAutoFillBtn" 
           class="btn-ai-autofill" 
-          title="Auto-fill Tags and Comments with AI (API Key integration)"
+          title="Auto-fill Tags and Personal Notes / Comments with Gemini AI"
+          onclick="autofillGameMetadata()"
         >
           <span class="ai-sparkle-icon">✨</span> AI Auto-Fill
         </button>
@@ -963,15 +969,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupDropzone('boxartDropzone', 'boxartFileInput', 'boxartPreviewContainer', 'deleteBoxartBtn', 'boxart');
   setupDropzone('screenshotDropzone', 'screenshotFileInput', 'screenshotPreviewContainer', 'deleteScreenshotBtn', 'screenshot');
 
-  // Setup AI button behavior
-  const aiBtn = document.getElementById('aiAutoFillBtn');
-  if (aiBtn) {
-    aiBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      // At this moment button does nothing destructive, inform user about upcoming integration
-      showToast('AI Assistant: API key integration will be enabled in an upcoming release.', 'info');
-    });
-  }
+  // (AI auto-fill button behavior is handled via onclick="autofillGameMetadata()")
 
   // Ensure subcategory dropdown starts empty when no category is chosen
   handleCategoryChange(null);
@@ -1780,5 +1778,123 @@ function showToast(msg, type = 'success') {
     toast.classList.remove('show');
     setTimeout(() => toast.remove(), 250);
   }, 3200);
+}
+
+/**
+ * AI-powered Auto-Fill for Tags and Personal Notes / Comments using Gemini API
+ */
+async function autofillGameMetadata() {
+  if (!canWrite) return;
+
+  const titleInput = document.getElementById('gameTitle');
+  const title = titleInput ? titleInput.value.trim() : '';
+
+  if (!title) {
+    showToast('Please enter a Game Title first before auto-filling metadata.', 'error');
+    if (titleInput) titleInput.focus();
+    return;
+  }
+
+  const btn = document.getElementById('aiAutoFillBtn');
+  const tagsInput = document.getElementById('tags');
+  const commentsArea = document.getElementById('comments');
+  const consoleSelect = document.getElementById('consoleId');
+  const categorySelect = document.getElementById('categoryId');
+  const subcategorySelect = document.getElementById('subcategoryId');
+  const publisherSelect = document.getElementById('publisherId');
+  const yearInput = document.getElementById('releaseYear');
+
+  const reqPayload = {
+    title: title,
+    console_id: consoleSelect ? consoleSelect.value : '',
+    console: consoleSelect && consoleSelect.selectedIndex > 0 ? consoleSelect.options[consoleSelect.selectedIndex].text : '',
+    category_id: categorySelect ? categorySelect.value : '',
+    category: categorySelect && categorySelect.selectedIndex > 0 ? categorySelect.options[categorySelect.selectedIndex].text : '',
+    subcategory_id: subcategorySelect ? subcategorySelect.value : '',
+    subcategory: subcategorySelect && subcategorySelect.selectedIndex > 0 ? subcategorySelect.options[subcategorySelect.selectedIndex].text : '',
+    publisher_id: publisherSelect ? publisherSelect.value : '',
+    publisher: publisherSelect && publisherSelect.selectedIndex > 0 ? publisherSelect.options[publisherSelect.selectedIndex].text : '',
+    year: yearInput ? yearInput.value.trim() : ''
+  };
+
+  let origBtnHtml = '';
+  if (btn) {
+    origBtnHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="ai-sparkle-icon">⏳</span> Auto-filling...';
+  }
+
+  try {
+    const res = await fetch('/api/games/autofill-metadata', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(reqPayload)
+    });
+
+    const rawText = await res.text();
+    let json;
+    try {
+      json = JSON.parse(rawText);
+    } catch (e) {
+      console.error('Non-JSON response from AI service:', rawText);
+      const cleanErr = rawText.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      throw new Error(cleanErr || 'Server returned an invalid or non-JSON response.');
+    }
+
+    if (!res.ok || json.success === false) {
+      throw new Error(json.error || (json.data && json.data.error) || 'Failed to auto-fill game metadata.');
+    }
+
+    const respData = json.data || json;
+    const aiTags = (respData.tags || '').trim();
+    const aiComments = (respData.comments || '').trim();
+
+    if (!aiTags && !aiComments) {
+      throw new Error('No metadata returned from Gemini AI.');
+    }
+
+    // Merge or set Tags
+    if (tagsInput && aiTags) {
+      if (tagsInput.value.trim() !== '') {
+        const existingTags = tagsInput.value.split(',').map(t => t.trim()).filter(Boolean);
+        const incomingTags = aiTags.split(',').map(t => t.trim()).filter(Boolean);
+        const existingLower = new Set(existingTags.map(t => t.toLowerCase()));
+        const merged = [...existingTags];
+        for (const tag of incomingTags) {
+          if (!existingLower.has(tag.toLowerCase())) {
+            merged.push(tag);
+            existingLower.add(tag.toLowerCase());
+          }
+        }
+        tagsInput.value = merged.join(', ');
+      } else {
+        tagsInput.value = aiTags;
+      }
+    }
+
+    // Append or set Personal Notes / Comments
+    if (commentsArea && aiComments) {
+      if (commentsArea.value.trim() !== '') {
+        commentsArea.value = commentsArea.value.trim() + "\n\n" + aiComments;
+      } else {
+        commentsArea.value = aiComments;
+      }
+      commentsArea.focus();
+    }
+
+    const modelInfo = respData.model_used ? ` (via ${escapeHtml(respData.model_used)})` : '';
+    showToast('Tags and Personal Notes filled by Gemini AI' + modelInfo + '.', 'success');
+  } catch (err) {
+    console.error('AI Auto-Fill Error:', err);
+    showToast(err.message || 'Error generating game metadata.', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origBtnHtml;
+    }
+  }
 }
 </script>

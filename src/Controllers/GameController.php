@@ -17,6 +17,7 @@ use Vault\Repositories\PublisherRepository;
 use Vault\Repositories\LanguageRepository;
 use Vault\Services\Response;
 use Vault\Services\View;
+use Vault\Services\GeminiService;
 use Throwable;
 
 if (!defined('APP_INIT')) {
@@ -227,6 +228,91 @@ final class GameController
             }
             $_SESSION['flash_error'] = $e->getMessage();
             Response::redirect('/games');
+        }
+    }
+
+    /**
+     * AI-powered auto-fill endpoint for game Tags and Personal Notes / Comments.
+     *
+     * @param array<string, mixed> $request
+     * @return never
+     */
+    public function autofillMetadata(array $request): void
+    {
+        Auth::requireAccess('games', 'write');
+
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(120);
+        }
+        @ini_set('max_execution_time', '120');
+
+        $body  = $request['body'] ?? [];
+        $title = trim((string)($body['title'] ?? ''));
+
+        if ($title === '') {
+            Response::error('Game title is required to auto-fill metadata.', 422);
+        }
+
+        // Resolve console name if console ID provided
+        $consoleName = trim((string)($body['console'] ?? ''));
+        $consoleId   = (int)($body['console_id'] ?? 0);
+        if ($consoleName === '' && $consoleId > 0) {
+            $console = $this->consoleRepo->getById($consoleId);
+            if ($console !== null) {
+                $consoleName = (string)($console['name'] ?? '');
+            }
+        }
+
+        // Resolve category name if category ID provided
+        $categoryName = trim((string)($body['category'] ?? ''));
+        $categoryId   = (int)($body['category_id'] ?? 0);
+        if ($categoryName === '' && $categoryId > 0) {
+            $cat = $this->categoryRepo->getById($categoryId);
+            if ($cat !== null) {
+                $categoryName = (string)($cat['name'] ?? '');
+            }
+        }
+
+        // Resolve subcategory name if subcategory ID provided
+        $subcategoryName = trim((string)($body['subcategory'] ?? ''));
+        $subcategoryId   = (int)($body['subcategory_id'] ?? 0);
+        if ($subcategoryName === '' && $subcategoryId > 0) {
+            $subcat = $this->subcategoryRepo->getById($subcategoryId);
+            if ($subcat !== null) {
+                $subcategoryName = (string)($subcat['name'] ?? '');
+            }
+        }
+
+        // Resolve publisher name if publisher ID provided
+        $publisherName = trim((string)($body['publisher'] ?? ''));
+        $publisherId   = (int)($body['publisher_id'] ?? 0);
+        if ($publisherName === '' && $publisherId > 0) {
+            $pub = $this->publisherRepo->getById($publisherId);
+            if ($pub !== null) {
+                $publisherName = (string)($pub['name'] ?? '');
+            }
+        }
+
+        $year = trim((string)($body['year'] ?? ($body['release_year'] ?? '')));
+
+        try {
+            $gemini = new GeminiService();
+            $result = $gemini->generateGameMetadata([
+                'title'       => $title,
+                'console'     => $consoleName,
+                'category'    => $categoryName,
+                'subcategory' => $subcategoryName,
+                'publisher'   => $publisherName,
+                'year'        => $year,
+            ]);
+
+            Response::json([
+                'tags'       => $result['tags'] ?? '',
+                'comments'   => $result['comments'] ?? '',
+                'model_used' => $gemini->getLastUsedModel(),
+            ]);
+        } catch (Throwable $e) {
+            Response::error($e->getMessage(), 422);
         }
     }
 

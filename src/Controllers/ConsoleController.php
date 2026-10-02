@@ -14,6 +14,7 @@ use Vault\Repositories\ConsoleTypeRepository;
 use Vault\Repositories\PublisherRepository;
 use Vault\Services\Response;
 use Vault\Services\View;
+use Vault\Services\GeminiService;
 use Throwable;
 
 if (!defined('APP_INIT')) {
@@ -199,6 +200,67 @@ final class ConsoleController
             }
             $_SESSION['flash_error'] = $e->getMessage();
             Response::redirect('/consoles');
+        }
+    }
+
+    /**
+     * Calls Gemini AI to generate technical specifications, hardware overview, and BIOS notes for a console.
+     *
+     * @param array<string, mixed> $request
+     * @return never
+     */
+    public function autofillSpecs(array $request): void
+    {
+        Auth::requireAccess('consoles', 'write');
+
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(120);
+        }
+        @ini_set('max_execution_time', '120');
+
+        $body = $request['body'] ?? [];
+        $name = trim((string)($body['name'] ?? ''));
+
+        if ($name === '') {
+            Response::error('Console name is required to generate specifications.', 422);
+        }
+
+        // Resolve maker name if manufacturer ID provided
+        $makerName = trim((string)($body['maker'] ?? ''));
+        $publisherId = (int)($body['publisher_id'] ?? 0);
+        if ($makerName === '' && $publisherId > 0) {
+            $maker = $this->publisherRepo->getById($publisherId);
+            if ($maker !== null) {
+                $makerName = (string)($maker['name'] ?? '');
+            }
+        }
+
+        // Resolve type name if type ID provided
+        $typeName = trim((string)($body['type'] ?? ''));
+        $typeId = (int)($body['console_type_id'] ?? ($body['type_id'] ?? 0));
+        if ($typeName === '' && $typeId > 0) {
+            $type = $this->typeRepo->getById($typeId);
+            if ($type !== null) {
+                $typeName = (string)($type['name'] ?? '');
+            }
+        }
+
+        try {
+            $gemini = new GeminiService();
+            $specs = $gemini->generateConsoleSpecs([
+                'name'       => $name,
+                'maker'      => $makerName,
+                'type'       => $typeName,
+                'generation' => $body['generation'] ?? '',
+                'year'       => $body['year'] ?? ($body['release_year'] ?? ''),
+            ]);
+
+            Response::json([
+                'specs'      => $specs,
+                'model_used' => $gemini->getLastUsedModel(),
+            ]);
+        } catch (Throwable $e) {
+            Response::error($e->getMessage(), 422);
         }
     }
 
