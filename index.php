@@ -113,6 +113,8 @@ $router->get('/', [DashboardController::class, 'index']);
 
 // Dashboard JSON Telemetry API
 $router->get('/api/dashboard', [DashboardController::class, 'api']);
+$router->post('/api/dashboard/update-game-status', [DashboardController::class, 'updateGameStatus']);
+
 
 // Player Hub & Catalog Spotlight Experience
 $router->get('/collection', [PlayerHubController::class, 'index']);

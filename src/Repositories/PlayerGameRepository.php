@@ -186,4 +186,109 @@ final class PlayerGameRepository
         ";
         return Database::fetchAll($sql, [':game_id' => $gameId]);
     }
+
+    /**
+     * Updates game play and win status for a specific player according to business rules:
+     * - A game that is not marked as played cannot be marked as won.
+     * - When marked as played, sets played_date to CURRENT_TIMESTAMP if not already set.
+     * - When marked as unplayed, clears played_date, is_won (to 0), and win_date (to null).
+     * - When marked as won, sets win_date to CURRENT_TIMESTAMP if not already set.
+     * - When marked as unwon, clears win_date to null.
+     *
+     * @param int $playerId
+     * @param int $gameId
+     * @param bool $isPlayed
+     * @param bool $isWon
+     * @return array<string, mixed> The updated record.
+     */
+    public function updateGameStatus(int $playerId, int $gameId, bool $isPlayed, bool $isWon): array
+    {
+        // Enforce rule: cannot be won if not played
+        if (!$isPlayed) {
+            $isWon = false;
+        }
+
+        $existing = $this->findByPlayerAndGame($playerId, $gameId);
+
+        if ($existing === null) {
+            $playedDate = $isPlayed ? date('Y-m-d H:i:s') : null;
+            $winDate    = $isWon ? date('Y-m-d H:i:s') : null;
+
+            $sql = "
+                INSERT INTO `player_games` (
+                    `player_id`,
+                    `game_id`,
+                    `is_downloaded`,
+                    `first_download_date`,
+                    `last_download_date`,
+                    `download_count`,
+                    `is_played`,
+                    `played_date`,
+                    `is_won`,
+                    `win_date`,
+                    `created`,
+                    `updated`
+                ) VALUES (
+                    :player_id,
+                    :game_id,
+                    0,
+                    NULL,
+                    NULL,
+                    0,
+                    :is_played,
+                    :played_date,
+                    :is_won,
+                    :win_date,
+                    CURRENT_TIMESTAMP,
+                    CURRENT_TIMESTAMP
+                )
+            ";
+
+            Database::execute($sql, [
+                ':player_id'   => $playerId,
+                ':game_id'     => $gameId,
+                ':is_played'   => $isPlayed ? 1 : 0,
+                ':played_date' => $playedDate,
+                ':is_won'      => $isWon ? 1 : 0,
+                ':win_date'    => $winDate,
+            ]);
+
+            $newId = (int)Database::lastInsertId();
+            return $this->getById($newId) ?? [];
+        }
+
+        $playedDate = $existing['played_date'];
+        if ($isPlayed && empty($playedDate)) {
+            $playedDate = date('Y-m-d H:i:s');
+        } elseif (!$isPlayed) {
+            $playedDate = null;
+        }
+
+        $winDate = $existing['win_date'];
+        if ($isWon && empty($winDate)) {
+            $winDate = date('Y-m-d H:i:s');
+        } elseif (!$isWon) {
+            $winDate = null;
+        }
+
+        $sql = "
+            UPDATE `player_games`
+            SET `is_played`   = :is_played,
+                `played_date` = :played_date,
+                `is_won`      = :is_won,
+                `win_date`    = :win_date,
+                `updated`     = CURRENT_TIMESTAMP
+            WHERE `id` = :id
+        ";
+
+        Database::execute($sql, [
+            ':id'          => (int)$existing['id'],
+            ':is_played'   => $isPlayed ? 1 : 0,
+            ':played_date' => $playedDate,
+            ':is_won'      => $isWon ? 1 : 0,
+            ':win_date'    => $winDate,
+        ]);
+
+        return $this->getById((int)$existing['id']) ?? [];
+    }
 }
