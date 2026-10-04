@@ -147,6 +147,34 @@ $router->get('/consoles-portal', function () {
 $router->get('/consoles_portal', function () {
     Response::redirect('/consoles-portal');
 });
+$router->get('/console-portal', function () {
+    Response::redirect('/consoles-portal');
+});
+$router->get('/console_portal', function () {
+    Response::redirect('/consoles-portal');
+});
+
+// Consoles Portal API Routes
+$router->get('/api/consoles-portal/console/{id}', function (array $req) {
+    $id = (int)($req['params']['id'] ?? 0);
+    $repo = new \Vault\Repositories\ConsoleRepository();
+    $data = $repo->getConsolePortalDetail($id);
+    if ($data === null) {
+        Response::json(['error' => 'Console not found'], 404);
+        return;
+    }
+    Response::json($data);
+});
+$router->get('/api/console-portal/console/{id}', function (array $req) {
+    $id = (int)($req['params']['id'] ?? 0);
+    $repo = new \Vault\Repositories\ConsoleRepository();
+    $data = $repo->getConsolePortalDetail($id);
+    if ($data === null) {
+        Response::json(['error' => 'Console not found'], 404);
+        return;
+    }
+    Response::json($data);
+});
 
 $router->get('/publishers-portal', function () {
     $view = file_exists(__DIR__ . '/src/Views/publishers_portal.php')

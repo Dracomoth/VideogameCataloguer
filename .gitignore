@@ -9,9 +9,10 @@ Thumbs.db
 # Uploaded runtime media (keep directory structure, ignore user files)
 images/games/*
 images/consoles/*
+images/publishers/*
 !images/games/.gitkeep
 !images/consoles/.gitkeep
-!images/support/
+!images/publishers/.gitkeep
 
 # Scratch files
 scratch/*

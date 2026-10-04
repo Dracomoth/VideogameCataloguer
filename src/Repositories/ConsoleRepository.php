@@ -792,4 +792,57 @@ final class ConsoleRepository
 
         return $row;
     }
+
+    /**
+     * Retrieves random games for a specific console.
+     *
+     * @param int $consoleId
+     * @param int $limit
+     * @return array<int, array<string, mixed>>
+     */
+    public function getRandomGamesByConsole(int $consoleId, int $limit = 15): array
+    {
+        $limit = max(1, (int)$limit);
+        $sql = "
+            SELECT 
+                g.id,
+                g.title,
+                g.boxart_path,
+                g.screenshot_path,
+                g.year,
+                c.name AS console_name,
+                p.name AS publisher_name
+            FROM `games` g
+            LEFT JOIN `consoles` c ON c.id = g.console_id
+            LEFT JOIN `publishers` p ON p.id = g.publisher_id
+            WHERE g.console_id = :console_id
+            ORDER BY RAND()
+            LIMIT {$limit}
+        ";
+
+        return Database::fetchAll($sql, [':console_id' => $consoleId]);
+    }
+
+    /**
+     * Retrieves full console portal detail (console metadata, downloadable files, 15 random games).
+     *
+     * @param int $consoleId
+     * @return array<string, mixed>|null
+     */
+    public function getConsolePortalDetail(int $consoleId): ?array
+    {
+        $console = $this->getById($consoleId);
+        if (!$console) {
+            return null;
+        }
+
+        $randomGames = $this->getRandomGamesByConsole($consoleId, 15);
+
+        return [
+            'console'      => $console,
+            'files'        => $console['downloadable_files'] ?? [],
+            'random_games' => $randomGames,
+        ];
+    }
 }
+

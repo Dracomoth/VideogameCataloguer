@@ -528,22 +528,65 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 .pub-detail-header-card {
   background: var(--panel, #151d30);
   border: 1px solid var(--border, #243049);
-  border-radius: var(--radius-lg, 10px);
+  border-radius: var(--radius-lg, 12px);
   padding: 24px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
 }
+
+/* Title Above Everything & Aligned to Left + Badge */
+.pub-detail-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.pub-detail-name {
+  font-size: 21px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  margin: 0;
+  text-align: left;
+}
+.badge-console-maker-lg {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  text-transform: none;
+  letter-spacing: normal;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+}
+
+/* Main Info: Left Boxed Logo + Right Listed Details (No boxes, aligned next to logo) */
 .pub-detail-main-info {
   display: flex;
   align-items: flex-start;
-  gap: 24px;
+  gap: 32px;
   width: 100%;
 }
+@media (max-width: 768px) {
+  .pub-detail-main-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+}
 .pub-detail-logo-box {
-  width: 140px;
-  height: 140px;
-  min-width: 140px;
+  width: 160px;
+  height: 120px;
+  min-width: 160px;
   background: var(--surface-alt, #0c121e);
   border: 1px solid var(--border, #243049);
   border-radius: var(--radius-lg, 10px);
@@ -559,78 +602,76 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }
-.pub-detail-summary {
+
+/* Right: The details, listed - NO BOXES, aligned directly next to logo */
+.pub-detail-specs-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  flex: 1 1 auto;
+  justify-content: flex-start;
+  gap: 14px;
+  flex: 0 1 auto;
+  padding: 2px 0 0 0;
 }
-.pub-detail-title-row {
+.pub-detail-spec-row {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.pub-detail-name {
-  font-size: 26px;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: -0.02em;
-  margin: 0;
-}
-.badge-console-maker-lg {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.35);
-  font-size: 12px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 9999px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
-}
-.pub-detail-stats-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
   gap: 16px;
-  margin-top: 2px;
+  padding: 0;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
-.pub-stat-chip {
-  background: var(--surface-alt, #0c121e);
-  border: 1px solid var(--border, #243049);
-  border-radius: var(--radius-md, 6px);
-  padding: 6px 14px;
-  font-size: 13px;
-  color: var(--text-main, #f8fafc);
+.pub-detail-spec-row .spec-label {
+  font-size: 13.5px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text-dim, #94a3b8);
+  min-width: 175px;
+  flex-shrink: 0;
+}
+.pub-detail-spec-row .spec-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: #f1f5f9;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
-.pub-stat-chip strong {
-  font-size: 15px;
-  font-weight: 700;
+.pub-games-link {
   color: #38bdf8;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+  transition: color var(--transition-fast);
 }
+.pub-games-link:hover {
+  color: #7dd3fc;
+  text-decoration: underline;
+}
+
+/* Separator & Justified Comments / History */
 .pub-detail-separator {
   height: 1px;
   background: var(--border, #243049);
-  margin: 20px 0 16px;
+  margin: 22px 0 16px;
   width: 100%;
 }
-.pub-detail-history {
+.pub-detail-comments-block {
+  width: 100%;
+}
+.pub-detail-comments-text {
   font-size: 14px;
-  line-height: 1.65;
+  line-height: 1.75;
   color: #cbd5e1;
+  text-align: justify;
   white-space: pre-line;
   margin: 0;
-  padding: 0;
-  background: transparent;
-  border: none;
-  border-radius: 0;
 }
 
 /* 6. Dual Grids Section */
@@ -858,8 +899,8 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   }
   .pub-detail-main-info {
     flex-direction: column;
-    align-items: center;
-    text-align: center;
+    align-items: flex-start;
+    text-align: left;
     gap: 16px;
   }
   .pub-detail-logo-box {
@@ -1016,36 +1057,56 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   <section id="portalDetailContainer" class="pub-detail-view" style="display: none;" aria-label="Publisher Details">
     <!-- Top Publisher Info Card -->
     <div class="pub-detail-header-card">
+      <!-- Title Row: Above everything, aligned to the left + Badge -->
+      <div class="pub-detail-title-row">
+        <h1 class="pub-detail-name" id="detailPublisherName">Publisher Name</h1>
+        <span class="badge-console-maker-lg" id="detailConsoleMakerBadge" style="display: none;">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
+            <path d="M4 11a1 1 0 011-1h1v-1a1 1 0 112 0v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1H5a1 1 0 01-1-1zm10.5-2a1 1 0 100-2 1 1 0 000 2zm1 3a1 1 0 100-2 1 1 0 000 2zm-2 1a1 1 0 100-2 1 1 0 000 2z"/>
+          </svg>
+          <span>Console Maker</span>
+        </span>
+      </div>
+
+      <!-- Main Info Row: Left Logo Box + Right Listed Details (No boxes, aligned next to logo) -->
       <div class="pub-detail-main-info">
+        <!-- Left: Logo Boxed Section -->
         <div class="pub-detail-logo-box" id="detailLogoBox">
           <!-- Rendered dynamically -->
         </div>
-        <div class="pub-detail-summary">
-          <div class="pub-detail-title-row">
-            <h2 class="pub-detail-name" id="detailPublisherName">Publisher Name</h2>
-            <span class="badge-console-maker-lg" id="detailConsoleMakerBadge" style="display: none;">
-              <span>🎮</span>
-              <span>Console Maker</span>
+
+        <!-- Right: The details, listed (No boxes, aligned directly next to logo) -->
+        <div class="pub-detail-specs-list">
+          <div class="pub-detail-spec-row">
+            <span class="spec-label">Publisher Role</span>
+            <span class="spec-value" id="detailRoleValue">Software Publisher</span>
+          </div>
+          <div class="pub-detail-spec-row">
+            <span class="spec-label">Published Games</span>
+            <span class="spec-value">
+              <a href="#" class="pub-games-link" id="detailGamesBadgeLink" title="View all games from this publisher">
+                <span id="detailGamesCount">0 Games</span>
+                <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
+                  <path fill-rule="evenodd" d="M5.22 14.78a.75.75 0 001.06 0l7.22-7.22v5.69a.75.75 0 001.5 0v-7.5a.75.75 0 00-.75-.75h-7.5a.75.75 0 000 1.5h5.69l-7.22 7.22a.75.75 0 000 1.06z" clip-rule="evenodd"/>
+                </svg>
+              </a>
             </span>
           </div>
-
-          <div class="pub-detail-stats-row">
-            <div class="pub-stat-chip">
-              <span>🎮</span>
-              <span>Published Games:</span>
-              <strong id="detailGamesCount">0</strong>
-            </div>
-            <div class="pub-stat-chip" id="detailConsolesChip" style="display: none;">
-              <span>🕹️</span>
-              <span>Consoles Released:</span>
-              <strong id="detailConsolesCount">0</strong>
-            </div>
+          <div class="pub-detail-spec-row" id="detailConsolesRow" style="display: none;">
+            <span class="spec-label">Consoles Released</span>
+            <span class="spec-value">
+              <span id="detailConsolesCount" style="color: #38bdf8; font-weight: 500;">0</span>
+              <span id="detailConsolesText" style="color: #cbd5e1; font-weight: 500; margin-left: 4px;">Platforms</span>
+            </span>
           </div>
         </div>
       </div>
 
+      <!-- Separator & Description with Justified Text -->
       <div class="pub-detail-separator" id="detailDescSeparator" style="display: none;"></div>
-      <div class="pub-detail-history" id="detailDescriptionBox" style="display: none;"></div>
+      <div class="pub-detail-comments-block" id="detailNotesSection" style="display: none;">
+        <p class="pub-detail-comments-text" id="detailDescriptionBox"></p>
+      </div>
     </div>
 
     <!-- Dual Grids: Consoles Released & 9 Random Games -->
@@ -1069,8 +1130,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         <div class="pub-section-header">
           <div class="pub-section-title">
             <span>🎲</span>
-            <span>Games Showcase</span>
-            <span style="font-size: 12px; color: var(--text-muted); font-weight: 400;">(9 Random Titles)</span>
+            <span>Games Showcase</span>            
           </div>
           <a href="#" class="btn-view-all-games" id="viewAllGamesBtn">
             <span>View All Games</span>
@@ -1137,9 +1197,12 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const detailLogoBox = document.getElementById('detailLogoBox');
   const detailPublisherName = document.getElementById('detailPublisherName');
   const detailConsoleMakerBadge = document.getElementById('detailConsoleMakerBadge');
+  const detailRoleValue = document.getElementById('detailRoleValue');
   const detailGamesCount = document.getElementById('detailGamesCount');
-  const detailConsolesChip = document.getElementById('detailConsolesChip');
+  const detailGamesBadgeLink = document.getElementById('detailGamesBadgeLink');
+  const detailConsolesRow = document.getElementById('detailConsolesRow');
   const detailConsolesCount = document.getElementById('detailConsolesCount');
+  const detailNotesSection = document.getElementById('detailNotesSection');
   const detailDescriptionBox = document.getElementById('detailDescriptionBox');
   const detailDescSeparator = document.getElementById('detailDescSeparator');
   const pubGridsContainer = document.getElementById('pubGridsContainer');
@@ -1557,33 +1620,40 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 
     const isMaker = Number(publisher.is_console_maker) === 1;
     if (isMaker) {
-      detailConsoleMakerBadge.style.display = 'inline-flex';
-      detailConsolesChip.style.display = 'inline-flex';
+      if (detailConsoleMakerBadge) detailConsoleMakerBadge.style.display = 'inline-flex';
+      if (detailConsolesRow) detailConsolesRow.style.display = 'flex';
+      if (detailRoleValue) detailRoleValue.textContent = 'Hardware Manufacturer & Publisher';
     } else {
-      detailConsoleMakerBadge.style.display = 'none';
-      detailConsolesChip.style.display = 'none';
+      if (detailConsoleMakerBadge) detailConsoleMakerBadge.style.display = 'none';
+      if (detailConsolesRow) detailConsolesRow.style.display = 'none';
+      if (detailRoleValue) detailRoleValue.textContent = 'Software Publisher';
     }
 
     const gamesCount = Number(publisher.games_count ?? publisher.game_count ?? 0);
     const consolesCount = Number(publisher.consoles_count ?? publisher.console_count ?? 0);
-    detailGamesCount.textContent = String(gamesCount);
-    detailConsolesCount.textContent = String(consolesCount);
+    if (detailGamesCount) {
+      detailGamesCount.textContent = `${gamesCount} ${gamesCount === 1 ? 'Game' : 'Games'}`;
+    }
+    if (detailConsolesCount) {
+      detailConsolesCount.textContent = String(consolesCount);
+    }
+
+    const gamesCatalogUrl = `/games-portal?publisher_id=${publisher.id}&publisher=${encodeURIComponent(publisher.name)}&mode=list`;
+    if (detailGamesBadgeLink) {
+      detailGamesBadgeLink.href = gamesCatalogUrl;
+    }
 
     if (publisher.description && publisher.description.trim() !== '') {
       detailDescriptionBox.textContent = publisher.description.trim();
-      detailDescriptionBox.style.display = 'block';
-      if (detailDescSeparator) {
-        detailDescSeparator.style.display = 'block';
-      }
+      if (detailNotesSection) detailNotesSection.style.display = 'block';
+      if (detailDescSeparator) detailDescSeparator.style.display = 'block';
     } else {
-      detailDescriptionBox.style.display = 'none';
       detailDescriptionBox.textContent = '';
-      if (detailDescSeparator) {
-        detailDescSeparator.style.display = 'none';
-      }
+      if (detailNotesSection) detailNotesSection.style.display = 'none';
+      if (detailDescSeparator) detailDescSeparator.style.display = 'none';
     }
 
-    viewAllGamesBtn.href = `/games-portal?publisher_id=${publisher.id}&publisher=${encodeURIComponent(publisher.name)}&mode=list`;
+    viewAllGamesBtn.href = gamesCatalogUrl;
     viewAllCountLabel.textContent = `(${gamesCount})`;
   }
 
