@@ -22,7 +22,7 @@ $active = $navActive ?? ($activeNav ?? 'dashboard');
 $currentUser = Auth::user();
 
 // Evaluates whether the current user has read/navigation access to a screen
-$canView = function (string $screen): bool {
+$canView = $canView ?? function (string $screen): bool {
     if (Auth::check()) {
         return Auth::can($screen, 'read');
     }
@@ -30,15 +30,19 @@ $canView = function (string $screen): bool {
     return true;
 };
 
-// 1. Group 1: Operational Overview
-$canDashboard = $canView('dashboard');
-$canPlayerHub = $canView('collection');
-$hasGroup1    = $canDashboard || $canPlayerHub;
+// 1. Group 1: Operational Overview & Portals
+$canDashboard        = $canView('dashboard');
+$canPlayerHub        = $canView('collection');
+$canGamesPortal      = $canView('games_portal');
+$canConsolesPortal   = $canView('consoles_portal');
+$canPublishersPortal = $canView('publishers_portal');
+$hasGroup1           = $canDashboard || $canPlayerHub || $canGamesPortal || $canConsolesPortal || $canPublishersPortal;
 
-// 2. Group 2: Core Catalog & Metadata
+// 2. Group 2: Catalog & Metadata
 $canGames         = $canView('games');
 $canConsoles      = $canView('consoles');
 $canPublishers    = $canView('publishers');
+$hasCatalog       = $canGames || $canConsoles || $canPublishers;
 
 $canConsoleTypes  = $canView('console_types');
 $canCategories    = $canView('categories');
@@ -46,7 +50,7 @@ $canSubcategories = $canView('subcategories');
 $canLanguages     = $canView('languages');
 $hasMetadata      = $canConsoleTypes || $canCategories || $canSubcategories || $canLanguages;
 
-$hasGroup2        = $canGames || $canConsoles || $canPublishers || $hasMetadata;
+$hasGroup2        = $hasCatalog || $hasMetadata;
 
 // 3. Group 3: Tools & Administration
 $canReports       = $canView('reports');
@@ -64,6 +68,7 @@ $showSep1 = $hasGroup1 && ($hasGroup2 || $hasGroup3);
 $showSep2 = $hasGroup2 && $hasGroup3;
 
 // Active group states for collapsible menus
+$isCatalogActive  = in_array($active, ['games', 'consoles', 'publishers'], true);
 $isMetadataActive = in_array($active, ['console_types', 'categories', 'subcategories', 'languages'], true);
 $isToolsActive    = in_array($active, ['reports', 'bulk_upload'], true);
 $isAdminActive    = in_array($active, ['users', 'roles'], true);
@@ -106,31 +111,65 @@ $isAdminActive    = in_array($active, ['users', 'roles'], true);
         </a>
       <?php endif; ?>
 
-      <!-- Separator 1 -->
-      <?php if ($showSep1): ?>
-        <div class="sidebar-separator"></div>
-      <?php endif; ?>
-
-      <!-- 2. Core Catalog -->
-      <?php if ($canGames): ?>
-        <a href="/games" class="sidebar-link <?= $active === 'games' ? 'active' : '' ?>" onclick="closeSidebar()">
+      <?php if ($canGamesPortal): ?>
+        <a href="/games-portal" class="sidebar-link <?= in_array($active, ['games_portal', 'games-portal'], true) ? 'active' : '' ?>" onclick="closeSidebar()">
           <span class="sidebar-icon">🕹️</span>
           <span class="sidebar-label">Games</span>
         </a>
       <?php endif; ?>
 
-      <?php if ($canConsoles): ?>
-        <a href="/consoles" class="sidebar-link <?= $active === 'consoles' ? 'active' : '' ?>" onclick="closeSidebar()">
+      <?php if ($canConsolesPortal): ?>
+        <a href="/consoles-portal" class="sidebar-link <?= in_array($active, ['consoles_portal', 'consoles-portal'], true) ? 'active' : '' ?>" onclick="closeSidebar()">
           <span class="sidebar-icon">💻</span>
           <span class="sidebar-label">Consoles</span>
         </a>
       <?php endif; ?>
 
-      <?php if ($canPublishers): ?>
-        <a href="/publishers" class="sidebar-link <?= $active === 'publishers' ? 'active' : '' ?>" onclick="closeSidebar()">
+      <?php if ($canPublishersPortal): ?>
+        <a href="/publishers-portal" class="sidebar-link <?= in_array($active, ['publishers_portal', 'publishers-portal'], true) ? 'active' : '' ?>" onclick="closeSidebar()">
           <span class="sidebar-icon">🏷️</span>
           <span class="sidebar-label">Publishers</span>
         </a>
+      <?php endif; ?>
+
+      <!-- Separator 1 -->
+      <?php if ($showSep1): ?>
+        <div class="sidebar-separator"></div>
+      <?php endif; ?>
+
+      <!-- 2. Catalog (Collapsible) -->
+      <?php if ($hasCatalog): ?>
+        <div class="sidebar-group <?= $isCatalogActive ? 'expanded' : '' ?>" id="group-catalog">
+          <button type="button" class="sidebar-group-header" onclick="toggleSidebarGroup('group-catalog')" aria-expanded="<?= $isCatalogActive ? 'true' : 'false' ?>">
+            <span class="group-header-label">
+              <span class="sidebar-icon">📚</span>
+              <span class="group-title">Catalog</span>
+            </span>
+            <span class="group-chevron">▾</span>
+          </button>
+          <div class="sidebar-sub-items">
+            <?php if ($canGames): ?>
+              <a href="/games" class="sidebar-sub-link <?= $active === 'games' ? 'active' : '' ?>" onclick="closeSidebar()">
+                <span class="sub-bullet">•</span>
+                <span>Games</span>
+              </a>
+            <?php endif; ?>
+
+            <?php if ($canConsoles): ?>
+              <a href="/consoles" class="sidebar-sub-link <?= $active === 'consoles' ? 'active' : '' ?>" onclick="closeSidebar()">
+                <span class="sub-bullet">•</span>
+                <span>Consoles</span>
+              </a>
+            <?php endif; ?>
+
+            <?php if ($canPublishers): ?>
+              <a href="/publishers" class="sidebar-sub-link <?= $active === 'publishers' ? 'active' : '' ?>" onclick="closeSidebar()">
+                <span class="sub-bullet">•</span>
+                <span>Publishers</span>
+              </a>
+            <?php endif; ?>
+          </div>
+        </div>
       <?php endif; ?>
 
       <!-- Metadata (Collapsible) -->

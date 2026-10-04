@@ -10,6 +10,7 @@ namespace Vault\Controllers;
 
 use Vault\Auth\Auth;
 use Vault\Repositories\PublisherRepository;
+use Vault\Services\GeminiService;
 use Vault\Services\Response;
 use Vault\Services\View;
 use Throwable;
@@ -86,11 +87,14 @@ final class PublisherController
         Auth::requireAccess('publishers', 'write');
 
         $body           = $request['body'] ?? [];
+        $files          = $request['files'] ?? [];
         $name           = (string)($body['name'] ?? ($body['publisher'] ?? ''));
         $isConsoleMaker = !empty($body['is_console_maker']) && in_array($body['is_console_maker'], [1, '1', true, 'true', 'on'], true);
+        $description    = isset($body['description']) ? (string)$body['description'] : null;
+        $logoFile       = $files['logo_file'] ?? null;
 
         try {
-            $newId = $this->repo->create($name, $isConsoleMaker);
+            $newId = $this->repo->create($name, $isConsoleMaker, $description, $logoFile);
             $msg = "Publisher '{$name}' created successfully.";
 
             if ($this->wantsJson($request)) {
@@ -122,12 +126,16 @@ final class PublisherController
         Auth::requireAccess('publishers', 'write');
 
         $body           = $request['body'] ?? [];
+        $files          = $request['files'] ?? [];
         $id             = (int)($request['params']['id'] ?? ($body['id'] ?? 0));
         $name           = (string)($body['name'] ?? ($body['publisher'] ?? ''));
         $isConsoleMaker = !empty($body['is_console_maker']) && in_array($body['is_console_maker'], [1, '1', true, 'true', 'on'], true);
+        $description    = isset($body['description']) ? (string)$body['description'] : null;
+        $logoFile       = $files['logo_file'] ?? null;
+        $removeLogo     = !empty($body['remove_logo']) && in_array($body['remove_logo'], [1, '1', true, 'true', 'on'], true);
 
         try {
-            $this->repo->update($id, $name, $isConsoleMaker);
+            $this->repo->update($id, $name, $isConsoleMaker, $description, $logoFile, $removeLogo);
             $msg = "Publisher updated successfully.";
 
             if ($this->wantsJson($request)) {
@@ -145,6 +153,43 @@ final class PublisherController
             }
             $_SESSION['flash_error'] = $e->getMessage();
             Response::redirect('/publishers');
+        }
+    }
+
+    /**
+     * Calls Gemini AI to generate a company description and brief history for a publisher.
+     *
+     * @param array<string, mixed> $request
+     * @return never
+     */
+    public function autofillDescription(array $request): void
+    {
+        Auth::requireAccess('publishers', 'write');
+
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(120);
+        }
+        @ini_set('max_execution_time', '120');
+
+        $body = $request['body'] ?? [];
+        $name = trim((string)($body['name'] ?? ($body['publisher'] ?? '')));
+
+        if ($name === '') {
+            Response::error('Publisher name is required to generate description.', 422);
+        }
+
+        $isConsoleMaker = !empty($body['is_console_maker']) && in_array($body['is_console_maker'], [1, '1', true, 'true', 'on'], true);
+
+        try {
+            $gemini = new GeminiService();
+            $description = $gemini->generatePublisherDescription($name, $isConsoleMaker);
+
+            Response::json([
+                'description' => $description,
+                'model_used'  => $gemini->getLastUsedModel(),
+            ]);
+        } catch (Throwable $e) {
+            Response::error($e->getMessage(), 422);
         }
     }
 

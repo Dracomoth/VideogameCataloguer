@@ -124,6 +124,40 @@ $router->get('/api/player-hub/pick', [PlayerHubController::class, 'apiPick']);
 $router->get('/api/player-hub/games', [PlayerHubController::class, 'apiList']);
 $router->get('/api/player-hub/game/{id}', [PlayerHubController::class, 'apiGetGame']);
 
+// Portal Routes (Games Portal, Consoles Portal, Publishers Portal)
+$router->get('/games-portal', function () {
+    if (file_exists(__DIR__ . '/src/Views/games_portal.php')) {
+        View::render('games_portal', ['navActive' => 'games_portal', 'activeNav' => 'games_portal']);
+        return;
+    }
+    Response::redirect('/collection');
+});
+$router->get('/games_portal', function () {
+    Response::redirect('/games-portal');
+});
+
+$router->get('/consoles-portal', function () {
+    if (file_exists(__DIR__ . '/src/Views/consoles_portal.php')) {
+        View::render('consoles_portal', ['navActive' => 'consoles_portal', 'activeNav' => 'consoles_portal']);
+        return;
+    }
+    Response::redirect('/collection');
+});
+$router->get('/consoles_portal', function () {
+    Response::redirect('/consoles-portal');
+});
+
+$router->get('/publishers-portal', function () {
+    if (file_exists(__DIR__ . '/src/Views/publishers_portal.php')) {
+        View::render('publishers_portal', ['navActive' => 'publishers_portal', 'activeNav' => 'publishers_portal']);
+        return;
+    }
+    Response::redirect('/collection');
+});
+$router->get('/publishers_portal', function () {
+    Response::redirect('/publishers-portal');
+});
+
 // User Management Routes
 $router->get('/users', [UserController::class, 'index']);
 $router->post('/users', [UserController::class, 'store']);
@@ -161,6 +195,8 @@ $router->delete('/categories/{id}', [CategoryController::class, 'delete']);
 // Taxonomy: Publishers & Hardware Manufacturers Routes
 $router->get('/publishers', [PublisherController::class, 'index']);
 $router->get('/api/publishers', [PublisherController::class, 'apiList']);
+$router->post('/api/publishers/autofill-description', [PublisherController::class, 'autofillDescription']);
+$router->post('/publishers/autofill-description', [PublisherController::class, 'autofillDescription']);
 $router->post('/publishers', [PublisherController::class, 'create']);
 $router->post('/publishers/create', [PublisherController::class, 'create']);
 $router->post('/publishers/{id}/update', [PublisherController::class, 'update']);

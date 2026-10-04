@@ -129,6 +129,114 @@ if (!defined('APP_INIT')) {
   border-radius: var(--radius-sm);
   padding: 2px 7px;
 }
+
+/* Visual Asset Dropzone Cards */
+.media-card {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dropzone-box {
+  min-height: 110px;
+  height: 110px;
+  border: 2px dashed rgba(148, 163, 184, 0.2);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 12, 22, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.dropzone-box:hover {
+  border-color: var(--border-focus);
+  background: rgba(56, 189, 248, 0.04);
+}
+.dropzone-box.drag-over {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+}
+.dropzone-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.dropzone-empty span {
+  font-size: 26px;
+  opacity: 0.8;
+}
+.dropzone-empty strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.dropzone-empty small {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.dropzone-preview-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+  margin: auto;
+}
+.media-actions {
+  display: flex;
+  gap: 6px;
+}
+.media-actions .btn {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 11px;
+}
+
+/* AI Auto-Fill Sparkle Button */
+.btn-ai-autofill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #c084fc;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(56, 189, 248, 0.15) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+.btn-ai-autofill:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.28) 0%, rgba(56, 189, 248, 0.28) 100%);
+  border-color: #c084fc;
+  color: #f3e8ff;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+  transform: translateY(-1px);
+}
+.btn-ai-autofill:active:not(:disabled) {
+  transform: translateY(0);
+}
+.btn-ai-autofill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.ai-sparkle-icon {
+  font-size: 12px;
+  line-height: 1;
+  filter: drop-shadow(0 0 2px rgba(168, 85, 247, 0.6));
+}
 </style>
 
 <div class="workspace">
@@ -170,6 +278,89 @@ if (!defined('APP_INIT')) {
             🕹️ Console / Hardware Maker
           </span>
         </label>
+      </div>
+
+      <!-- Description / History -->
+      <div class="form-group" style="margin-top: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label for="publisherDescription" style="margin: 0; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.04em;">
+            Description / History
+          </label>
+          <?php if ($canWrite): ?>
+          <button 
+            type="button" 
+            id="aiAutoFillBtn" 
+            class="btn-ai-autofill" 
+            title="Auto-fill company description and history with Gemini AI"
+            onclick="autofillPublisherHistory()"
+          >
+            <span class="ai-sparkle-icon">✨</span> AI Auto-Fill
+          </button>
+          <?php endif; ?>
+        </div>
+        <textarea 
+          id="publisherDescription" 
+          name="description" 
+          class="form-control" 
+          rows="5" 
+          placeholder="Origins, history, landmark franchises, and company background..."
+          <?= !$canWrite ? 'disabled' : '' ?>
+        ></textarea>
+      </div>
+
+      <!-- Publisher Logo -->
+      <div class="form-group" style="margin-top: 14px;">
+        <label style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.04em; margin-bottom: 6px; display: block;">
+          Publisher Logo
+        </label>
+        <div class="media-card">
+          <input 
+            type="file" 
+            id="logoFileInput" 
+            name="logo_file" 
+            accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml" 
+            style="display: none;" 
+            onchange="handleLogoSelect(this)"
+            <?= !$canWrite ? 'disabled' : '' ?>
+          >
+          <input type="hidden" id="removeLogo" name="remove_logo" value="0">
+
+          <div 
+            class="dropzone-box" 
+            id="logoDropzone" 
+            onclick="triggerBrowse('logoFileInput')"
+            title="Click or drag & drop to upload publisher logo"
+          >
+            <div id="logoPreviewContainer" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+              <div class="dropzone-empty">
+                <span>🏢</span>
+                <strong>Upload Logo</strong>
+                <small>&lt;ID&gt;_logo.ext</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="media-actions">
+            <button 
+              type="button" 
+              class="btn" 
+              onclick="triggerBrowse('logoFileInput')"
+              <?= !$canWrite ? 'disabled' : '' ?>
+            >
+              📂 Browse...
+            </button>
+            <button 
+              type="button" 
+              id="deleteLogoBtn" 
+              class="btn danger" 
+              onclick="removeLogoAsset()" 
+              disabled
+              <?= !$canWrite ? 'disabled' : '' ?>
+            >
+              🗑️ Remove
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="editor-actions">
@@ -325,6 +516,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Setup drag & drop on logo dropzone
+  setupLogoDropzone();
+
   // Display initial server flash messages if present
   <?php if (!empty($flashMessage)): ?>
     showToast(<?= json_encode($flashMessage) ?>, 'success');
@@ -345,8 +539,15 @@ function selectPublisher(id) {
   document.getElementById('publisherId').value = String(record.id);
   document.getElementById('publisherName').value = record.name || '';
   document.getElementById('isConsoleMaker').checked = Number(record.is_console_maker) === 1;
+  document.getElementById('publisherDescription').value = record.description || '';
   document.getElementById('formModeTitle').textContent = 'EDIT PUBLISHER';
   document.getElementById('activeIdBadge').textContent = `#${record.id}`;
+
+  // Configure logo dropzone preview
+  setLogoPreview(record.logo_path);
+  const logoInput = document.getElementById('logoFileInput');
+  if (logoInput) logoInput.value = '';
+  document.getElementById('removeLogo').value = '0';
 
   const deleteBtn = document.getElementById('deleteBtn');
   if (deleteBtn) {
@@ -395,8 +596,14 @@ function resetForm() {
   document.getElementById('publisherId').value = '';
   document.getElementById('publisherName').value = '';
   document.getElementById('isConsoleMaker').checked = false;
+  document.getElementById('publisherDescription').value = '';
   document.getElementById('formModeTitle').textContent = 'NEW PUBLISHER';
   document.getElementById('activeIdBadge').textContent = '(Auto ID)';
+
+  resetLogoPreview();
+  const logoInput = document.getElementById('logoFileInput');
+  if (logoInput) logoInput.value = '';
+  document.getElementById('removeLogo').value = '0';
 
   const deleteBtn = document.getElementById('deleteBtn');
   if (deleteBtn) {
@@ -445,6 +652,7 @@ async function handleSave(e) {
   const id = document.getElementById('publisherId').value;
   const name = document.getElementById('publisherName').value.trim();
   const isConsoleMaker = document.getElementById('isConsoleMaker').checked;
+  const description = document.getElementById('publisherDescription').value.trim();
   const saveBtn = document.getElementById('saveBtn');
 
   if (!name) return;
@@ -456,17 +664,30 @@ async function handleSave(e) {
     const isUpdate = Boolean(id);
     const url = isUpdate ? `/publishers/${id}/update` : '/publishers/create';
 
+    const formData = new FormData();
+    if (isUpdate) {
+      formData.append('id', id);
+    }
+    formData.append('name', name);
+    formData.append('is_console_maker', isConsoleMaker ? '1' : '0');
+    formData.append('description', description);
+
+    const logoInput = document.getElementById('logoFileInput');
+    if (logoInput && logoInput.files && logoInput.files[0]) {
+      formData.append('logo_file', logoInput.files[0]);
+    }
+
+    const removeLogoVal = document.getElementById('removeLogo').value;
+    if (removeLogoVal === '1') {
+      formData.append('remove_logo', '1');
+    }
+
     const res = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({
-        id: isUpdate ? parseInt(id, 10) : null,
-        name: name,
-        is_console_maker: isConsoleMaker ? 1 : 0
-      })
+      body: formData
     });
 
     const result = await res.json();
@@ -599,5 +820,194 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+/**
+ * Auto-fills Description / History using Gemini AI
+ */
+async function autofillPublisherHistory() {
+  if (!canWrite) return;
+
+  const nameInput = document.getElementById('publisherName');
+  const name = nameInput ? nameInput.value.trim() : '';
+
+  if (!name) {
+    showToast('Please enter a Publisher Name first before auto-filling history.', 'error');
+    if (nameInput) nameInput.focus();
+    return;
+  }
+
+  const btn = document.getElementById('aiAutoFillBtn');
+  const descArea = document.getElementById('publisherDescription');
+  const isConsoleMaker = document.getElementById('isConsoleMaker') ? document.getElementById('isConsoleMaker').checked : false;
+
+  let origBtnHtml = '';
+  if (btn) {
+    origBtnHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="ai-sparkle-icon">⏳</span> Auto-filling...';
+  }
+
+  try {
+    const res = await fetch('/api/publishers/autofill-description', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        name: name,
+        is_console_maker: isConsoleMaker ? 1 : 0
+      })
+    });
+
+    const rawText = await res.text();
+    let json;
+    try {
+      json = JSON.parse(rawText);
+    } catch (e) {
+      console.error('Non-JSON response from AI service:', rawText);
+      const cleanErr = rawText.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      throw new Error(cleanErr || 'Server returned an invalid or non-JSON response.');
+    }
+
+    if (!res.ok || json.success === false) {
+      throw new Error(json.error || (json.data && json.data.error) || 'Failed to auto-fill publisher description.');
+    }
+
+    const respData = json.data || json;
+    const description = respData.description || '';
+
+    if (!description) {
+      throw new Error('No description returned from Gemini API.');
+    }
+
+    if (descArea) {
+      if (descArea.value.trim() !== '') {
+        descArea.value = descArea.value.trim() + "\n\n" + description;
+      } else {
+        descArea.value = description;
+      }
+      descArea.focus();
+      const modelInfo = respData.model_used ? ` (via ${escapeHtml(respData.model_used)})` : '';
+      showToast('Description / History filled by Gemini AI' + modelInfo + '.', 'success');
+    }
+  } catch (err) {
+    console.error('AI Auto-Fill Error:', err);
+    showToast(err.message || 'Error generating publisher description.', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origBtnHtml;
+    }
+  }
+}
+
+/**
+ * Sets logo dropzone preview with cache-busting
+ */
+function setLogoPreview(logoPath) {
+  const container = document.getElementById('logoPreviewContainer');
+  const deleteBtn = document.getElementById('deleteLogoBtn');
+  if (!container) return;
+
+  if (logoPath && logoPath.trim() !== '') {
+    const cleanPath = '/' + logoPath.replace(/^\/+/, '');
+    const cacheBuster = (cleanPath.includes('?') ? '&' : '?') + '_t=' + Date.now();
+    const displayUrl = cleanPath + cacheBuster;
+    container.innerHTML = `<img src="${escapeHtml(displayUrl)}" class="dropzone-preview-img" alt="Publisher Logo" onerror="this.parentElement.innerHTML='<div class=\\'dropzone-empty\\'><span>⚠️</span><small>Image not found</small></div>';">`;
+    if (deleteBtn && canWrite) deleteBtn.disabled = false;
+  } else {
+    resetLogoPreview();
+  }
+}
+
+/**
+ * Resets logo dropzone to empty state
+ */
+function resetLogoPreview() {
+  const container = document.getElementById('logoPreviewContainer');
+  const deleteBtn = document.getElementById('deleteLogoBtn');
+  if (container) {
+    container.innerHTML = `
+      <div class="dropzone-empty">
+        <span>🏢</span>
+        <strong>Upload Logo</strong>
+        <small>&lt;ID&gt;_logo.ext</small>
+      </div>
+    `;
+  }
+  if (deleteBtn) {
+    deleteBtn.disabled = true;
+  }
+}
+
+/**
+ * Triggers hidden file input
+ */
+function triggerBrowse(inputId) {
+  if (!canWrite) return;
+  const input = document.getElementById(inputId);
+  if (input) input.click();
+}
+
+/**
+ * Handles logo selection from input
+ */
+function handleLogoSelect(input) {
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    const previewUrl = URL.createObjectURL(file);
+    const container = document.getElementById('logoPreviewContainer');
+    const deleteBtn = document.getElementById('deleteLogoBtn');
+
+    if (container) {
+      container.innerHTML = `<img src="${previewUrl}" class="dropzone-preview-img" alt="Logo Preview">`;
+    }
+    if (deleteBtn) {
+      deleteBtn.disabled = false;
+    }
+    document.getElementById('removeLogo').value = '0';
+  }
+}
+
+/**
+ * Removes the publisher logo
+ */
+function removeLogoAsset() {
+  if (!canWrite) return;
+  const fileInput = document.getElementById('logoFileInput');
+  if (fileInput) fileInput.value = '';
+  document.getElementById('removeLogo').value = '1';
+  resetLogoPreview();
+}
+
+/**
+ * Configures drag & drop for logo dropzone
+ */
+function setupLogoDropzone() {
+  const box = document.getElementById('logoDropzone');
+  const input = document.getElementById('logoFileInput');
+  if (!box || !input) return;
+
+  box.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    if (canWrite) box.classList.add('drag-over');
+  });
+
+  box.addEventListener('dragleave', () => {
+    box.classList.remove('drag-over');
+  });
+
+  box.addEventListener('drop', (e) => {
+    e.preventDefault();
+    box.classList.remove('drag-over');
+    if (!canWrite) return;
+
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      input.files = e.dataTransfer.files;
+      handleLogoSelect(input);
+    }
+  });
 }
 </script>

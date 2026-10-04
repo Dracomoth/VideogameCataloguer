@@ -103,6 +103,46 @@ final class GeminiService
     }
 
     /**
+     * Generates a company description and brief history for a video game publisher.
+     *
+     * @param string $name Publisher name
+     * @param bool $isConsoleMaker Whether the publisher is also a console manufacturer
+     * @return string Generated narrative description and brief history
+     * @throws RuntimeException If API key is missing or API request fails
+     */
+    public function generatePublisherDescription(string $name, bool $isConsoleMaker = false): string
+    {
+        $name = trim($name);
+        if ($name === '') {
+            throw new InvalidArgumentException('Publisher name is required to generate description and history.');
+        }
+
+        $promptParts = [
+            "You are a video game industry historian and preservation specialist.",
+            "Write a concise description and brief history for the video game publisher/company: " . $name . ".",
+        ];
+
+        if ($isConsoleMaker) {
+            $promptParts[] = "Note: This company is also known as a video game console / hardware manufacturer.";
+        }
+
+        $promptParts[] = "";
+        $promptParts[] = "Instructions:";
+        $promptParts[] = "- Provide 2 to 3 well-written, engaging paragraphs covering:";
+        $promptParts[] = "  1. A small description of the company, its origins/founding, headquarters, and major identity in gaming.";
+        $promptParts[] = "  2. A brief history highlighting key eras, landmark franchises, notable consoles (if applicable), and major contributions to the video game industry.";
+        $promptParts[] = "  3. Its current status or lasting legacy.";
+        $promptParts[] = "- STRICT FORMAT RULE: Do NOT include any markdown headings (no '#', '##', or '###'), bullet points, asterisks lists, or meta-commentary like 'Here is a description'.";
+        $promptParts[] = "- Output ONLY the clean narrative text with standard paragraphs separated by empty lines.";
+
+        $prompt = implode("\n", $promptParts);
+
+        $raw = $this->generateContent($prompt);
+
+        return $this->cleanParagraphs($raw);
+    }
+
+    /**
      * Generates relevant taxonomy tags and a concise 1-3 paragraph description for a video game.
      *
      * @param array<string, mixed> $gameData Game metadata (title, console, category, subcategory, publisher, year)

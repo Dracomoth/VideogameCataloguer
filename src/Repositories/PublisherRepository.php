@@ -19,6 +19,16 @@ if (!defined('APP_INIT')) {
 
 final class PublisherRepository
 {
+    private string $publishersImageDir;
+
+    public function __construct()
+    {
+        $this->publishersImageDir = dirname(__DIR__, 2) . '/images/publishers';
+        if (!is_dir($this->publishersImageDir)) {
+            @mkdir($this->publishersImageDir, 0775, true);
+        }
+    }
+
     /**
      * Retrieves all publishers along with console maker status, linked consoles, and game counts.
      *
@@ -31,6 +41,8 @@ final class PublisherRepository
                 p.id,
                 p.name,
                 p.is_console_maker,
+                p.description,
+                p.logo_path,
                 COUNT(DISTINCT c.id) AS consoles_count,
                 COUNT(DISTINCT c.id) AS console_count,
                 COUNT(DISTINCT g.id) AS games_count,
@@ -49,6 +61,8 @@ final class PublisherRepository
             $raw = (string)($row['consoles_raw'] ?? '');
             $row['consoles'] = $raw !== '' ? explode('||', $raw) : [];
             $row['is_console_maker'] = (int)($row['is_console_maker'] ?? 0);
+            $row['description'] = $row['description'] !== null ? (string)$row['description'] : '';
+            $row['logo_path'] = ($row['logo_path'] !== null && $row['logo_path'] !== '') ? (string)$row['logo_path'] : null;
             unset($row['consoles_raw']);
             return $row;
         }, $rows);
@@ -84,6 +98,8 @@ final class PublisherRepository
                 p.id,
                 p.name,
                 p.is_console_maker,
+                p.description,
+                p.logo_path,
                 COUNT(DISTINCT c.id) AS consoles_count,
                 COUNT(DISTINCT c.id) AS console_count,
                 COUNT(DISTINCT g.id) AS games_count,
@@ -104,6 +120,8 @@ final class PublisherRepository
         $raw = (string)($row['consoles_raw'] ?? '');
         $row['consoles'] = $raw !== '' ? explode('||', $raw) : [];
         $row['is_console_maker'] = (int)($row['is_console_maker'] ?? 0);
+        $row['description'] = $row['description'] !== null ? (string)$row['description'] : '';
+        $row['logo_path'] = ($row['logo_path'] !== null && $row['logo_path'] !== '') ? (string)$row['logo_path'] : null;
         unset($row['consoles_raw']);
 
         return $row;
@@ -157,14 +175,113 @@ final class PublisherRepository
     }
 
     /**
+     * Stores an uploaded logo file for a publisher using the naming pattern "{id}_logo.{ext}".
+     *
+     * @param array<string, mixed> $file PHP $_FILES entry
+     * @param int $publisherId
+     * @return string Relative path stored in database (e.g. "images/publishers/12_logo.png")
+     * @throws InvalidArgumentException
+     * @throws RuntimeException
+     */
+    public function storeLogoFile(array $file, int $publisherId): string
+    {
+        if (empty($file['tmp_name']) || (!is_uploaded_file($file['tmp_name']) && !file_exists($file['tmp_name']))) {
+            throw new InvalidArgumentException("No valid uploaded file found for publisher logo.");
+        }
+
+        if (isset($file['error']) && $file['error'] !== UPLOAD_ERR_OK) {
+            throw new RuntimeException("Upload failed for publisher logo with error code {$file['error']}.");
+        }
+
+        $allowedMimes = [
+            'image/jpeg'    => 'jpg',
+            'image/png'     => 'png',
+            'image/webp'    => 'webp',
+            'image/gif'     => 'gif',
+            'image/svg+xml' => 'svg',
+        ];
+
+        $ext = null;
+        if (class_exists('finfo')) {
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->file($file['tmp_name']);
+            if (isset($allowedMimes[$mime])) {
+                $ext = $allowedMimes[$mime];
+            }
+        }
+
+        if ($ext === null) {
+            $origExt = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
+            if (in_array($origExt, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'], true)) {
+                $ext = ($origExt === 'jpeg') ? 'jpg' : $origExt;
+            }
+        }
+
+        if ($ext === null) {
+            throw new InvalidArgumentException("Invalid file format for logo. Allowed formats: JPG, PNG, WEBP, GIF, SVG.");
+        }
+
+        $filename = "{$publisherId}_logo.{$ext}";
+        $destination = $this->publishersImageDir . '/' . $filename;
+
+        // Purge any prior logo files for this publisher ID regardless of extension
+        $this->deleteLogoFileOnly($publisherId);
+
+        $saved = is_uploaded_file($file['tmp_name'])
+            ? move_uploaded_file($file['tmp_name'], $destination)
+            : copy($file['tmp_name'], $destination);
+
+        if (!$saved) {
+            throw new RuntimeException("Failed to save publisher logo asset to disk.");
+        }
+
+        @chmod($destination, 0664);
+
+        return "images/publishers/{$filename}";
+    }
+
+    /**
+     * Purges physical logo file(s) for a publisher from disk.
+     *
+     * @param int $publisherId
+     */
+    public function deleteLogoFileOnly(int $publisherId): void
+    {
+        $pattern = $this->publishersImageDir . '/' . $publisherId . '_logo.*';
+        $files = glob($pattern);
+        if (is_array($files)) {
+            foreach ($files as $f) {
+                if (is_file($f)) {
+                    @unlink($f);
+                    clearstatcache(true, $f);
+                }
+            }
+        }
+    }
+
+    /**
+     * Removes the logo for a publisher (both physical file and database field).
+     *
+     * @param int $publisherId
+     */
+    public function removeLogo(int $publisherId): void
+    {
+        $this->deleteLogoFileOnly($publisherId);
+        $sql = "UPDATE `publishers` SET `logo_path` = NULL WHERE `id` = :id";
+        Database::execute($sql, [':id' => $publisherId]);
+    }
+
+    /**
      * Creates a new publisher entry.
      *
      * @param string $name
      * @param bool $isConsoleMaker
+     * @param string|null $description
+     * @param array<string, mixed>|null $logoFile
      * @return int Inserted record ID
      * @throws InvalidArgumentException
      */
-    public function create(string $name, bool $isConsoleMaker = false): int
+    public function create(string $name, bool $isConsoleMaker = false, ?string $description = null, ?array $logoFile = null): int
     {
         $cleanName = trim($name);
 
@@ -180,13 +297,29 @@ final class PublisherRepository
             throw new InvalidArgumentException("A publisher named '{$cleanName}' already exists.");
         }
 
-        $sql = "INSERT INTO `publishers` (`name`, `is_console_maker`) VALUES (:name, :is_console_maker)";
+        $cleanDesc = $description !== null ? trim($description) : null;
+        if ($cleanDesc === '') {
+            $cleanDesc = null;
+        }
+
+        $sql = "INSERT INTO `publishers` (`name`, `is_console_maker`, `description`, `logo_path`) VALUES (:name, :is_console_maker, :description, NULL)";
         Database::execute($sql, [
             ':name'             => $cleanName,
             ':is_console_maker' => $isConsoleMaker ? 1 : 0,
+            ':description'      => $cleanDesc,
         ]);
 
-        return (int)Database::lastInsertId();
+        $newId = (int)Database::lastInsertId();
+
+        if ($logoFile !== null && !empty($logoFile['tmp_name'])) {
+            $logoPath = $this->storeLogoFile($logoFile, $newId);
+            Database::execute("UPDATE `publishers` SET `logo_path` = :logo_path WHERE `id` = :id", [
+                ':logo_path' => $logoPath,
+                ':id'        => $newId,
+            ]);
+        }
+
+        return $newId;
     }
 
     /**
@@ -195,11 +328,14 @@ final class PublisherRepository
      * @param int $id
      * @param string $name
      * @param bool $isConsoleMaker
+     * @param string|null $description
+     * @param array<string, mixed>|null $logoFile
+     * @param bool $removeLogo
      * @return bool
      * @throws InvalidArgumentException
      * @throws RuntimeException
      */
-    public function update(int $id, string $name, bool $isConsoleMaker = false): bool
+    public function update(int $id, string $name, bool $isConsoleMaker = false, ?string $description = null, ?array $logoFile = null, bool $removeLogo = false): bool
     {
         $cleanName = trim($name);
 
@@ -219,10 +355,29 @@ final class PublisherRepository
             throw new InvalidArgumentException("Another publisher named '{$cleanName}' already exists.");
         }
 
-        $sql = "UPDATE `publishers` SET `name` = :name, `is_console_maker` = :is_console_maker WHERE `id` = :id";
+        $cleanDesc = $description !== null ? trim($description) : null;
+        if ($cleanDesc === '') {
+            $cleanDesc = null;
+        }
+
+        $existing = $this->getById($id);
+        $currentLogoPath = $existing['logo_path'] ?? null;
+
+        if ($removeLogo) {
+            $this->deleteLogoFileOnly($id);
+            $currentLogoPath = null;
+        }
+
+        if ($logoFile !== null && !empty($logoFile['tmp_name'])) {
+            $currentLogoPath = $this->storeLogoFile($logoFile, $id);
+        }
+
+        $sql = "UPDATE `publishers` SET `name` = :name, `is_console_maker` = :is_console_maker, `description` = :description, `logo_path` = :logo_path WHERE `id` = :id";
         $affected = Database::execute($sql, [
             ':name'             => $cleanName,
             ':is_console_maker' => $isConsoleMaker ? 1 : 0,
+            ':description'      => $cleanDesc,
+            ':logo_path'        => $currentLogoPath,
             ':id'               => $id,
         ]);
 
@@ -252,6 +407,8 @@ final class PublisherRepository
         if ($gamesCount > 0) {
             throw new RuntimeException("Cannot delete this publisher because it is assigned to {$gamesCount} game(s). Please reassign those games before deleting.");
         }
+
+        $this->deleteLogoFileOnly($id);
 
         $sql = "DELETE FROM `publishers` WHERE `id` = :id";
         $affected = Database::execute($sql, [':id' => $id]);
