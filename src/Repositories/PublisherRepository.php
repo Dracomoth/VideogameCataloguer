@@ -415,4 +415,84 @@ final class PublisherRepository
 
         return $affected > 0;
     }
+
+    /**
+     * Retrieves all consoles released by a publisher.
+     *
+     * @param int $publisherId
+     * @return array<int, array<string, mixed>>
+     */
+    public function getConsolesByPublisher(int $publisherId): array
+    {
+        $sql = "
+            SELECT 
+                c.id,
+                c.name,
+                c.image_path,
+                c.logo_path,
+                c.year,
+                c.generation,
+                ct.name AS console_type_name
+            FROM `consoles` c
+            LEFT JOIN `console_types` ct ON ct.id = c.console_type_id
+            WHERE c.publisher_id = :publisher_id
+            ORDER BY c.year ASC, c.name ASC
+        ";
+
+        return Database::fetchAll($sql, [':publisher_id' => $publisherId]);
+    }
+
+    /**
+     * Retrieves random games released by a publisher.
+     *
+     * @param int $publisherId
+     * @param int $limit
+     * @return array<int, array<string, mixed>>
+     */
+    public function getRandomGamesByPublisher(int $publisherId, int $limit = 9): array
+    {
+        $limit = max(1, (int)$limit);
+        $sql = "
+            SELECT 
+                g.id,
+                g.title,
+                g.boxart_path,
+                g.screenshot_path,
+                g.year,
+                c.name AS console_name
+            FROM `games` g
+            LEFT JOIN `consoles` c ON c.id = g.console_id
+            WHERE g.publisher_id = :publisher_id
+            ORDER BY RAND()
+            LIMIT {$limit}
+        ";
+
+        return Database::fetchAll($sql, [':publisher_id' => $publisherId]);
+    }
+
+    /**
+     * Retrieves full publisher portal details (metadata, consoles, random games).
+     *
+     * @param int $publisherId
+     * @return array<string, mixed>|null
+     */
+    public function getPublisherPortalDetail(int $publisherId): ?array
+    {
+        $publisher = $this->getById($publisherId);
+        if (!$publisher) {
+            return null;
+        }
+
+        $consoles = (int)$publisher['is_console_maker'] === 1
+            ? $this->getConsolesByPublisher($publisherId)
+            : [];
+        $randomGames = $this->getRandomGamesByPublisher($publisherId, 9);
+
+        return [
+            'publisher'    => $publisher,
+            'consoles'     => $consoles,
+            'random_games' => $randomGames,
+        ];
+    }
 }
+

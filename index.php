@@ -66,6 +66,7 @@ use Vault\Controllers\UserController;
 use Vault\Services\Database;
 use Vault\Services\Response;
 use Vault\Services\Router;
+use Vault\Services\View;
 
 // 5. Parse Request Context
 $requestUri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
@@ -127,7 +128,7 @@ $router->get('/api/player-hub/game/{id}', [PlayerHubController::class, 'apiGetGa
 // Portal Routes (Games Portal, Consoles Portal, Publishers Portal)
 $router->get('/games-portal', function () {
     if (file_exists(__DIR__ . '/src/Views/games_portal.php')) {
-        View::render('games_portal', ['navActive' => 'games_portal', 'activeNav' => 'games_portal']);
+        Response::html(View::render('games_portal', ['navActive' => 'games_portal', 'activeNav' => 'games_portal']));
         return;
     }
     Response::redirect('/collection');
@@ -138,7 +139,7 @@ $router->get('/games_portal', function () {
 
 $router->get('/consoles-portal', function () {
     if (file_exists(__DIR__ . '/src/Views/consoles_portal.php')) {
-        View::render('consoles_portal', ['navActive' => 'consoles_portal', 'activeNav' => 'consoles_portal']);
+        Response::html(View::render('consoles_portal', ['navActive' => 'consoles_portal', 'activeNav' => 'consoles_portal']));
         return;
     }
     Response::redirect('/collection');
@@ -148,14 +149,46 @@ $router->get('/consoles_portal', function () {
 });
 
 $router->get('/publishers-portal', function () {
-    if (file_exists(__DIR__ . '/src/Views/publishers_portal.php')) {
-        View::render('publishers_portal', ['navActive' => 'publishers_portal', 'activeNav' => 'publishers_portal']);
+    $view = file_exists(__DIR__ . '/src/Views/publishers_portal.php')
+        ? 'publishers_portal'
+        : (file_exists(__DIR__ . '/src/Views/publisher_portal.php') ? 'publisher_portal' : null);
+
+    if ($view !== null) {
+        Response::html(View::render($view, ['navActive' => 'publishers_portal', 'activeNav' => 'publishers_portal']));
         return;
     }
     Response::redirect('/collection');
 });
 $router->get('/publishers_portal', function () {
     Response::redirect('/publishers-portal');
+});
+$router->get('/publisher-portal', function () {
+    Response::redirect('/publishers-portal');
+});
+$router->get('/publisher_portal', function () {
+    Response::redirect('/publishers-portal');
+});
+
+// Publishers Portal API Routes
+$router->get('/api/publishers-portal/publisher/{id}', function (array $req) {
+    $id = (int)($req['params']['id'] ?? 0);
+    $repo = new \Vault\Repositories\PublisherRepository();
+    $data = $repo->getPublisherPortalDetail($id);
+    if ($data === null) {
+        Response::json(['error' => 'Publisher not found'], 404);
+        return;
+    }
+    Response::json($data);
+});
+$router->get('/api/publisher-portal/publisher/{id}', function (array $req) {
+    $id = (int)($req['params']['id'] ?? 0);
+    $repo = new \Vault\Repositories\PublisherRepository();
+    $data = $repo->getPublisherPortalDetail($id);
+    if ($data === null) {
+        Response::json(['error' => 'Publisher not found'], 404);
+        return;
+    }
+    Response::json($data);
 });
 
 // User Management Routes
