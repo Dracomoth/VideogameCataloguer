@@ -195,53 +195,63 @@ final class ReportRepository
                         ORDER BY g.title ASC";
 
                 $data = Database::fetchAll($sql);
-                $headers = ['id', 'title', 'missing'];
+                $headers = ['id', 'title', 'status', 'missing'];
                 $rows = [];
 
                 foreach ($data as $d) {
-                    $missing = [];
+                    $missingBasic = [];
+                    $missingSecondary = [];
 
                     if ($d['title'] === null || trim((string)$d['title']) === '') {
-                        $missing[] = 'Title';
+                        $missingBasic[] = 'Title';
                     }
                     if ($d['year'] === null || trim((string)$d['year']) === '') {
-                        $missing[] = 'Release Year';
+                        $missingBasic[] = 'Release Year';
                     }
                     if (empty($d['console_id']) || (int)$d['console_id'] <= 0) {
-                        $missing[] = 'Console';
+                        $missingBasic[] = 'Console';
                     }
                     if (empty($d['publisher_id']) || (int)$d['publisher_id'] <= 0) {
-                        $missing[] = 'Publisher';
+                        $missingBasic[] = 'Publisher';
                     }
                     if (empty($d['category_id']) || (int)$d['category_id'] <= 0) {
-                        $missing[] = 'Category';
+                        $missingBasic[] = 'Category';
                     }
                     if (empty($d['subcategory_id']) || (int)$d['subcategory_id'] <= 0) {
-                        $missing[] = 'Subcategory';
+                        $missingBasic[] = 'Subcategory';
                     }
                     if (empty($d['language_id']) || (int)$d['language_id'] <= 0) {
-                        $missing[] = 'Language';
+                        $missingBasic[] = 'Language';
                     }
                     if ((int)($d['in_collection'] ?? 0) === 1 && (int)($d['downloads_count'] ?? 0) <= 0) {
-                        $missing[] = 'Download File';
+                        $missingBasic[] = 'Download File';
                     }
+
                     if ($d['boxart_path'] === null || trim((string)$d['boxart_path']) === '') {
-                        $missing[] = 'BoxArt';
+                        $missingSecondary[] = 'BoxArt';
                     }
                     if ($d['screenshot_path'] === null || trim((string)$d['screenshot_path']) === '') {
-                        $missing[] = 'Screenshot';
+                        $missingSecondary[] = 'Screenshot';
                     }
                     if ($d['tags'] === null || trim((string)$d['tags']) === '') {
-                        $missing[] = 'Tags';
+                        $missingSecondary[] = 'Tags';
                     }
                     if ($d['comments'] === null || trim((string)$d['comments']) === '') {
-                        $missing[] = 'Comments';
+                        $missingSecondary[] = 'Comments';
                     }
+
+                    $allMissing = array_merge($missingBasic, $missingSecondary);
+                    if (empty($allMissing)) {
+                        continue;
+                    }
+
+                    $status = !empty($missingBasic) ? 'Critically Incomplete' : 'Incomplete';
 
                     $rows[] = [
                         (int)$d['id'],
                         (string)($d['title'] ?? ''),
-                        implode(', ', $missing),
+                        $status,
+                        implode(', ', $allMissing),
                     ];
                 }
 
