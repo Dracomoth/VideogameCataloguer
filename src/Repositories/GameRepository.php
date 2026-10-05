@@ -643,7 +643,7 @@ final class GameRepository
 
         $inCollection = ((int)($row['in_collection'] ?? 0)) === 1;
         $files        = $row['downloadable_files'] ?? [];
-        $hasDownload  = !$inCollection || !empty($files) || !empty($row['has_download_files']) || !empty($row['download_file_id']) || !empty($row['download_count']);
+        $hasDownload  = !$inCollection || !empty($files) || !empty($row['has_download_files']) || !empty($row['download_file_id']) || !empty($row['download_count']) || !empty($row['downloads_count']);
 
         $hasScreenshot = !empty(trim((string)($row['screenshot_path'] ?? '')));
         $hasBoxart     = !empty(trim((string)($row['boxart_path'] ?? '')));
@@ -724,7 +724,8 @@ final class GameRepository
                 COALESCE(pg.download_count, 0) AS download_count,
                 pg.last_download_date,
                 COALESCE(pg.is_played, 0) AS is_played,
-                COALESCE(pg.is_won, 0) AS is_won
+                COALESCE(pg.is_won, 0) AS is_won,
+                (SELECT COUNT(*) FROM downloadable_files df WHERE df.game_id = g.id) AS downloads_count
             FROM `games` g
             LEFT JOIN `consoles` c ON c.id = g.console_id
             LEFT JOIN `categories` cat ON cat.id = g.category_id

@@ -2620,23 +2620,45 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   }
 
   /**
-   * Computes or retrieves game collection badge info (text and color)
+   * Computes game collection badge info (text and color) for games_portal.
+   * Criteria:
+   *   - Green: Complete only if ALL fields (including basic fields, both images, tags, comments) are filled.
+   *   - Amber: Incomplete if basic fields (name, platform, maker, year, category, subcategory, publisher, language) are filled, but any of the rest (images, tags, comments) is incomplete.
+   *   - Red: Critically incomplete if any basic field (name, platform, maker, year, category, subcategory, publisher, language) is missing, and/or if marked as in collection but no download file is provided.
    */
   function getGameBadgeInfo(game) {
-    const isBacklog = Number(game.in_collection) === 1;
-    const text = game.collection_badge_text || (isBacklog ? 'BACKLOG' : 'PENDING');
+    if (!game) return { text: 'PENDING', color: 'red' };
 
-    let color = game.collection_badge_color;
-    if (!color) {
-      const hasMain = game.title && game.year && Number(game.console_id) > 0 && Number(game.publisher_id) > 0 && Number(game.category_id) > 0 && Number(game.subcategory_id) > 0;
-      const hasSecondary = Boolean(game.screenshot_path && game.boxart_path && game.tags && game.comments);
-      if (!hasMain) {
-        color = 'red';
-      } else if (!hasSecondary) {
-        color = 'amber';
-      } else {
-        color = 'green';
-      }
+    const isBacklog = Number(game.in_collection) === 1;
+    const text = isBacklog ? 'BACKLOG' : 'PENDING';
+
+    const title = (game.title || game.game || '').toString().trim();
+    const year = (game.year !== null && game.year !== undefined) ? String(game.year).trim() : '';
+    const consoleId = game.console_id ? parseInt(String(game.console_id), 10) : 0;
+    const pubId = game.publisher_id ? parseInt(String(game.publisher_id), 10) : 0;
+    const catId = game.category_id ? parseInt(String(game.category_id), 10) : 0;
+    const subId = game.subcategory_id ? parseInt(String(game.subcategory_id), 10) : 0;
+    const langId = game.language_id ? parseInt(String(game.language_id), 10) : 0;
+
+    const hasBasic = title !== '' && year !== '' && consoleId > 0 && pubId > 0 && catId > 0 && subId > 0 && langId > 0;
+
+    const downloadableFiles = Array.isArray(game.downloadable_files) ? game.downloadable_files : [];
+    const hasDownload = !isBacklog || downloadableFiles.length > 0 || Number(game.has_download_files) === 1 || Number(game.download_file_id) > 0 || Number(game.download_count) > 0 || Number(game.downloads_count) > 0 || Number(game.global_download_count) > 0;
+
+    const hasScreenshot = Boolean((game.screenshot_path || game.screenshot_url || '').toString().trim());
+    const hasBoxart = Boolean((game.boxart_path || game.boxart_url || '').toString().trim());
+    const hasTags = Boolean((game.tags || '').toString().trim());
+    const hasComments = Boolean((game.comments || '').toString().trim());
+
+    const hasSecondary = hasScreenshot && hasBoxart && hasTags && hasComments;
+
+    let color = 'green';
+    if (!hasBasic || !hasDownload) {
+      color = 'red';
+    } else if (!hasSecondary) {
+      color = 'amber';
+    } else {
+      color = 'green';
     }
 
     return { text, color };
