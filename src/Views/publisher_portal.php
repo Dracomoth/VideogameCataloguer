@@ -1414,26 +1414,10 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   }
 
   /**
-   * Helper: Generates SVG placeholder data URL for missing logos
+   * Helper: Generates fallback image URL for missing logos
    */
   function getLogoFallbackSvg(name) {
-    const initials = (name || 'PB')
-      .split(/\s+/)
-      .map(w => w[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
-
-    const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%">
-        <rect width="120" height="120" rx="10" fill="#0f172a"/>
-        <circle cx="60" cy="60" r="44" fill="#1e293b" stroke="#334155" stroke-width="2"/>
-        <text x="60" y="67" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="28" font-weight="700" fill="#38bdf8" text-anchor="middle" dominant-baseline="middle">${initials}</text>
-      </svg>
-    `.trim();
-
-    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    return '/images/support/no_logo.jpg';
   }
 
   /**
