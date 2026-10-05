@@ -52,6 +52,7 @@ class DataGrid extends HTMLElement {
 
     // Unique component ID for element scoping
     this._uid = 'vg_' + Math.random().toString(36).substring(2, 9);
+    this._eventsBound = false;
   }
 
   static get observedAttributes() {
@@ -544,11 +545,13 @@ class DataGrid extends HTMLElement {
   // =========================================================================
 
   _bindEvents() {
-    // 1. Search input (debounced)
-    const searchInput = this.querySelector('.vault-grid-search-input');
-    if (searchInput) {
-      let debounceTimer = null;
-      searchInput.addEventListener('input', (e) => {
+    if (this._eventsBound) return;
+    this._eventsBound = true;
+
+    // 1. Search input (debounced) via delegation on host element
+    let debounceTimer = null;
+    this.addEventListener('input', (e) => {
+      if (e.target && e.target.classList.contains('vault-grid-search-input')) {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
           this._searchQuery = e.target.value;
@@ -559,10 +562,10 @@ class DataGrid extends HTMLElement {
             detail: { search: this._searchQuery, filters: this._activeFilters }
           }));
         }, 180);
-      });
-    }
+      }
+    });
 
-    // 2. Custom dropdown filters
+    // 2. Custom dropdown filters & Page size selector via delegation
     this.addEventListener('change', (e) => {
       if (e.target && e.target.classList.contains('vault-grid-select-filter')) {
         const key = e.target.getAttribute('data-filter-key');
@@ -575,41 +578,33 @@ class DataGrid extends HTMLElement {
             detail: { search: this._searchQuery, filters: this._activeFilters }
           }));
         }
+      } else if (e.target && e.target.classList.contains('vault-grid-select-size')) {
+        this.pageSize = parseInt(e.target.value, 10);
       }
     });
 
-    // 3. Page size selector
-    const sizeSelect = this.querySelector('.vault-grid-select-size');
-    if (sizeSelect) {
-      sizeSelect.addEventListener('change', (e) => {
-        this.pageSize = parseInt(e.target.value, 10);
-      });
-    }
-
-    // 4. Header sorting click delegation
-    const thead = this.querySelector('thead');
-    if (thead) {
-      thead.addEventListener('click', (e) => {
-        const th = e.target.closest('th.vault-grid-th-sortable');
-        if (!th) return;
-        const colKey = th.getAttribute('data-col-key');
-        if (!colKey) return;
-
-        if (this._sortColumn === colKey) {
-          this._sortDirection = this._sortDirection === 'asc' ? 'desc' : 'asc';
-        } else {
-          this._sortColumn = colKey;
-          this._sortDirection = 'asc';
-        }
-
-        // Re-render header to update arrows
-        thead.innerHTML = this._renderTableHeader();
-        this._applyDataPipeline();
-      });
-    }
-
-    // 5. Pagination button clicks delegation
+    // 3. Click delegation (Header sorting, Pagination buttons, Jump Go button, Action buttons, Row clicks)
     this.addEventListener('click', (e) => {
+      // Header sorting click delegation
+      const th = e.target.closest('th.vault-grid-th-sortable');
+      if (th) {
+        const colKey = th.getAttribute('data-col-key');
+        if (colKey) {
+          if (this._sortColumn === colKey) {
+            this._sortDirection = this._sortDirection === 'asc' ? 'desc' : 'asc';
+          } else {
+            this._sortColumn = colKey;
+            this._sortDirection = 'asc';
+          }
+          const thead = this.querySelector('thead');
+          if (thead) {
+            thead.innerHTML = this._renderTableHeader();
+          }
+          this._applyDataPipeline();
+        }
+        return;
+      }
+
       // First
       if (e.target.closest('.btn-first')) {
         this.goToPage(1);
@@ -664,7 +659,7 @@ class DataGrid extends HTMLElement {
       }
     });
 
-    // 6. Enter key in Jump input
+    // 4. Enter key in Jump input
     this.addEventListener('keydown', (e) => {
       if (e.target && e.target.classList.contains('vault-grid-jump-input') && e.key === 'Enter') {
         e.preventDefault();
