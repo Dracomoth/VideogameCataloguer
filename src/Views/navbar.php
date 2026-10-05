@@ -33,9 +33,9 @@ $canView = $canView ?? function (string $screen): bool {
 // 1. Group 1: Operational Overview & Portals
 $canDashboard        = $canView('dashboard');
 $canPlayerHub        = $canView('collection');
-$canGamesPortal      = $canView('games_portal') || $canView('games') || $canView('collection');
-$canConsolesPortal   = $canView('consoles_portal') || $canView('consoles') || $canView('collection');
-$canPublishersPortal = $canView('publishers_portal') || $canView('publishers') || $canView('collection');
+$canGamesPortal      = $canView('games_portal');
+$canConsolesPortal   = $canView('consoles_portal');
+$canPublishersPortal = $canView('publishers_portal');
 $hasGroup1           = $canDashboard || $canPlayerHub || $canGamesPortal || $canConsolesPortal || $canPublishersPortal;
 
 // 2. Group 2: Catalog & Metadata

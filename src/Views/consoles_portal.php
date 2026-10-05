@@ -24,6 +24,10 @@ if (!defined('APP_INIT')) {
     exit('Direct access not permitted.');
 }
 
+$canAccessGames      = \Vault\Auth\Auth::canRead('games_portal');
+$canAccessPublishers = \Vault\Auth\Auth::canRead('publishers_portal');
+$canWriteConsoles    = \Vault\Auth\Auth::canWrite('consoles_portal');
+
 // 1. Ensure repository data is available self-contained even if View::render was called without data
 if (!isset($consoles) || !is_array($consoles)) {
     $repo = new ConsoleRepository();
@@ -766,6 +770,16 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   color: #7dd3fc;
   text-decoration: underline;
 }
+.con-games-link.no-link {
+  color: var(--text-primary, #f1f5f9) !important;
+  text-decoration: none !important;
+  cursor: default !important;
+  pointer-events: none !important;
+}
+.con-games-link.no-link:hover {
+  color: var(--text-primary, #f1f5f9) !important;
+  text-decoration: none !important;
+}
 
 /* Justified Comments / Specs under base info */
 .con-detail-comments-block {
@@ -1044,6 +1058,16 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   background: rgba(30, 41, 59, 0.7);
   transform: translateY(-3px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 12px rgba(56, 189, 248, 0.2);
+}
+.con-game-card.no-link {
+  cursor: default !important;
+  pointer-events: none !important;
+}
+.con-game-card.no-link:hover {
+  border-color: rgba(51, 65, 85, 0.5) !important;
+  background: rgba(11, 15, 25, 0.6) !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 .con-game-thumb-slot {
   width: 100%;
@@ -1516,6 +1540,9 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const INITIAL_DETAIL = <?= $safeInitialDetailJson ?: 'null' ?>;
   const INITIAL_CON_ID = <?= (int)($initialConId ?? 0) ?>;
   const INITIAL_LETTER = <?= json_encode($initialLet ?? '') ?>;
+  const CAN_ACCESS_GAMES      = <?= json_encode($canAccessGames) ?>;
+  const CAN_ACCESS_PUBLISHERS = <?= json_encode($canAccessPublishers) ?>;
+  const CAN_WRITE_CONSOLES    = <?= json_encode($canWriteConsoles) ?>;
 
   // Runtime State
   let currentMode = 'list'; // 'list' | 'detail'
@@ -2057,7 +2084,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     // Maker (Clickable, redirects to publishers_portal on detail mode with maker selected)
     const makerName = con.maker_name || '';
     const publisherId = con.publisher_id ? Number(con.publisher_id) : 0;
-    if (publisherId > 0 && makerName) {
+    if (publisherId > 0 && makerName && CAN_ACCESS_PUBLISHERS) {
       detailMakerValue.innerHTML = `
         <a href="/publishers-portal?id=${publisherId}&mode=detail" class="con-maker-link" title="View ${escapeHtml(makerName)} in Publishers Portal">
           <span>${escapeHtml(makerName)}</span>
@@ -2095,12 +2122,32 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 
     const gamesCatalogUrl = `/games-portal?console_id=${con.id}&console=${encodeURIComponent(con.name)}&mode=list`;
     if (detailGamesBadgeLink) {
-      detailGamesBadgeLink.href = gamesCatalogUrl;
+      const badgeArrow = detailGamesBadgeLink.querySelector('svg');
+      if (CAN_ACCESS_GAMES) {
+        detailGamesBadgeLink.href = gamesCatalogUrl;
+        detailGamesBadgeLink.classList.remove('no-link');
+        detailGamesBadgeLink.removeAttribute('tabindex');
+        detailGamesBadgeLink.style.pointerEvents = 'auto';
+        detailGamesBadgeLink.style.cursor = 'pointer';
+        if (badgeArrow) badgeArrow.style.display = 'inline-block';
+      } else {
+        detailGamesBadgeLink.removeAttribute('href');
+        detailGamesBadgeLink.classList.add('no-link');
+        detailGamesBadgeLink.setAttribute('tabindex', '-1');
+        detailGamesBadgeLink.style.pointerEvents = 'none';
+        detailGamesBadgeLink.style.cursor = 'default';
+        if (badgeArrow) badgeArrow.style.display = 'none';
+      }
     }
 
     // "View All Games" Button Link in Games Showcase
     if (conViewAllGamesBtn) {
-      conViewAllGamesBtn.href = gamesCatalogUrl;
+      if (CAN_ACCESS_GAMES) {
+        conViewAllGamesBtn.style.display = 'inline-flex';
+        conViewAllGamesBtn.href = gamesCatalogUrl;
+      } else {
+        conViewAllGamesBtn.style.display = 'none';
+      }
     }
     if (conViewAllCountLabel) {
       conViewAllCountLabel.textContent = `(${gamesCount})`;
@@ -2140,7 +2187,13 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     }
 
     // 2. BIOS & Downloadable Files (Compact List / Table View immediately below Hero)
-    if (files.length > 0) {
+    if (!CAN_WRITE_CONSOLES) {
+      detailDownloadsSubsection.style.display = 'none';
+      detailFilesList.innerHTML = '';
+      if (detailFilesCountBadge) {
+        detailFilesCountBadge.textContent = '0 files';
+      }
+    } else if (files.length > 0) {
       detailDownloadsSubsection.style.display = 'flex';
       if (detailFilesCountBadge) {
         detailFilesCountBadge.textContent = `${files.length} ${files.length === 1 ? 'file' : 'files'}`;
@@ -2360,10 +2413,12 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         const artPath = game.boxart_path || game.screenshot_path;
         const imgUrl = formatImageUrl(artPath, fallback);
 
-        const card = document.createElement('a');
-        card.className = 'con-game-card';
-        card.href = `/games-portal?id=${game.id}&mode=detail`;
-        card.title = `View ${game.title} on Games Portal`;
+        const card = document.createElement(CAN_ACCESS_GAMES ? 'a' : 'div');
+        card.className = 'con-game-card' + (CAN_ACCESS_GAMES ? '' : ' no-link');
+        if (CAN_ACCESS_GAMES) {
+          card.href = `/games-portal?id=${game.id}&mode=detail`;
+          card.title = `View ${game.title} on Games Portal`;
+        }
 
         card.innerHTML = `
           <div class="con-game-thumb-slot">

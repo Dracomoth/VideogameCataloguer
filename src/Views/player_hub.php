@@ -29,6 +29,7 @@ if (!defined('APP_INIT')) {
 $platforms = $taxonomies['platforms'] ?? [];
 $categories = $taxonomies['categories'] ?? [];
 $subcategories = $taxonomies['subcategories'] ?? [];
+$canWriteCollection = \Vault\Auth\Auth::canWrite('collection');
 ?>
 
 <style>
@@ -1309,7 +1310,7 @@ $subcategories = $taxonomies['subcategories'] ?? [];
             <?php endif; ?>
 
             <div class="picked-download-row" id="cardDownloadRow">
-              <?php if ($downloadFileId): ?>
+              <?php if ($canWriteCollection && $downloadFileId): ?>
                 <a href="/download/<?= (int)$downloadFileId ?>" target="_blank" class="btn-hub-download" id="cardDownloadBtn" title="Download ROM">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -1377,6 +1378,7 @@ $subcategories = $taxonomies['subcategories'] ?? [];
  * Master Subcategories Data for dynamic category cascade
  */
 const ALL_SUBCATEGORIES = <?= json_encode($subcategories, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+const CAN_WRITE_COLLECTION = <?= json_encode($canWriteCollection) ?>;
 
 // State management
 let searchDebounceTimer = null;
@@ -1679,7 +1681,7 @@ function renderGameCard(game) {
 
   // Download Action Row
   let downloadActionHtml = '';
-  if (game.download_file_id) {
+  if (CAN_WRITE_COLLECTION && game.download_file_id) {
     downloadActionHtml = `
       <div class="picked-download-row" id="cardDownloadRow">
         <a href="/download/${game.download_file_id}" target="_blank" class="btn-hub-download" id="cardDownloadBtn" title="Download ROM">

@@ -127,6 +127,7 @@ $router->get('/api/player-hub/game/{id}', [PlayerHubController::class, 'apiGetGa
 
 // Portal Routes (Games Portal, Consoles Portal, Publishers Portal)
 $router->get('/games-portal', function () {
+    \Vault\Auth\Auth::requireAccess('games_portal', 'read');
     if (file_exists(__DIR__ . '/src/Views/games_portal.php')) {
         Response::html(View::render('games_portal', ['navActive' => 'games_portal', 'activeNav' => 'games_portal']));
         return;
@@ -145,6 +146,7 @@ $router->get('/game_portal', function () {
 
 // Games Portal API Routes
 $router->get('/api/games-portal/game/{id}', function (array $req) {
+    \Vault\Auth\Auth::requireAccess('games_portal', 'read');
     $id = (int)($req['params']['id'] ?? 0);
     $repo = new \Vault\Repositories\GameRepository();
     $playerId = (int)(\Vault\Auth\Auth::id() ?? 1);
@@ -156,6 +158,7 @@ $router->get('/api/games-portal/game/{id}', function (array $req) {
     Response::json($data);
 });
 $router->get('/api/game-portal/game/{id}', function (array $req) {
+    \Vault\Auth\Auth::requireAccess('games_portal', 'read');
     $id = (int)($req['params']['id'] ?? 0);
     $repo = new \Vault\Repositories\GameRepository();
     $playerId = (int)(\Vault\Auth\Auth::id() ?? 1);
@@ -167,6 +170,7 @@ $router->get('/api/game-portal/game/{id}', function (array $req) {
     Response::json($data);
 });
 $router->post('/api/games-portal/update-game-status', function (array $req) {
+    \Vault\Auth\Auth::requireAccess('games_portal', 'write');
     $body = json_decode((string)file_get_contents('php://input'), true) ?? [];
     $gameId   = (int)($body['game_id'] ?? 0);
     $isPlayed = !empty($body['is_played']);
@@ -197,6 +201,7 @@ $router->post('/api/games-portal/update-game-status', function (array $req) {
 });
 
 $router->get('/consoles-portal', function () {
+    \Vault\Auth\Auth::requireAccess('consoles_portal', 'read');
     if (file_exists(__DIR__ . '/src/Views/consoles_portal.php')) {
         Response::html(View::render('consoles_portal', ['navActive' => 'consoles_portal', 'activeNav' => 'consoles_portal']));
         return;
@@ -215,6 +220,7 @@ $router->get('/console_portal', function () {
 
 // Consoles Portal API Routes
 $router->get('/api/consoles-portal/console/{id}', function (array $req) {
+    \Vault\Auth\Auth::requireAccess('consoles_portal', 'read');
     $id = (int)($req['params']['id'] ?? 0);
     $repo = new \Vault\Repositories\ConsoleRepository();
     $data = $repo->getConsolePortalDetail($id);
@@ -225,6 +231,7 @@ $router->get('/api/consoles-portal/console/{id}', function (array $req) {
     Response::json($data);
 });
 $router->get('/api/console-portal/console/{id}', function (array $req) {
+    \Vault\Auth\Auth::requireAccess('consoles_portal', 'read');
     $id = (int)($req['params']['id'] ?? 0);
     $repo = new \Vault\Repositories\ConsoleRepository();
     $data = $repo->getConsolePortalDetail($id);
@@ -236,6 +243,7 @@ $router->get('/api/console-portal/console/{id}', function (array $req) {
 });
 
 $router->get('/publishers-portal', function () {
+    \Vault\Auth\Auth::requireAccess('publishers_portal', 'read');
     $view = file_exists(__DIR__ . '/src/Views/publishers_portal.php')
         ? 'publishers_portal'
         : (file_exists(__DIR__ . '/src/Views/publisher_portal.php') ? 'publisher_portal' : null);
@@ -258,6 +266,7 @@ $router->get('/publisher_portal', function () {
 
 // Publishers Portal API Routes
 $router->get('/api/publishers-portal/publisher/{id}', function (array $req) {
+    \Vault\Auth\Auth::requireAccess('publishers_portal', 'read');
     $id = (int)($req['params']['id'] ?? 0);
     $repo = new \Vault\Repositories\PublisherRepository();
     $data = $repo->getPublisherPortalDetail($id);
@@ -268,6 +277,7 @@ $router->get('/api/publishers-portal/publisher/{id}', function (array $req) {
     Response::json($data);
 });
 $router->get('/api/publisher-portal/publisher/{id}', function (array $req) {
+    \Vault\Auth\Auth::requireAccess('publishers_portal', 'read');
     $id = (int)($req['params']['id'] ?? 0);
     $repo = new \Vault\Repositories\PublisherRepository();
     $data = $repo->getPublisherPortalDetail($id);

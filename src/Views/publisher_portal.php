@@ -22,6 +22,10 @@ if (!defined('APP_INIT')) {
     exit('Direct access not permitted.');
 }
 
+$canAccessGames     = \Vault\Auth\Auth::canRead('games_portal');
+$canAccessConsoles  = \Vault\Auth\Auth::canRead('consoles_portal');
+$canWritePublishers = \Vault\Auth\Auth::canWrite('publishers_portal');
+
 // Ensure repository data is available self-contained even if View::render was called without data
 if (!isset($publishers) || !is_array($publishers)) {
     $repo = new PublisherRepository();
@@ -695,6 +699,28 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   color: #7dd3fc;
   text-decoration: underline;
 }
+.pub-games-link.no-link {
+  color: var(--text-primary, #f1f5f9) !important;
+  text-decoration: none !important;
+  cursor: default !important;
+  pointer-events: none !important;
+}
+.pub-games-link.no-link:hover {
+  color: var(--text-primary, #f1f5f9) !important;
+  text-decoration: none !important;
+}
+.console-item-card.no-link,
+.game-item-card.no-link {
+  cursor: default !important;
+  pointer-events: none !important;
+}
+.console-item-card.no-link:hover,
+.game-item-card.no-link:hover {
+  border-color: var(--border, #243049) !important;
+  background: var(--surface-alt, #0c121e) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
 
 /* Justified Comments / History under base info */
 .pub-detail-comments-block {
@@ -1228,18 +1254,24 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
             <span class="spec-value">
               <?php
               $initPubGamesUrl = '#';
-              if (!empty($initialDet['publisher']['name'])) {
+              if ($canAccessGames && !empty($initialDet['publisher']['name'])) {
                   $pName = (string)$initialDet['publisher']['name'];
                   $pId = (int)($initialDet['publisher']['id'] ?? $initialPubId);
                   $initPubGamesUrl = '/games-portal?publisher_id=' . $pId . '&publisher=' . urlencode($pName) . '&q=' . urlencode($pName) . '&mode=list';
               }
               ?>
-              <a href="<?= View::e($initPubGamesUrl) ?>" class="pub-games-link" id="detailGamesBadgeLink" title="View all games from this publisher">
-                <span id="detailGamesCount">0 Games</span>
-                <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
-                  <path fill-rule="evenodd" d="M5.22 14.78a.75.75 0 001.06 0l7.22-7.22v5.69a.75.75 0 001.5 0v-7.5a.75.75 0 00-.75-.75h-7.5a.75.75 0 000 1.5h5.69l-7.22 7.22a.75.75 0 000 1.06z" clip-rule="evenodd"/>
-                </svg>
-              </a>
+              <?php if ($canAccessGames): ?>
+                <a href="<?= View::e($initPubGamesUrl) ?>" class="pub-games-link" id="detailGamesBadgeLink" title="View all games from this publisher">
+                  <span id="detailGamesCount">0 Games</span>
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
+                    <path fill-rule="evenodd" d="M5.22 14.78a.75.75 0 001.06 0l7.22-7.22v5.69a.75.75 0 001.5 0v-7.5a.75.75 0 00-.75-.75h-7.5a.75.75 0 000 1.5h5.69l-7.22 7.22a.75.75 0 000 1.06z" clip-rule="evenodd"/>
+                  </svg>
+                </a>
+              <?php else: ?>
+                <span class="pub-games-link no-link" id="detailGamesBadgeLink">
+                  <span id="detailGamesCount">0 Games</span>
+                </span>
+              <?php endif; ?>
             </span>
           </div>
           <div class="pub-detail-spec-row" id="detailConsolesRow" style="display: none;">
@@ -1281,7 +1313,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
             <span>🎲</span>
             <span>Games Showcase</span>            
           </div>
-          <a href="<?= View::e($initPubGamesUrl) ?>" class="btn-view-all-games" id="viewAllGamesBtn">
+          <a href="<?= View::e($initPubGamesUrl) ?>" class="btn-view-all-games" id="viewAllGamesBtn" style="<?= $canAccessGames ? '' : 'display: none;' ?>">
             <span>View All Games</span>
             <span id="viewAllCountLabel"></span>
             <span>→</span>
@@ -1307,6 +1339,9 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const INITIAL_DETAIL = <?= $safeInitialDetailJson ?: 'null' ?>;
   const INITIAL_PUB_ID = <?= (int)($initialPubId ?? 0) ?>;
   const INITIAL_LETTER = <?= json_encode($initialLet ?? '') ?>;
+  const CAN_ACCESS_GAMES     = <?= json_encode($canAccessGames) ?>;
+  const CAN_ACCESS_CONSOLES  = <?= json_encode($canAccessConsoles) ?>;
+  const CAN_WRITE_PUBLISHERS = <?= json_encode($canWritePublishers) ?>;
 
   // Runtime State
   let currentMode = 'list'; // 'list' | 'detail'
@@ -1790,7 +1825,22 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 
     const gamesCatalogUrl = `/games-portal?publisher_id=${publisher.id}&publisher=${encodeURIComponent(publisher.name)}&q=${encodeURIComponent(publisher.name)}&mode=list`;
     if (detailGamesBadgeLink) {
-      detailGamesBadgeLink.href = gamesCatalogUrl;
+      const badgeArrow = detailGamesBadgeLink.querySelector('svg');
+      if (CAN_ACCESS_GAMES) {
+        detailGamesBadgeLink.href = gamesCatalogUrl;
+        detailGamesBadgeLink.classList.remove('no-link');
+        detailGamesBadgeLink.removeAttribute('tabindex');
+        detailGamesBadgeLink.style.pointerEvents = 'auto';
+        detailGamesBadgeLink.style.cursor = 'pointer';
+        if (badgeArrow) badgeArrow.style.display = 'inline-block';
+      } else {
+        detailGamesBadgeLink.removeAttribute('href');
+        detailGamesBadgeLink.classList.add('no-link');
+        detailGamesBadgeLink.setAttribute('tabindex', '-1');
+        detailGamesBadgeLink.style.pointerEvents = 'none';
+        detailGamesBadgeLink.style.cursor = 'default';
+        if (badgeArrow) badgeArrow.style.display = 'none';
+      }
     }
 
     if (publisher.description && publisher.description.trim() !== '') {
@@ -1803,7 +1853,14 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       if (detailDescSeparator) detailDescSeparator.style.display = 'none';
     }
 
-    viewAllGamesBtn.href = gamesCatalogUrl;
+    if (viewAllGamesBtn) {
+      if (CAN_ACCESS_GAMES) {
+        viewAllGamesBtn.style.display = 'inline-flex';
+        viewAllGamesBtn.href = gamesCatalogUrl;
+      } else {
+        viewAllGamesBtn.style.display = 'none';
+      }
+    }
     viewAllCountLabel.textContent = `(${gamesCount})`;
   }
 
@@ -1835,10 +1892,12 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
           const fallback = getConsoleFallbackSvg(con.name);
           const imgUrl = formatImageUrl(con.image_path, fallback);
 
-          const card = document.createElement('a');
-          card.className = 'console-item-card';
-          card.href = con.id ? `/consoles-portal?id=${con.id}&mode=detail` : '#';
-          card.title = `View ${con.name} on Consoles Portal`;
+          const card = document.createElement(CAN_ACCESS_CONSOLES ? 'a' : 'div');
+          card.className = 'console-item-card' + (CAN_ACCESS_CONSOLES ? '' : ' no-link');
+          if (CAN_ACCESS_CONSOLES) {
+            card.href = con.id ? `/consoles-portal?id=${con.id}&mode=detail` : '#';
+            card.title = `View ${con.name} on Consoles Portal`;
+          }
 
           card.innerHTML = `
             <div class="console-thumb-slot">
@@ -1878,10 +1937,12 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         const artPath = game.boxart_path || game.screenshot_path;
         const imgUrl = formatImageUrl(artPath, fallback);
 
-        const card = document.createElement('a');
-        card.className = 'game-item-card';
-        card.href = `/games-portal?id=${game.id}&mode=detail`;
-        card.title = `View ${game.title} on Games Portal`;
+        const card = document.createElement(CAN_ACCESS_GAMES ? 'a' : 'div');
+        card.className = 'game-item-card' + (CAN_ACCESS_GAMES ? '' : ' no-link');
+        if (CAN_ACCESS_GAMES) {
+          card.href = `/games-portal?id=${game.id}&mode=detail`;
+          card.title = `View ${game.title} on Games Portal`;
+        }
 
         card.innerHTML = `
           <div class="game-thumb-slot">

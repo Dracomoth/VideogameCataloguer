@@ -23,7 +23,8 @@ if (!defined('APP_INIT')) {
     exit('Direct access not permitted.');
 }
 
-$canConsoles = Auth::can('consoles', 'read');
+$canConsoles  = Auth::can('consoles', 'read');
+$canPlayerHub = Auth::can('collection', 'read');
 
 $healthPct     = (float)($kpi['health_pct'] ?? 0);
 $completePct   = (float)($kpi['complete_pct'] ?? 0);
@@ -1435,7 +1436,11 @@ ksort($collectionConsoles);
             <span class="dash-empty-icon">📥</span>
             <p style="font-size: 13px; margin: 0;">No games downloaded yet.</p>
             <p style="font-size: 11px; margin: 4px 0 0; color: #64748b;">
-              Use the <a href="/collection" style="color: #38bdf8;">Player Hub</a> to discover and download ROMs to build your collection!
+              <?php if ($canPlayerHub): ?>
+                Use the <a href="/collection" style="color: #38bdf8;">Player Hub</a> to discover and download ROMs to build your collection!
+              <?php else: ?>
+                Discover and download ROMs to build your collection!
+              <?php endif; ?>
             </p>
           </div>
         <?php endif; ?>

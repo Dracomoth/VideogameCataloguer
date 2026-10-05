@@ -29,6 +29,9 @@ if (!defined('APP_INIT')) {
 }
 
 $portalPlayerId = (int)(\Vault\Auth\Auth::id() ?? 1);
+$canAccessPublishers = \Vault\Auth\Auth::canRead('publishers_portal');
+$canAccessConsoles   = \Vault\Auth\Auth::canRead('consoles_portal');
+$canWriteGames       = \Vault\Auth\Auth::canWrite('games_portal');
 
 // 1. Ensure repository data is available self-contained
 if (!isset($games) || !is_array($games)) {
@@ -1018,6 +1021,16 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   color: #7dd3fc;
   text-decoration: underline;
 }
+.game-portal-link.no-link {
+  color: var(--text-primary, #f1f5f9) !important;
+  text-decoration: none !important;
+  cursor: default !important;
+  pointer-events: none !important;
+}
+.game-portal-link.no-link:hover {
+  color: var(--text-primary, #f1f5f9) !important;
+  text-decoration: none !important;
+}
 
 /* Tags in Badge Form */
 .game-tags-container {
@@ -1877,6 +1890,9 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const ALL_CATEGORIES    = <?= $safeCategoriesJson ?: '[]' ?>;
   const ALL_SUBCATEGORIES = <?= $safeSubcategoriesJson ?: '[]' ?>;
   const INITIAL_DETAIL    = <?= $safeInitialDetailJson ?: 'null' ?>;
+  const CAN_ACCESS_PUBLISHERS = <?= json_encode($canAccessPublishers) ?>;
+  const CAN_ACCESS_CONSOLES   = <?= json_encode($canAccessConsoles) ?>;
+  const CAN_WRITE_GAMES       = <?= json_encode($canWriteGames) ?>;
 
   // Active Controller State
   let currentMode               = 'list'; // 'list' | 'detail'
@@ -2881,6 +2897,17 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
           }
         }
       }
+
+      // If user has read-only access to games_portal, disable both toggles
+      if (!CAN_WRITE_GAMES) {
+        chkDetailPlayed.disabled = true;
+        playedToggleLabel.classList.add('disabled');
+        chkDetailWon.disabled = true;
+        wonToggleLabel.classList.add('disabled');
+        if (progressHintText) {
+          progressHintText.textContent = 'Read-only view';
+        }
+      }
     }
 
     // 3. Boxart (top left)
@@ -2902,27 +2929,45 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     // 5. Maker Link (redirects to publishers_portal in detail mode with maker selected)
     const publisherName = game.publisher_name || 'Unknown Publisher';
     detailMakerValue.textContent = publisherName;
-    if (game.publisher_id && Number(game.publisher_id) > 0) {
+    const makerArrow = detailMakerLink ? detailMakerLink.querySelector('svg') : null;
+    if (CAN_ACCESS_PUBLISHERS && game.publisher_id && Number(game.publisher_id) > 0) {
       detailMakerLink.href = `/publishers-portal?id=${game.publisher_id}&mode=detail`;
+      detailMakerLink.classList.remove('no-link');
+      detailMakerLink.removeAttribute('tabindex');
       detailMakerLink.style.pointerEvents = 'auto';
+      detailMakerLink.style.cursor = 'pointer';
       detailMakerLink.style.opacity = '1';
+      if (makerArrow) makerArrow.style.display = 'inline-block';
     } else {
-      detailMakerLink.href = '#';
+      detailMakerLink.removeAttribute('href');
+      detailMakerLink.classList.add('no-link');
+      detailMakerLink.setAttribute('tabindex', '-1');
       detailMakerLink.style.pointerEvents = 'none';
-      detailMakerLink.style.opacity = '0.7';
+      detailMakerLink.style.cursor = 'default';
+      detailMakerLink.style.opacity = '1';
+      if (makerArrow) makerArrow.style.display = 'none';
     }
 
     // 6. Console Link (redirects to consoles_portal in detail mode with console selected)
     const consoleName = game.console_name || 'Unknown Console';
     detailConsoleValue.textContent = consoleName;
-    if (game.console_id && Number(game.console_id) > 0) {
+    const consoleArrow = detailConsoleLink ? detailConsoleLink.querySelector('svg') : null;
+    if (CAN_ACCESS_CONSOLES && game.console_id && Number(game.console_id) > 0) {
       detailConsoleLink.href = `/consoles-portal?id=${game.console_id}&mode=detail`;
+      detailConsoleLink.classList.remove('no-link');
+      detailConsoleLink.removeAttribute('tabindex');
       detailConsoleLink.style.pointerEvents = 'auto';
+      detailConsoleLink.style.cursor = 'pointer';
       detailConsoleLink.style.opacity = '1';
+      if (consoleArrow) consoleArrow.style.display = 'inline-block';
     } else {
-      detailConsoleLink.href = '#';
+      detailConsoleLink.removeAttribute('href');
+      detailConsoleLink.classList.add('no-link');
+      detailConsoleLink.setAttribute('tabindex', '-1');
       detailConsoleLink.style.pointerEvents = 'none';
-      detailConsoleLink.style.opacity = '0.7';
+      detailConsoleLink.style.cursor = 'default';
+      detailConsoleLink.style.opacity = '1';
+      if (consoleArrow) consoleArrow.style.display = 'none';
     }
 
     // 7. Year
@@ -2979,56 +3024,65 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     const game = data.game || activeGame || {};
 
     // 1. Files & Downloads Box (Copied from Console Portal style)
-    const files = Array.isArray(data.files) ? data.files : (game.downloadable_files || []);
-
-    if (files.length > 0) {
-      detailDownloadsSubsection.style.display = 'flex';
-      if (detailFilesCountBadge) {
-        detailFilesCountBadge.textContent = `${files.length} ${files.length === 1 ? 'file' : 'files'}`;
-      }
-
-      detailFilesList.innerHTML = files.map(file => {
-        const fileId = file.id;
-        const name = file.display_name || file.filename || 'Downloadable Resource';
-        const dCount = Number(file.download_count || 0);
-        const desc = file.description || file.file_description || (file.file_type ? file.file_type.toUpperCase() : 'Game Asset');
-
-        return `
-          <tr>
-            <td>
-              <div class="file-cell-main">
-                <svg class="file-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                  <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
-                <span class="file-name-code">${escapeHtml(name)}</span>
-              </div>
-            </td>
-            <td>
-              <span class="file-desc-text">${escapeHtml(desc)}</span>
-            </td>
-            <td>
-              <span class="file-downloads-pill">${dCount} ${dCount === 1 ? 'download' : 'downloads'}</span>
-            </td>
-            <td style="text-align: right;">
-              <a href="/download/${encodeURIComponent(fileId)}" target="_blank" class="btn-file-download-action" title="Download ${escapeHtml(name)}">
-                <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
-                  <path fill-rule="evenodd" d="M10 3a.75.75 0 01.75.75v8.19l2.72-2.72a.75.75 0 111.06 1.06l-4 4a.75.75 0 01-1.06 0l-4-4a.75.75 0 111.06-1.06l2.72 2.72V3.75A.75.75 0 0110 3zM3.75 14.25a.75.75 0 01.75.75v1.5c0 .138.112.25.25.25h10.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 0115.25 18H4.75A1.75 1.75 0 013 16.25v-1.5a.75.75 0 01.75-.75z" clip-rule="evenodd"/>
-                </svg>
-                <span>Download</span>
-              </a>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    } else {
+    if (!CAN_WRITE_GAMES) {
+      // In readonly mode, do not display any download sections
       detailDownloadsSubsection.style.display = 'none';
       detailFilesList.innerHTML = '';
       if (detailFilesCountBadge) {
         detailFilesCountBadge.textContent = '0 files';
+      }
+    } else {
+      const files = Array.isArray(data.files) ? data.files : (game.downloadable_files || []);
+
+      if (files.length > 0) {
+        detailDownloadsSubsection.style.display = 'flex';
+        if (detailFilesCountBadge) {
+          detailFilesCountBadge.textContent = `${files.length} ${files.length === 1 ? 'file' : 'files'}`;
+        }
+
+        detailFilesList.innerHTML = files.map(file => {
+          const fileId = file.id;
+          const name = file.display_name || file.filename || 'Downloadable Resource';
+          const dCount = Number(file.download_count || 0);
+          const desc = file.description || file.file_description || (file.file_type ? file.file_type.toUpperCase() : 'Game Asset');
+
+          return `
+            <tr>
+              <td>
+                <div class="file-cell-main">
+                  <svg class="file-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                  <span class="file-name-code">${escapeHtml(name)}</span>
+                </div>
+              </td>
+              <td>
+                <span class="file-desc-text">${escapeHtml(desc)}</span>
+              </td>
+              <td>
+                <span class="file-downloads-pill">${dCount} ${dCount === 1 ? 'download' : 'downloads'}</span>
+              </td>
+              <td style="text-align: right;">
+                <a href="/download/${encodeURIComponent(fileId)}" target="_blank" class="btn-file-download-action" title="Download ${escapeHtml(name)}">
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
+                    <path fill-rule="evenodd" d="M10 3a.75.75 0 01.75.75v8.19l2.72-2.72a.75.75 0 111.06 1.06l-4 4a.75.75 0 01-1.06 0l-4-4a.75.75 0 111.06-1.06l2.72 2.72V3.75A.75.75 0 0110 3zM3.75 14.25a.75.75 0 01.75.75v1.5c0 .138.112.25.25.25h10.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 0115.25 18H4.75A1.75 1.75 0 013 16.25v-1.5a.75.75 0 01.75-.75z" clip-rule="evenodd"/>
+                  </svg>
+                  <span>Download</span>
+                </a>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } else {
+        detailDownloadsSubsection.style.display = 'none';
+        detailFilesList.innerHTML = '';
+        if (detailFilesCountBadge) {
+          detailFilesCountBadge.textContent = '0 files';
+        }
       }
     }
 
