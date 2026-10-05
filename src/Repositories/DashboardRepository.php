@@ -35,7 +35,10 @@ final class DashboardRepository
                     g.category_id IS NULL OR g.category_id <= 0 OR
                     g.subcategory_id IS NULL OR g.subcategory_id <= 0 OR
                     g.publisher_id IS NULL OR g.publisher_id <= 0 OR
-                    g.language_id IS NULL OR g.language_id <= 0
+                    g.language_id IS NULL OR g.language_id <= 0 OR
+                    (g.in_collection = 1 AND NOT EXISTS (
+                        SELECT 1 FROM downloadable_files df WHERE df.game_id = g.id
+                    ))
                     THEN 1 ELSE 0 END) AS missing_basic,
                 SUM(CASE WHEN 
                     NOT (
@@ -45,11 +48,16 @@ final class DashboardRepository
                         g.category_id IS NULL OR g.category_id <= 0 OR
                         g.subcategory_id IS NULL OR g.subcategory_id <= 0 OR
                         g.publisher_id IS NULL OR g.publisher_id <= 0 OR
-                        g.language_id IS NULL OR g.language_id <= 0
+                        g.language_id IS NULL OR g.language_id <= 0 OR
+                        (g.in_collection = 1 AND NOT EXISTS (
+                            SELECT 1 FROM downloadable_files df WHERE df.game_id = g.id
+                        ))
                     )
                     AND (
                         (g.boxart_path IS NULL OR TRIM(g.boxart_path) = '') OR
-                        (g.screenshot_path IS NULL OR TRIM(g.screenshot_path) = '')
+                        (g.screenshot_path IS NULL OR TRIM(g.screenshot_path) = '') OR
+                        (g.tags IS NULL OR TRIM(g.tags) = '') OR
+                        (g.comments IS NULL OR TRIM(g.comments) = '')
                     ) THEN 1 ELSE 0 END) AS missing_secondary,
                 SUM(CASE WHEN 
                     NOT (
@@ -59,10 +67,15 @@ final class DashboardRepository
                         g.category_id IS NULL OR g.category_id <= 0 OR
                         g.subcategory_id IS NULL OR g.subcategory_id <= 0 OR
                         g.publisher_id IS NULL OR g.publisher_id <= 0 OR
-                        g.language_id IS NULL OR g.language_id <= 0
+                        g.language_id IS NULL OR g.language_id <= 0 OR
+                        (g.in_collection = 1 AND NOT EXISTS (
+                            SELECT 1 FROM downloadable_files df WHERE df.game_id = g.id
+                        ))
                     )
                     AND (g.boxart_path IS NOT NULL AND TRIM(g.boxart_path) != '')
                     AND (g.screenshot_path IS NOT NULL AND TRIM(g.screenshot_path) != '')
+                    AND (g.tags IS NOT NULL AND TRIM(g.tags) != '')
+                    AND (g.comments IS NOT NULL AND TRIM(g.comments) != '')
                     THEN 1 ELSE 0 END) AS complete_games,
                 SUM(CASE WHEN g.boxart_path IS NULL OR TRIM(g.boxart_path) = '' THEN 1 ELSE 0 END) AS missing_covers,
                 SUM(CASE WHEN g.screenshot_path IS NULL OR TRIM(g.screenshot_path) = '' THEN 1 ELSE 0 END) AS missing_screens

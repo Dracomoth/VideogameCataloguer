@@ -98,7 +98,10 @@ final class ReportRepository
                 OR g.publisher_id IS NULL OR g.publisher_id <= 0
                 OR g.language_id IS NULL OR g.language_id <= 0
                 OR g.boxart_path IS NULL OR TRIM(g.boxart_path) = ''
-                OR g.screenshot_path IS NULL OR TRIM(g.screenshot_path) = ''"
+                OR g.screenshot_path IS NULL OR TRIM(g.screenshot_path) = ''
+                OR g.tags IS NULL OR TRIM(g.tags) = ''
+                OR g.comments IS NULL OR TRIM(g.comments) = ''
+                OR (g.in_collection = 1 AND NOT EXISTS (SELECT 1 FROM downloadable_files df WHERE df.game_id = g.id))"
         );
 
         $healthCount = (int)($healthIssues['c'] ?? 0);
@@ -171,7 +174,11 @@ final class ReportRepository
                             g.subcategory_id,
                             g.language_id,
                             g.boxart_path,
-                            g.screenshot_path
+                            g.screenshot_path,
+                            g.tags,
+                            g.comments,
+                            g.in_collection,
+                            (SELECT COUNT(*) FROM downloadable_files df WHERE df.game_id = g.id) AS downloads_count
                         FROM `games` g
                         WHERE (g.title IS NULL OR TRIM(g.title) = '')
                            OR (g.year IS NULL OR TRIM(g.year) = '')
@@ -182,6 +189,9 @@ final class ReportRepository
                            OR g.language_id IS NULL OR g.language_id <= 0
                            OR g.boxart_path IS NULL OR TRIM(g.boxart_path) = ''
                            OR g.screenshot_path IS NULL OR TRIM(g.screenshot_path) = ''
+                           OR g.tags IS NULL OR TRIM(g.tags) = ''
+                           OR g.comments IS NULL OR TRIM(g.comments) = ''
+                           OR (g.in_collection = 1 AND NOT EXISTS (SELECT 1 FROM downloadable_files df WHERE df.game_id = g.id))
                         ORDER BY g.title ASC";
 
                 $data = Database::fetchAll($sql);
@@ -212,11 +222,20 @@ final class ReportRepository
                     if (empty($d['language_id']) || (int)$d['language_id'] <= 0) {
                         $missing[] = 'Language';
                     }
+                    if ((int)($d['in_collection'] ?? 0) === 1 && (int)($d['downloads_count'] ?? 0) <= 0) {
+                        $missing[] = 'Download File';
+                    }
                     if ($d['boxart_path'] === null || trim((string)$d['boxart_path']) === '') {
                         $missing[] = 'BoxArt';
                     }
                     if ($d['screenshot_path'] === null || trim((string)$d['screenshot_path']) === '') {
                         $missing[] = 'Screenshot';
+                    }
+                    if ($d['tags'] === null || trim((string)$d['tags']) === '') {
+                        $missing[] = 'Tags';
+                    }
+                    if ($d['comments'] === null || trim((string)$d['comments']) === '') {
+                        $missing[] = 'Comments';
                     }
 
                     $rows[] = [

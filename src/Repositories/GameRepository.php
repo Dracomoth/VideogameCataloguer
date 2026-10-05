@@ -81,9 +81,8 @@ final class GameRepository
         }
 
         return array_map(function (array $row) use ($filesByGame): array {
-            $record = $this->formatGameRecord($row);
-            $record['downloadable_files'] = $filesByGame[(int)$row['id']] ?? [];
-            return $record;
+            $row['downloadable_files'] = $filesByGame[(int)$row['id']] ?? [];
+            return $this->formatGameRecord($row);
         }, $rows);
     }
 
@@ -623,7 +622,7 @@ final class GameRepository
         // Determine collection & completion badge based on user criteria:
         // - Text: PENDING if game is not in collection, BACKLOG if in collection
         // - Color:
-        //   - red: if ANY main field is missing (name, year, language, publisher, category, subcategory)
+        //   - red: if ANY main field is missing (name, year, language, publisher, category, subcategory) OR if in_collection=1 but no download file is provided
         //   - amber (gold, matching provided image): if base info complete but missing either/both images and/or tags/comments
         //   - green: if everything is properly filled up
         $title          = trim((string)($row['title'] ?? ($row['game'] ?? '')));
@@ -642,6 +641,10 @@ final class GameRepository
             && $hasCategory
             && $hasSubcategory;
 
+        $inCollection = ((int)($row['in_collection'] ?? 0)) === 1;
+        $files        = $row['downloadable_files'] ?? [];
+        $hasDownload  = !$inCollection || !empty($files) || !empty($row['has_download_files']) || !empty($row['download_file_id']) || !empty($row['download_count']);
+
         $hasScreenshot = !empty(trim((string)($row['screenshot_path'] ?? '')));
         $hasBoxart     = !empty(trim((string)($row['boxart_path'] ?? '')));
         $hasTags       = !empty(trim((string)($row['tags'] ?? '')));
@@ -649,7 +652,7 @@ final class GameRepository
 
         $hasCompleteSecondary = $hasScreenshot && $hasBoxart && $hasTags && $hasComments;
 
-        if (!$hasMainInfo) {
+        if (!$hasMainInfo || !$hasDownload) {
             $row['collection_badge_color'] = 'red';
         } elseif (!$hasCompleteSecondary) {
             $row['collection_badge_color'] = 'amber';

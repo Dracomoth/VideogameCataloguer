@@ -1658,8 +1658,13 @@ function computeCollectionBadge(row) {
 
   const hasMainInfo = title !== '' && year !== '' && langId > 0 && pubId > 0 && catId > 0 && subId > 0 && consoleId > 0;
 
-  if (!hasMainInfo) {
-    return `<span class="badge-status badge-collection-red" title="Missing required info: name, year, language, publisher, category, subcategory or console">${escapeHtml(text)}</span>`;
+  // Check download requirement: if in collection, must have downloadable file(s)
+  const downloadableFiles = Array.isArray(row.downloadable_files) ? row.downloadable_files : [];
+  const hasDownload = !inCollection || downloadableFiles.length > 0 || Number(row.has_download_files) === 1 || Number(row.download_file_id) > 0 || Number(row.download_count) > 0;
+
+  if (!hasMainInfo || !hasDownload) {
+    const reason = !hasMainInfo ? 'Missing required info: name, year, language, publisher, category, subcategory or console' : 'In collection but missing download file';
+    return `<span class="badge-status badge-collection-red" title="${escapeHtml(reason)}">${escapeHtml(text)}</span>`;
   }
 
   // Check secondary fields: screenshot, boxart, tags, comments
