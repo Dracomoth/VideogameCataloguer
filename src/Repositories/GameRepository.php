@@ -599,6 +599,19 @@ final class GameRepository
         $row['created']        = !empty($row['created']) ? (string)$row['created'] : '';
         $row['updated']        = !empty($row['updated']) ? (string)$row['updated'] : '';
 
+        if (isset($row['is_downloaded'])) {
+            $row['is_downloaded'] = (int)$row['is_downloaded'];
+        }
+        if (isset($row['download_count'])) {
+            $row['download_count'] = (int)$row['download_count'];
+        }
+        if (isset($row['is_played'])) {
+            $row['is_played'] = (int)$row['is_played'];
+        }
+        if (isset($row['is_won'])) {
+            $row['is_won'] = (int)$row['is_won'];
+        }
+
         // Web accessible URLs for reading
         $row['screenshot_url'] = $screenshotPath !== '' ? ('/' . ltrim($screenshotPath, '/\\')) : '';
         $row['boxart_url']     = $boxartPath !== ''     ? ('/' . ltrim($boxartPath, '/\\'))     : '';
@@ -676,10 +689,15 @@ final class GameRepository
     /**
      * Retrieves lightweight catalog list for Games Portal.
      *
+     * @param int|null $playerId
      * @return array<int, array<string, mixed>>
      */
-    public function getGamePortalList(): array
+    public function getGamePortalList(?int $playerId = null): array
     {
+        if ($playerId === null) {
+            $playerId = (int)(\Vault\Auth\Auth::id() ?? 1);
+        }
+
         $sql = "
             SELECT 
                 g.id,
@@ -698,16 +716,22 @@ final class GameRepository
                 c.name AS console_name,
                 cat.name AS category_name,
                 sub.name AS subcategory_name,
-                pub.name AS publisher_name
+                pub.name AS publisher_name,
+                COALESCE(pg.is_downloaded, 0) AS is_downloaded,
+                COALESCE(pg.download_count, 0) AS download_count,
+                pg.last_download_date,
+                COALESCE(pg.is_played, 0) AS is_played,
+                COALESCE(pg.is_won, 0) AS is_won
             FROM `games` g
             LEFT JOIN `consoles` c ON c.id = g.console_id
             LEFT JOIN `categories` cat ON cat.id = g.category_id
             LEFT JOIN `subcategories` sub ON sub.id = g.subcategory_id
             LEFT JOIN `publishers` pub ON pub.id = g.publisher_id
+            LEFT JOIN `player_games` pg ON pg.game_id = g.id AND pg.player_id = :player_id
             ORDER BY g.title ASC
         ";
 
-        $rows = Database::fetchAll($sql);
+        $rows = Database::fetchAll($sql, [':player_id' => $playerId]);
 
         return array_map(function (array $row): array {
             return $this->formatGameRecord($row);
@@ -859,16 +883,21 @@ final class GameRepository
     }
 
     /**
-     * Retrieves full game portal detail for a game (game record, downloadable files, 15 random games by console, 15 similar games).
+     * Retrieves full game portal detail for a game (game record, downloadable files, 15 random games by console, 15 similar games, global downloads, player stats).
      *
      * @param int $gameId
+     * @param int|null $playerId
      * @return array<string, mixed>|null
      */
-    public function getGamePortalDetail(int $gameId): ?array
+    public function getGamePortalDetail(int $gameId, ?int $playerId = null): ?array
     {
         $game = $this->getById($gameId);
         if (!$game) {
             return null;
+        }
+
+        if ($playerId === null) {
+            $playerId = (int)(\Vault\Auth\Auth::id() ?? 1);
         }
 
         $consoleId = (int)($game['console_id'] ?? 0);
@@ -878,11 +907,54 @@ final class GameRepository
         $consoleGames = $consoleId > 0 ? $this->getRandomGamesByConsole($consoleId, 15, $gameId) : [];
         $similarGames = $categoryId > 0 ? $this->getRandomSimilarGames($categoryId, $subcategoryId, 15, $gameId) : [];
 
+        // Global download count for this game
+        $globalDownloadCount = (int)Database::fetchColumn("
+            SELECT GREATEST(
+                COALESCE((SELECT SUM(df.download_count) FROM `downloadable_files` df WHERE df.game_id = :id1), 0),
+                COALESCE((SELECT SUM(pg.download_count) FROM `player_games` pg WHERE pg.game_id = :id2), 0)
+            )
+        ", [':id1' => $gameId, ':id2' => $gameId]);
+
+        // Player statistics for this game
+        $playerGame = Database::fetchOne("
+            SELECT * FROM `player_games` 
+            WHERE `player_id` = :player_id AND `game_id` = :game_id 
+            LIMIT 1
+        ", [
+            ':player_id' => $playerId,
+            ':game_id'   => $gameId,
+        ]);
+
+        $isDownloaded = !empty($playerGame['is_downloaded']) || (!empty($playerGame['download_count']) && (int)$playerGame['download_count'] > 0);
+        $isPlayed = !empty($playerGame['is_played']);
+        $isWon = !empty($playerGame['is_won']);
+
+        $playerStats = [
+            'is_downloaded'       => $isDownloaded,
+            'download_count'      => (int)($playerGame['download_count'] ?? 0),
+            'first_download_date' => $playerGame['first_download_date'] ?? null,
+            'last_download_date'  => $playerGame['last_download_date'] ?? null,
+            'is_played'           => $isPlayed,
+            'played_date'         => $playerGame['played_date'] ?? null,
+            'is_won'              => $isWon,
+            'win_date'            => $playerGame['win_date'] ?? null,
+        ];
+
+        // Also merge player stats and global download count directly into the $game record
+        $game['is_downloaded']        = $isDownloaded ? 1 : 0;
+        $game['download_count']       = (int)($playerGame['download_count'] ?? 0);
+        $game['last_download_date']   = $playerGame['last_download_date'] ?? null;
+        $game['is_played']            = $isPlayed ? 1 : 0;
+        $game['is_won']               = $isWon ? 1 : 0;
+        $game['global_download_count'] = $globalDownloadCount;
+
         return [
-            'game'          => $game,
-            'files'         => $game['downloadable_files'] ?? [],
-            'console_games' => $consoleGames,
-            'similar_games' => $similarGames,
+            'game'                  => $game,
+            'files'                 => $game['downloadable_files'] ?? [],
+            'console_games'         => $consoleGames,
+            'similar_games'         => $similarGames,
+            'global_download_count' => $globalDownloadCount,
+            'player_stats'          => $playerStats,
         ];
     }
 }

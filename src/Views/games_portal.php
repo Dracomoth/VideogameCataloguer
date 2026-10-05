@@ -28,10 +28,12 @@ if (!defined('APP_INIT')) {
     exit('Direct access not permitted.');
 }
 
+$portalPlayerId = (int)(\Vault\Auth\Auth::id() ?? 1);
+
 // 1. Ensure repository data is available self-contained
 if (!isset($games) || !is_array($games)) {
     $gameRepo = new GameRepository();
-    $games = $gameRepo->getGamePortalList();
+    $games = $gameRepo->getGamePortalList($portalPlayerId);
 } else {
     $gameRepo = new GameRepository();
 }
@@ -55,7 +57,7 @@ if (!isset($subcategories) || !is_array($subcategories)) {
 $initialGId = (int)($_GET['id'] ?? ($_GET['game_id'] ?? ($initialGameId ?? 0)));
 $initialDet = $initialDetail ?? null;
 if ($initialGId > 0 && $initialDet === null) {
-    $initialDet = $gameRepo->getGamePortalDetail($initialGId);
+    $initialDet = $gameRepo->getGamePortalDetail($initialGId, $portalPlayerId);
 }
 
 // Initial URL filters
@@ -698,6 +700,168 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   color: #4ade80;
   border: 1.5px solid #16a34a;
   box-shadow: 0 0 6px rgba(22, 163, 74, 0.25);
+}
+
+/* Player Badges (Downloaded, Played, Won with star) */
+.game-detail-badges-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.badge-player-downloaded {
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+  border: 1.5px solid #0284c7;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.25);
+}
+.badge-player-played {
+  background: rgba(139, 92, 246, 0.15);
+  color: #c084fc;
+  border: 1.5px solid #8b5cf6;
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.25);
+}
+.badge-player-won {
+  background: rgba(234, 179, 8, 0.15);
+  color: #facc15;
+  border: 1.5px solid #eab308;
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.3);
+}
+
+/* Player Collection Status & Downloads Indicators */
+.status-in-collection {
+  color: #4ade80;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.status-download-time {
+  color: var(--text-muted, #94a3b8);
+  font-size: 12px;
+  font-weight: 400;
+  margin-left: 6px;
+}
+.status-not-downloaded {
+  color: var(--text-dim, #64748b);
+  font-style: italic;
+  font-size: 13px;
+}
+
+/* Your Progress Toggle Switch Controls */
+.game-progress-toggles {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.progress-pill-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(12, 18, 30, 0.85);
+  border: 1px solid var(--border, #243049);
+  border-radius: 20px;
+  padding: 4px 12px 4px 5px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+  transition: all var(--transition-fast, 0.2s ease);
+}
+.progress-pill-toggle:hover:not(.disabled) {
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #f8fafc;
+}
+.progress-pill-toggle input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+.toggle-slider {
+  width: 28px;
+  height: 16px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 999px;
+  position: relative;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+.toggle-slider::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #64748b;
+  top: 1px;
+  left: 1px;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease;
+}
+.toggle-label-text {
+  pointer-events: none;
+}
+
+/* Played Toggle Active State */
+.progress-pill-toggle.is-active-played,
+.progress-pill-toggle:has(input#chkDetailPlayed:checked),
+#playedToggleLabel:has(input:checked) {
+  background: rgba(139, 92, 246, 0.22) !important;
+  border-color: rgba(139, 92, 246, 0.7) !important;
+  color: #ddd6fe !important;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.25);
+}
+.progress-pill-toggle.is-active-played .toggle-slider,
+.progress-pill-toggle:has(input#chkDetailPlayed:checked) .toggle-slider,
+#playedToggleLabel input:checked ~ .toggle-slider {
+  background: #8b5cf6 !important;
+  border-color: #a78bfa !important;
+}
+.progress-pill-toggle.is-active-played .toggle-slider::after,
+.progress-pill-toggle:has(input#chkDetailPlayed:checked) .toggle-slider::after,
+#playedToggleLabel input:checked ~ .toggle-slider::after {
+  transform: translateX(12px) !important;
+  background: #ffffff !important;
+}
+
+/* Won Toggle Active State */
+.progress-pill-toggle.is-active-won,
+.progress-pill-toggle:has(input#chkDetailWon:checked),
+#wonToggleLabel:has(input:checked) {
+  background: rgba(234, 179, 8, 0.22) !important;
+  border-color: rgba(234, 179, 8, 0.7) !important;
+  color: #fef08a !important;
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.25);
+}
+.progress-pill-toggle.is-active-won .toggle-slider,
+.progress-pill-toggle:has(input#chkDetailWon:checked) .toggle-slider,
+#wonToggleLabel input:checked ~ .toggle-slider {
+  background: #eab308 !important;
+  border-color: #facc15 !important;
+}
+.progress-pill-toggle.is-active-won .toggle-slider::after,
+.progress-pill-toggle:has(input#chkDetailWon:checked) .toggle-slider::after,
+#wonToggleLabel input:checked ~ .toggle-slider::after {
+  transform: translateX(12px) !important;
+  background: #ffffff !important;
+}
+.progress-pill-toggle.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+.progress-pill-toggle.disabled input {
+  cursor: not-allowed;
+}
+.progress-hint-text {
+  font-size: 11px;
+  color: #f59e0b;
+  font-style: italic;
 }
 
 /* Flow Content Area: Left Floated Images Box + Right Specs & Wrapping Description */
@@ -1496,10 +1660,15 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   <section id="gameDetailContainer" class="game-detail-view" style="display: none;" aria-label="Game Details">
     <!-- 1. Header Card (Title Row with Badge, Left Images Box, Right Specs & Wrapping Description) -->
     <div class="game-detail-header-card">
-      <!-- Title Row: Title Above Everything, Aligned to the Left + Collection Status Badge -->
+      <!-- Title Row: Title Above Everything, Aligned to the Left + Badges (Status, Downloaded, Played, Won) -->
       <div class="game-detail-title-row">
         <h1 class="game-detail-name" id="detailGameTitle">Game Title</h1>
-        <span class="badge-status badge-collection-green" id="detailGameStatusBadge">BACKLOG</span>
+        <div class="game-detail-badges-group" id="detailBadgesGroup">
+          <span class="badge-status badge-collection-green" id="detailGameStatusBadge">BACKLOG</span>
+          <span class="badge-status badge-player-downloaded" id="detailDownloadedBadge" style="display: none;">Downloaded</span>
+          <span class="badge-status badge-player-played" id="detailPlayedBadge" style="display: none;">Played</span>
+          <span class="badge-status badge-player-won" id="detailWonBadge" style="display: none;">★ Won</span>
+        </div>
       </div>
 
       <!-- Main Content Flow: Left Floated Images Box + Right Specs + Description wrapping around images if needed -->
@@ -1554,6 +1723,43 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
           <div class="game-detail-spec-row">
             <span class="spec-label">Category</span>
             <span class="spec-value" id="detailCategoryValue">—</span>
+          </div>
+
+          <!-- Downloads: Global download count -->
+          <div class="game-detail-spec-row">
+            <span class="spec-label">Downloads</span>
+            <span class="spec-value">
+              <span id="detailDownloadsCount" style="font-weight: 700; color: #f1f5f9;">0</span>
+              <span id="detailDownloadsText" style="color: #94a3b8; font-size: 0.85rem; margin-left: 4px;">total downloads</span>
+            </span>
+          </div>
+
+          <!-- Player Collection Status -->
+          <div class="game-detail-spec-row">
+            <span class="spec-label">Collection Status</span>
+            <span class="spec-value" id="detailPlayerCollectionStatus">
+              <span class="status-not-downloaded">Not downloaded</span>
+            </span>
+          </div>
+
+          <!-- Your Progress (Toggles for Played and Won) -->
+          <div class="game-detail-spec-row game-detail-progress-row">
+            <span class="spec-label">Your Progress</span>
+            <span class="spec-value">
+              <div class="game-progress-toggles">
+                <label class="progress-pill-toggle disabled" id="playedToggleLabel" for="chkDetailPlayed" title="Mark game as played">
+                  <input type="checkbox" id="chkDetailPlayed" disabled>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label-text">Played</span>
+                </label>
+                <label class="progress-pill-toggle disabled" id="wonToggleLabel" for="chkDetailWon" title="Mark game as won">
+                  <input type="checkbox" id="chkDetailWon" disabled>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label-text">★ Won</span>
+                </label>
+                <span class="progress-hint-text" id="progressHintText">Download to track progress</span>
+              </div>
+            </span>
           </div>
 
           <!-- Tags in badge form -->
@@ -1718,12 +1924,23 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const detailScreenshotImg     = document.getElementById('detailScreenshotImg');
   const detailGameTitle         = document.getElementById('detailGameTitle');
   const detailGameStatusBadge   = document.getElementById('detailGameStatusBadge');
+  const detailDownloadedBadge   = document.getElementById('detailDownloadedBadge');
+  const detailPlayedBadge       = document.getElementById('detailPlayedBadge');
+  const detailWonBadge          = document.getElementById('detailWonBadge');
   const detailMakerLink         = document.getElementById('detailMakerLink');
   const detailMakerValue        = document.getElementById('detailMakerValue');
   const detailConsoleLink       = document.getElementById('detailConsoleLink');
   const detailConsoleValue      = document.getElementById('detailConsoleValue');
   const detailYearValue         = document.getElementById('detailYearValue');
   const detailCategoryValue     = document.getElementById('detailCategoryValue');
+  const detailDownloadsCount    = document.getElementById('detailDownloadsCount');
+  const detailDownloadsText     = document.getElementById('detailDownloadsText');
+  const detailPlayerCollectionStatus = document.getElementById('detailPlayerCollectionStatus');
+  const chkDetailPlayed         = document.getElementById('chkDetailPlayed');
+  const chkDetailWon            = document.getElementById('chkDetailWon');
+  const playedToggleLabel       = document.getElementById('playedToggleLabel');
+  const wonToggleLabel          = document.getElementById('wonToggleLabel');
+  const progressHintText        = document.getElementById('progressHintText');
   const detailTagsContainer     = document.getElementById('detailTagsContainer');
   const detailCommentsText      = document.getElementById('detailCommentsText');
   const detailCommentsEmpty     = document.getElementById('detailCommentsEmpty');
@@ -2091,6 +2308,19 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     });
+
+    // 13. Player Progress Toggles (Played / Won)
+    if (chkDetailPlayed) {
+      chkDetailPlayed.addEventListener('change', onPlayedToggled);
+    }
+    if (chkDetailWon) {
+      chkDetailWon.addEventListener('change', onWonToggled);
+    }
+
+    // 14. Attached File Downloads (immediately updates downloaded status and enables progress)
+    if (detailFilesList) {
+      detailFilesList.addEventListener('click', onFileDownloadClicked);
+    }
   }
 
   /**
@@ -2210,6 +2440,167 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  /**
+   * Formats a date string into friendly localized date (e.g. Oct 5, 2026)
+   */
+  function formatFriendlyDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(String(dateStr).replace(' ', 'T'));
+    if (isNaN(d.getTime())) return String(dateStr);
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  /**
+   * Handles toggling the Played checkbox
+   */
+  async function onPlayedToggled() {
+    if (!activeGame || (Number(activeGame.is_downloaded) !== 1 && Number(activeGame.download_count) <= 0)) {
+      if (chkDetailPlayed) chkDetailPlayed.checked = false;
+      return;
+    }
+
+    const newPlayed = chkDetailPlayed.checked ? 1 : 0;
+    let newWon = chkDetailWon && chkDetailWon.checked ? 1 : 0;
+
+    if (newPlayed === 0) {
+      newWon = 0;
+      if (chkDetailWon) {
+        chkDetailWon.checked = false;
+        chkDetailWon.disabled = true;
+      }
+      if (playedToggleLabel) {
+        playedToggleLabel.classList.remove('is-active-played');
+      }
+      if (wonToggleLabel) {
+        wonToggleLabel.classList.add('disabled');
+        wonToggleLabel.classList.remove('is-active-won');
+      }
+      if (detailWonBadge) detailWonBadge.style.display = 'none';
+      if (progressHintText) progressHintText.textContent = 'Mark as played to unlock Won';
+    } else {
+      if (playedToggleLabel) {
+        playedToggleLabel.classList.add('is-active-played');
+      }
+      if (chkDetailWon) chkDetailWon.disabled = false;
+      if (wonToggleLabel) {
+        wonToggleLabel.classList.remove('disabled');
+        wonToggleLabel.classList.toggle('is-active-won', newWon === 1);
+      }
+      if (progressHintText) {
+        progressHintText.textContent = newWon ? 'Game completed & won! ★' : 'In progress';
+      }
+    }
+
+    if (detailPlayedBadge) {
+      detailPlayedBadge.style.display = newPlayed ? 'inline-flex' : 'none';
+    }
+
+    activeGame.is_played = newPlayed;
+    activeGame.is_won = newWon;
+    const inAll = ALL_GAMES.find(g => Number(g.id) === Number(activeGame.id));
+    if (inAll) {
+      inAll.is_played = newPlayed;
+      inAll.is_won = newWon;
+    }
+
+    await saveGameProgress(activeGame.id, newPlayed, newWon);
+  }
+
+  /**
+   * Handles toggling the Won checkbox
+   */
+  async function onWonToggled() {
+    if (!activeGame || (Number(activeGame.is_downloaded) !== 1 && Number(activeGame.download_count) <= 0) || !chkDetailPlayed.checked) {
+      if (chkDetailWon) chkDetailWon.checked = false;
+      if (wonToggleLabel) wonToggleLabel.classList.remove('is-active-won');
+      return;
+    }
+
+    const newWon = chkDetailWon.checked ? 1 : 0;
+    if (wonToggleLabel) {
+      wonToggleLabel.classList.toggle('is-active-won', newWon === 1);
+    }
+    if (detailWonBadge) {
+      detailWonBadge.style.display = newWon ? 'inline-flex' : 'none';
+    }
+    if (progressHintText) {
+      progressHintText.textContent = newWon ? 'Game completed & won! ★' : 'In progress';
+    }
+
+    activeGame.is_won = newWon;
+    const inAll = ALL_GAMES.find(g => Number(g.id) === Number(activeGame.id));
+    if (inAll) {
+      inAll.is_won = newWon;
+    }
+
+    await saveGameProgress(activeGame.id, 1, newWon);
+  }
+
+  /**
+   * Persists played/won progress to database via backend API
+   */
+  async function saveGameProgress(gameId, isPlayed, isWon) {
+    try {
+      const res = await fetch('/api/games-portal/update-game-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          game_id: Number(gameId),
+          is_played: Number(isPlayed),
+          is_won: Number(isWon)
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        console.error('Failed to update game status:', data.message || res.statusText);
+      }
+    } catch (err) {
+      console.error('Network error saving game status:', err);
+    }
+  }
+
+  /**
+   * Handles clicks on file download buttons in detail file table
+   */
+  function onFileDownloadClicked(e) {
+    const downloadBtn = e.target.closest('.btn-file-download-action');
+    if (!downloadBtn || !activeGame) return;
+
+    // Immediately mark active game as downloaded in client state
+    activeGame.is_downloaded = 1;
+    activeGame.download_count = Number(activeGame.download_count || 0) + 1;
+    const nowIso = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    activeGame.last_download_date = nowIso;
+    activeGame.global_download_count = Number(activeGame.global_download_count || 0) + 1;
+
+    // Update in ALL_GAMES cache
+    const inAll = ALL_GAMES.find(g => Number(g.id) === Number(activeGame.id));
+    if (inAll) {
+      inAll.is_downloaded = 1;
+      inAll.download_count = activeGame.download_count;
+      inAll.last_download_date = nowIso;
+      inAll.global_download_count = activeGame.global_download_count;
+    }
+
+    // Reflect on UI
+    if (detailDownloadedBadge) detailDownloadedBadge.style.display = 'inline-flex';
+    if (detailDownloadsCount) detailDownloadsCount.textContent = activeGame.global_download_count.toLocaleString();
+    if (detailPlayerCollectionStatus) {
+      detailPlayerCollectionStatus.innerHTML = '<span class="status-in-collection">In collection</span> <span class="status-download-time">(Last downloaded: Just now)</span>';
+    }
+    if (chkDetailPlayed) {
+      chkDetailPlayed.disabled = false;
+      playedToggleLabel.classList.remove('disabled');
+      playedToggleLabel.classList.toggle('is-active-played', chkDetailPlayed.checked);
+      if (!chkDetailPlayed.checked && progressHintText) {
+        progressHintText.textContent = 'Mark as played to unlock Won';
+      }
+    }
   }
 
   /**
@@ -2362,6 +2753,10 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     populateGameHeader(gameItem);
 
     if (cachedDetail && Number(cachedDetail.game?.id) === Number(gameItem.id)) {
+      if (cachedDetail.game) {
+        Object.assign(activeGame, cachedDetail.game);
+        populateGameHeader(cachedDetail.game);
+      }
       populateDetailSubsections(cachedDetail);
       return;
     }
@@ -2379,6 +2774,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       activeDetailData = payload;
       populateDetailSubsections(payload);
       if (payload.game) {
+        Object.assign(activeGame, payload.game);
         populateGameHeader(payload.game);
       }
     } catch (err) {
@@ -2406,6 +2802,86 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     detailGameStatusBadge.textContent = badgeInfo.text;
     detailGameStatusBadge.className = `badge-status badge-collection-${badgeInfo.color}`;
     detailGameStatusBadge.style.display = 'inline-flex';
+
+    // 2b. Player Status Badges (Downloaded, Played, Won)
+    const isDownloaded = Number(game.is_downloaded) === 1 || Number(game.download_count) > 0;
+    const isPlayed = Number(game.is_played) === 1;
+    const isWon = Number(game.is_won) === 1;
+
+    if (detailDownloadedBadge) {
+      detailDownloadedBadge.style.display = isDownloaded ? 'inline-flex' : 'none';
+    }
+    if (detailPlayedBadge) {
+      detailPlayedBadge.style.display = (isDownloaded && isPlayed) ? 'inline-flex' : 'none';
+    }
+    if (detailWonBadge) {
+      detailWonBadge.style.display = (isDownloaded && isPlayed && isWon) ? 'inline-flex' : 'none';
+    }
+
+    // 2c. Global Downloads Count
+    const globalDownloads = Number(game.global_download_count !== undefined ? game.global_download_count : (activeGame && activeGame.global_download_count !== undefined ? activeGame.global_download_count : 0));
+    if (detailDownloadsCount) {
+      detailDownloadsCount.textContent = globalDownloads.toLocaleString();
+    }
+    if (detailDownloadsText) {
+      detailDownloadsText.textContent = globalDownloads === 1 ? 'total download' : 'total downloads';
+    }
+
+    // 2d. Player Collection Status
+    if (detailPlayerCollectionStatus) {
+      if (isDownloaded) {
+        let lastDateFormatted = '';
+        const dlDate = game.last_download_date || (activeGame && activeGame.last_download_date);
+        if (dlDate) {
+          lastDateFormatted = ` (Last downloaded: ${escapeHtml(formatFriendlyDate(dlDate))})`;
+        }
+        detailPlayerCollectionStatus.innerHTML = `<span class="status-in-collection">In collection</span><span class="status-download-time">${lastDateFormatted}</span>`;
+      } else {
+        detailPlayerCollectionStatus.innerHTML = '<span class="status-not-downloaded">Not downloaded</span>';
+      }
+    }
+
+    // 2e. Your Progress Toggles (Played / Won)
+    if (chkDetailPlayed && chkDetailWon && playedToggleLabel && wonToggleLabel) {
+      if (!isDownloaded) {
+        chkDetailPlayed.disabled = true;
+        chkDetailPlayed.checked = false;
+        playedToggleLabel.classList.add('disabled');
+        playedToggleLabel.classList.remove('is-active-played');
+
+        chkDetailWon.disabled = true;
+        chkDetailWon.checked = false;
+        wonToggleLabel.classList.add('disabled');
+        wonToggleLabel.classList.remove('is-active-won');
+
+        if (progressHintText) {
+          progressHintText.textContent = 'Download game to track progress';
+        }
+      } else {
+        chkDetailPlayed.disabled = false;
+        playedToggleLabel.classList.remove('disabled');
+        chkDetailPlayed.checked = isPlayed;
+        playedToggleLabel.classList.toggle('is-active-played', isPlayed);
+
+        if (isPlayed) {
+          chkDetailWon.disabled = false;
+          wonToggleLabel.classList.remove('disabled');
+          chkDetailWon.checked = isWon;
+          wonToggleLabel.classList.toggle('is-active-won', isWon);
+          if (progressHintText) {
+            progressHintText.textContent = isWon ? 'Game completed & won! ★' : 'In progress';
+          }
+        } else {
+          chkDetailWon.disabled = true;
+          chkDetailWon.checked = false;
+          wonToggleLabel.classList.add('disabled');
+          wonToggleLabel.classList.remove('is-active-won');
+          if (progressHintText) {
+            progressHintText.textContent = 'Mark as played to unlock Won';
+          }
+        }
+      }
+    }
 
     // 3. Boxart (top left)
     const boxartUrl = formatImageUrl(game.boxart_path, FALLBACK_BOXART);

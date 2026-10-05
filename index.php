@@ -147,7 +147,8 @@ $router->get('/game_portal', function () {
 $router->get('/api/games-portal/game/{id}', function (array $req) {
     $id = (int)($req['params']['id'] ?? 0);
     $repo = new \Vault\Repositories\GameRepository();
-    $data = $repo->getGamePortalDetail($id);
+    $playerId = (int)(\Vault\Auth\Auth::id() ?? 1);
+    $data = $repo->getGamePortalDetail($id, $playerId);
     if ($data === null) {
         Response::json(['error' => 'Game not found'], 404);
         return;
@@ -157,12 +158,42 @@ $router->get('/api/games-portal/game/{id}', function (array $req) {
 $router->get('/api/game-portal/game/{id}', function (array $req) {
     $id = (int)($req['params']['id'] ?? 0);
     $repo = new \Vault\Repositories\GameRepository();
-    $data = $repo->getGamePortalDetail($id);
+    $playerId = (int)(\Vault\Auth\Auth::id() ?? 1);
+    $data = $repo->getGamePortalDetail($id, $playerId);
     if ($data === null) {
         Response::json(['error' => 'Game not found'], 404);
         return;
     }
     Response::json($data);
+});
+$router->post('/api/games-portal/update-game-status', function (array $req) {
+    $body = json_decode((string)file_get_contents('php://input'), true) ?? [];
+    $gameId   = (int)($body['game_id'] ?? 0);
+    $isPlayed = !empty($body['is_played']);
+    $isWon    = !empty($body['is_won']);
+
+    if ($gameId <= 0) {
+        Response::json(['success' => false, 'error' => 'Invalid game ID.'], 400);
+        return;
+    }
+
+    $playerId = (int)(\Vault\Auth\Auth::id() ?? 1);
+    $playerRepo = new \Vault\Repositories\PlayerGameRepository();
+
+    // Check if game has been downloaded first
+    $existing = $playerRepo->findByPlayerAndGame($playerId, $gameId);
+    $isDownloaded = !empty($existing['is_downloaded']) || (!empty($existing['download_count']) && (int)$existing['download_count'] > 0);
+    if (!$isDownloaded) {
+        Response::json(['success' => false, 'error' => 'Game must be downloaded before updating progress.'], 400);
+        return;
+    }
+
+    $record = $playerRepo->updateGameStatus($playerId, $gameId, $isPlayed, $isWon);
+
+    Response::json([
+        'success' => true,
+        'record'  => $record,
+    ]);
 });
 
 $router->get('/consoles-portal', function () {
