@@ -136,6 +136,34 @@ $router->get('/games-portal', function () {
 $router->get('/games_portal', function () {
     Response::redirect('/games-portal');
 });
+$router->get('/game-portal', function () {
+    Response::redirect('/games-portal');
+});
+$router->get('/game_portal', function () {
+    Response::redirect('/games-portal');
+});
+
+// Games Portal API Routes
+$router->get('/api/games-portal/game/{id}', function (array $req) {
+    $id = (int)($req['params']['id'] ?? 0);
+    $repo = new \Vault\Repositories\GameRepository();
+    $data = $repo->getGamePortalDetail($id);
+    if ($data === null) {
+        Response::json(['error' => 'Game not found'], 404);
+        return;
+    }
+    Response::json($data);
+});
+$router->get('/api/game-portal/game/{id}', function (array $req) {
+    $id = (int)($req['params']['id'] ?? 0);
+    $repo = new \Vault\Repositories\GameRepository();
+    $data = $repo->getGamePortalDetail($id);
+    if ($data === null) {
+        Response::json(['error' => 'Game not found'], 404);
+        return;
+    }
+    Response::json($data);
+});
 
 $router->get('/consoles-portal', function () {
     if (file_exists(__DIR__ . '/src/Views/consoles_portal.php')) {

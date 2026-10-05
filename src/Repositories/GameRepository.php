@@ -672,5 +672,218 @@ final class GameRepository
             'total_consoles' => $totalConsoles,
         ];
     }
+
+    /**
+     * Retrieves lightweight catalog list for Games Portal.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getGamePortalList(): array
+    {
+        $sql = "
+            SELECT 
+                g.id,
+                g.title,
+                g.console_id,
+                g.category_id,
+                g.subcategory_id,
+                g.publisher_id,
+                g.language_id,
+                g.year,
+                g.tags,
+                g.comments,
+                g.in_collection,
+                g.boxart_path,
+                g.screenshot_path,
+                c.name AS console_name,
+                cat.name AS category_name,
+                sub.name AS subcategory_name,
+                pub.name AS publisher_name
+            FROM `games` g
+            LEFT JOIN `consoles` c ON c.id = g.console_id
+            LEFT JOIN `categories` cat ON cat.id = g.category_id
+            LEFT JOIN `subcategories` sub ON sub.id = g.subcategory_id
+            LEFT JOIN `publishers` pub ON pub.id = g.publisher_id
+            ORDER BY g.title ASC
+        ";
+
+        $rows = Database::fetchAll($sql);
+
+        return array_map(function (array $row): array {
+            return $this->formatGameRecord($row);
+        }, $rows);
+    }
+
+    /**
+     * Retrieves random games from a specific console (excluding given game ID if provided).
+     *
+     * @param int $consoleId
+     * @param int $limit
+     * @param int $excludeGameId
+     * @return array<int, array<string, mixed>>
+     */
+    public function getRandomGamesByConsole(int $consoleId, int $limit = 15, int $excludeGameId = 0): array
+    {
+        $limit = max(1, $limit);
+        $params = [':console_id' => $consoleId];
+        $where = "WHERE g.console_id = :console_id";
+
+        if ($excludeGameId > 0) {
+            $where .= " AND g.id != :exclude_id";
+            $params[':exclude_id'] = $excludeGameId;
+        }
+
+        $sql = "
+            SELECT 
+                g.id,
+                g.title,
+                g.boxart_path,
+                g.screenshot_path,
+                g.year,
+                c.name AS console_name,
+                p.name AS publisher_name
+            FROM `games` g
+            LEFT JOIN `consoles` c ON c.id = g.console_id
+            LEFT JOIN `publishers` p ON p.id = g.publisher_id
+            {$where}
+            ORDER BY RAND()
+            LIMIT {$limit}
+        ";
+
+        $rows = Database::fetchAll($sql, $params);
+        return array_map(function (array $r): array {
+            $boxart = trim((string)($r['boxart_path'] ?? ''));
+            $r['boxart_url'] = $boxart !== '' ? ('/' . ltrim($boxart, '/\\')) : '';
+            return $r;
+        }, $rows);
+    }
+
+    /**
+     * Retrieves random similar games (same category and subcategory; falls back to same category).
+     *
+     * @param int $categoryId
+     * @param int $subcategoryId
+     * @param int $limit
+     * @param int $excludeGameId
+     * @return array<int, array<string, mixed>>
+     */
+    public function getRandomSimilarGames(int $categoryId, int $subcategoryId, int $limit = 15, int $excludeGameId = 0): array
+    {
+        $limit = max(1, $limit);
+        if ($categoryId <= 0) {
+            return [];
+        }
+
+        $results = [];
+        $existingIds = $excludeGameId > 0 ? [$excludeGameId] : [];
+
+        // 1. Try matching both category and subcategory if subcategory is set
+        if ($subcategoryId > 0) {
+            $params = [
+                ':cat_id' => $categoryId,
+                ':subcat_id' => $subcategoryId,
+            ];
+            $where = "WHERE g.category_id = :cat_id AND g.subcategory_id = :subcat_id";
+            if ($excludeGameId > 0) {
+                $where .= " AND g.id != :exclude_id";
+                $params[':exclude_id'] = $excludeGameId;
+            }
+
+            $sql = "
+                SELECT 
+                    g.id,
+                    g.title,
+                    g.boxart_path,
+                    g.screenshot_path,
+                    g.year,
+                    c.name AS console_name,
+                    p.name AS publisher_name,
+                    cat.name AS category_name,
+                    sub.name AS subcategory_name
+                FROM `games` g
+                LEFT JOIN `consoles` c ON c.id = g.console_id
+                LEFT JOIN `publishers` p ON p.id = g.publisher_id
+                LEFT JOIN `categories` cat ON cat.id = g.category_id
+                LEFT JOIN `subcategories` sub ON sub.id = g.subcategory_id
+                {$where}
+                ORDER BY RAND()
+                LIMIT {$limit}
+            ";
+
+            $results = Database::fetchAll($sql, $params);
+            foreach ($results as $r) {
+                $existingIds[] = (int)$r['id'];
+            }
+        }
+
+        // 2. If we need more to reach $limit, fill with other games from the same category
+        $needed = $limit - count($results);
+        if ($needed > 0) {
+            $params = [':cat_id' => $categoryId];
+            $where = "WHERE g.category_id = :cat_id";
+            if (!empty($existingIds)) {
+                $inClause = implode(',', array_map('intval', $existingIds));
+                $where .= " AND g.id NOT IN ({$inClause})";
+            }
+
+            $sql = "
+                SELECT 
+                    g.id,
+                    g.title,
+                    g.boxart_path,
+                    g.screenshot_path,
+                    g.year,
+                    c.name AS console_name,
+                    p.name AS publisher_name,
+                    cat.name AS category_name,
+                    sub.name AS subcategory_name
+                FROM `games` g
+                LEFT JOIN `consoles` c ON c.id = g.console_id
+                LEFT JOIN `publishers` p ON p.id = g.publisher_id
+                LEFT JOIN `categories` cat ON cat.id = g.category_id
+                LEFT JOIN `subcategories` sub ON sub.id = g.subcategory_id
+                {$where}
+                ORDER BY RAND()
+                LIMIT {$needed}
+            ";
+
+            $more = Database::fetchAll($sql, $params);
+            $results = array_merge($results, $more);
+        }
+
+        return array_map(function (array $r): array {
+            $boxart = trim((string)($r['boxart_path'] ?? ''));
+            $r['boxart_url'] = $boxart !== '' ? ('/' . ltrim($boxart, '/\\')) : '';
+            return $r;
+        }, $results);
+    }
+
+    /**
+     * Retrieves full game portal detail for a game (game record, downloadable files, 15 random games by console, 15 similar games).
+     *
+     * @param int $gameId
+     * @return array<string, mixed>|null
+     */
+    public function getGamePortalDetail(int $gameId): ?array
+    {
+        $game = $this->getById($gameId);
+        if (!$game) {
+            return null;
+        }
+
+        $consoleId = (int)($game['console_id'] ?? 0);
+        $categoryId = (int)($game['category_id'] ?? 0);
+        $subcategoryId = (int)($game['subcategory_id'] ?? 0);
+
+        $consoleGames = $consoleId > 0 ? $this->getRandomGamesByConsole($consoleId, 15, $gameId) : [];
+        $similarGames = $categoryId > 0 ? $this->getRandomSimilarGames($categoryId, $subcategoryId, 15, $gameId) : [];
+
+        return [
+            'game'          => $game,
+            'files'         => $game['downloadable_files'] ?? [],
+            'console_games' => $consoleGames,
+            'similar_games' => $similarGames,
+        ];
+    }
 }
 

@@ -60,6 +60,11 @@
     padding: 0;
 }
 
+html {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
 body {
     font-family: var(--font-sans);
     background: var(--bg);
@@ -68,7 +73,9 @@ body {
     -webkit-font-smoothing: antialiased;
     padding: 16px;
     min-height: 100vh;
+    max-width: 100%;
     overflow-x: hidden;
+    position: relative;
 }
 
 a {
@@ -855,6 +862,136 @@ body.sidebar-open .master-sidebar {
 .scroll-top-link {
     color: var(--border-focus);
     font-weight: 600;
+}
+
+/* Master Shell Mobile Ergonomics & Overflow Prevention */
+@media (max-width: 768px) {
+    body {
+        padding: 0;
+        max-width: 100vw;
+        overflow-x: hidden;
+    }
+    .master-wrapper {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-top: none;
+        min-height: 100vh;
+        width: 100%;
+        max-width: 100vw;
+        overflow-x: hidden;
+        box-sizing: border-box;
+    }
+    .master-header {
+        padding: 10px 12px;
+        width: 100%;
+        max-width: 100vw;
+        box-sizing: border-box;
+        overflow-x: hidden;
+    }
+    .master-header-content {
+        gap: 8px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        justify-content: space-between;
+    }
+    .header-brand {
+        flex: 1 1 auto;
+        min-width: 0;
+        gap: 8px;
+        align-items: center;
+    }
+    .header-brand-block {
+        min-width: 0;
+        flex: 1 1 auto;
+        gap: 4px;
+    }
+    .header-brand-top {
+        min-width: 0;
+        gap: 8px;
+    }
+    .header-brand .brand-link {
+        min-width: 0;
+        gap: 8px;
+    }
+    .brand-logo-badge {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+    .brand-text-block {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+    .brand-title {
+        font-size: 15px;
+        line-height: 1.15;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .brand-subtitle {
+        font-size: 10px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .sidebar-toggle-btn {
+        width: 34px;
+        height: 34px;
+        margin-top: 0;
+        margin-right: 0;
+    }
+    .header-user-section {
+        flex-shrink: 0;
+    }
+    .header-avatar-btn {
+        width: 34px;
+        height: 34px;
+        flex-shrink: 0;
+    }
+    .header-avatar-initials {
+        font-size: 12px;
+    }
+    .header-telemetry-row {
+        margin-left: 0;
+        gap: 4px;
+        width: 100%;
+        flex-wrap: wrap;
+    }
+    .telemetry-pill {
+        padding: 2px 7px;
+        font-size: 10.5px;
+    }
+    .master-footer {
+        padding: 10px 12px;
+        width: 100%;
+        max-width: 100vw;
+        box-sizing: border-box;
+        overflow-x: hidden;
+    }
+    .footer-row-primary {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        padding-bottom: 8px;
+    }
+    .shortcuts-legend {
+        display: none !important;
+    }
+    .footer-row-secondary {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    .master-main-content {
+        width: 100%;
+        max-width: 100vw;
+        overflow-x: hidden;
+        box-sizing: border-box;
+    }
 }
 
 /* --------------------------------------------------------------------------
@@ -2353,14 +2490,125 @@ tr.active td {
     }
 }
 
-/* Smartphone Portrait Breakpoint (e.g., 390px-440px Viewports) */
+/* Smartphone Portrait Breakpoint (e.g., 320px-600px Viewports) */
 @media (max-width: 600px) {
     body {
-        padding: 8px;
+        padding: 6px;
+        max-width: 100vw;
+        overflow-x: hidden;
     }
 
     .master-wrapper {
         border-radius: var(--radius-md);
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .master-header {
+        padding: 12px 10px;
+        overflow-x: hidden;
+    }
+
+    .master-header-content {
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .header-brand {
+        gap: 8px;
+        min-width: 0;
+        max-width: 100%;
+        align-items: center;
+    }
+
+    .sidebar-toggle-btn {
+        width: 34px;
+        height: 34px;
+        margin-top: 0;
+        margin-right: 0;
+        flex-shrink: 0;
+    }
+
+    .header-brand-block {
+        gap: 4px;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .header-brand-top {
+        gap: 6px;
+        min-width: 0;
+    }
+
+    .header-brand .brand-link {
+        gap: 6px;
+        min-width: 0;
+    }
+
+    .brand-logo-badge {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+
+    .brand-title {
+        font-size: 15px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .brand-subtitle {
+        font-size: 10.5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .header-telemetry-row {
+        margin-left: 0;
+        gap: 4px;
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .telemetry-pill {
+        padding: 2px 7px;
+        font-size: 10.5px;
+    }
+
+    .header-user-section {
+        margin-left: auto;
+    }
+
+    .header-login-link {
+        font-size: 11px;
+        padding: 4px 8px;
+    }
+
+    .master-main-content {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .master-footer {
+        padding: 12px 10px;
+        overflow-x: hidden;
+    }
+
+    .footer-row-primary {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .footer-row-secondary {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        flex-wrap: wrap;
     }
 
     .form-pane {

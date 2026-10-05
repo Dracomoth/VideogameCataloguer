@@ -49,6 +49,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
    -------------------------------------------------------------------------- */
 .pub-portal-wrapper {
   max-width: 1440px;
+  width: 100%;
   margin: 0 auto;
   padding: 16px 20px 48px;
   box-sizing: border-box;
@@ -56,6 +57,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   flex-direction: column;
   gap: 16px;
   color: var(--text-main, #f8fafc);
+  overflow-x: hidden;
 }
 
 /* Master Header */
@@ -66,6 +68,9 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   flex-wrap: wrap;
   gap: 12px;
   padding-bottom: 4px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .pub-portal-title {
   display: flex;
@@ -85,6 +90,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   color: var(--text-muted, #94a3b8);
   font-weight: 400;
   margin-top: 2px;
+  word-break: break-word;
 }
 
 /* 1. Filter Bar (Always visible in both List and Detail modes) */
@@ -102,6 +108,10 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   gap: 14px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   transition: border-color var(--transition-fast);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 .pub-filter-bar:focus-within {
   border-color: rgba(56, 189, 248, 0.4);
@@ -112,6 +122,9 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   flex-wrap: wrap;
   gap: 12px;
   flex: 1 1 320px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .pub-search-box {
   position: relative;
@@ -195,10 +208,31 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
 }
+
+.btn-reset-filters {
+  height: 38px;
+  padding: 0 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-md, 6px);
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  gap: 5px;
+  transition: all var(--transition-fast);
+}
+.btn-reset-filters:hover {
+  background: #ef4444;
+  color: #fff;
+}
 .filter-summary-stats {
   font-size: 12px;
   color: var(--text-muted, #94a3b8);
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
 }
 
 /* 2. Sticky Horizontal Alphabet Pill Ray */
@@ -206,19 +240,25 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   position: sticky;
   top: 0;
   z-index: 45;
-  margin: 0 -20px;
-  padding: 8px 20px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 8px 12px;
+  box-sizing: border-box;
   background: rgba(11, 15, 25, 0.94);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
-  border-bottom: 1px solid var(--border, #243049);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--border, #243049);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
 }
 .pub-alphabet-ray {
   display: flex;
   align-items: center;
   gap: 6px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   overflow-x: auto;
   overflow-y: hidden;
   white-space: nowrap;
@@ -569,24 +609,23 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
 }
 
-/* Main Info: Left Boxed Logo + Right Listed Details (No boxes, aligned next to logo) */
+/* Main Info: Left Floated Logo + Right Specs & Wrapping Description */
 .pub-detail-main-info {
-  display: flex;
-  align-items: flex-start;
-  gap: 32px;
+  display: block;
+  position: relative;
   width: 100%;
 }
-@media (max-width: 768px) {
-  .pub-detail-main-info {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 20px;
-  }
+.pub-detail-main-info::after {
+  content: "";
+  display: table;
+  clear: both;
 }
 .pub-detail-logo-box {
+  float: left;
   width: 160px;
   height: 120px;
   min-width: 160px;
+  margin: 0 28px 18px 0;
   background: var(--surface-alt, #0c121e);
   border: 1px solid var(--border, #243049);
   border-radius: var(--radius-lg, 10px);
@@ -598,6 +637,12 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   overflow: hidden;
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
 }
+@media (max-width: 768px) {
+  .pub-detail-logo-box {
+    float: none;
+    margin: 0 0 16px 0;
+  }
+}
 .pub-detail-logo-img {
   max-width: 100%;
   max-height: 100%;
@@ -607,18 +652,14 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 
 /* Right: The details, listed - NO BOXES, aligned directly next to logo */
 .pub-detail-specs-list {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 14px;
-  flex: 0 1 auto;
-  padding: 2px 0 0 0;
+  display: block;
 }
 .pub-detail-spec-row {
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 0;
+  margin-bottom: 14px;
   background: transparent !important;
   border: none !important;
   border-radius: 0 !important;
@@ -655,21 +696,19 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   text-decoration: underline;
 }
 
-/* Separator & Justified Comments / History */
-.pub-detail-separator {
-  height: 1px;
-  background: var(--border, #243049);
-  margin: 22px 0 16px;
-  width: 100%;
-}
+/* Justified Comments / History under base info */
 .pub-detail-comments-block {
-  width: 100%;
+  margin-top: 18px;
 }
 .pub-detail-comments-text {
   font-size: 14px;
   line-height: 1.75;
   color: #cbd5e1;
   text-align: justify;
+  text-justify: inter-word;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  word-break: break-word;
   white-space: pre-line;
   margin: 0;
 }
@@ -898,34 +937,106 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     padding: 16px;
   }
   .pub-detail-main-info {
-    flex-direction: column;
-    align-items: flex-start;
     text-align: left;
-    gap: 16px;
   }
   .pub-detail-logo-box {
-    width: 110px;
-    height: 110px;
-    min-width: 110px;
+    float: none;
+    margin: 0 0 16px 0;
+    width: 130px;
+    height: 95px;
+    min-width: 130px;
   }
   .pub-detail-title-row {
-    justify-content: center;
+    justify-content: flex-start;
   }
   .pub-detail-stats-row {
-    justify-content: center;
+    justify-content: flex-start;
   }
   .pub-detail-history {
     text-align: left;
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .pub-portal-wrapper {
-    padding: 12px 14px 40px;
+    padding: 12px 10px 40px;
     gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+  .pub-portal-title {
+    font-size: 20px;
+  }
+  .pub-portal-subtitle {
+    font-size: 12px;
+  }
+  .pub-filter-bar {
+    padding: 12px;
+  }
+  .pub-filter-inputs {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 8px;
+    flex: 1 1 100%;
+  }
+  .pub-search-box {
+    min-width: 100%;
+    max-width: 100%;
+    width: 100%;
+    flex: 1 1 auto;
+  }
+  .pub-filter-types {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+  .filter-type-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  .btn-reset-filters {
+    width: 100%;
+    justify-content: center;
+    height: 38px;
+  }
+  .filter-summary-stats {
+    width: 100%;
+    text-align: right;
+    font-size: 11.5px;
+  }
+  .pub-sticky-ray-wrapper {
+    margin: 0;
+    padding: 6px 8px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .alphabet-pill {
+    height: 30px;
+    min-width: 32px;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+  .pub-subnav-row {
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: auto;
+    padding: 6px 0;
+  }
+  .pub-status-line {
+    font-size: 13px;
+  }
+  .pub-breadcrumb {
+    font-size: 13px;
+    gap: 6px;
   }
   .pub-cards-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
     gap: 10px;
   }
   .pub-card {
@@ -934,18 +1045,43 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   .pub-card-logo-slot {
     height: 65px;
   }
-  .pub-filter-bar {
-    padding: 12px;
+  .pub-card-name {
+    font-size: 12.5px;
   }
-  .pub-filter-types {
-    width: 100%;
-    justify-content: space-between;
+  .pub-detail-header-card {
+    padding: 16px 14px;
   }
-  .filter-type-btn {
-    flex: 1 1 auto;
-    justify-content: center;
-    padding: 6px 8px;
-    font-size: 11px;
+  .pub-detail-title-row {
+    gap: 10px;
+    margin-bottom: 14px;
+    justify-content: flex-start;
+  }
+  .pub-detail-name {
+    font-size: 20px;
+  }
+  .pub-detail-logo-box {
+    width: 110px;
+    height: 80px;
+    margin-bottom: 14px;
+  }
+  .pub-detail-spec-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    margin-bottom: 12px;
+  }
+  .pub-detail-spec-row .spec-label {
+    min-width: unset;
+    font-size: 12px;
+  }
+  .pub-detail-spec-row .spec-value {
+    font-size: 13.5px;
+  }
+  .pub-detail-comments-block {
+    margin-top: 14px;
+  }
+  .pub-section-card {
+    padding: 16px 14px;
   }
   .consoles-subgrid {
     grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
@@ -956,7 +1092,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     gap: 8px;
   }
   .game-thumb-slot {
-    height: 140px;
+    height: 135px;
   }
 }
 </style>
@@ -995,6 +1131,12 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         <button type="button" class="filter-type-btn" data-type="makers">🎮 Console Makers</button>
         <button type="button" class="filter-type-btn" data-type="software">💿 Software Only</button>
       </div>
+
+      <!-- Clear / Reset Filters Button (visible only when filters active) -->
+      <button type="button" id="pubBtnResetFilters" class="btn-reset-filters" title="Reset all filters">
+        <span>✕</span>
+        <span>Clear Filters</span>
+      </button>
     </div>
 
     <!-- Summary Stats -->
@@ -1075,7 +1217,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
           <!-- Rendered dynamically -->
         </div>
 
-        <!-- Right: The details, listed (No boxes, aligned directly next to logo) -->
+        <!-- Right: The details, listed + Description -->
         <div class="pub-detail-specs-list">
           <div class="pub-detail-spec-row">
             <span class="spec-label">Publisher Role</span>
@@ -1084,7 +1226,15 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
           <div class="pub-detail-spec-row">
             <span class="spec-label">Published Games</span>
             <span class="spec-value">
-              <a href="#" class="pub-games-link" id="detailGamesBadgeLink" title="View all games from this publisher">
+              <?php
+              $initPubGamesUrl = '#';
+              if (!empty($initialDet['publisher']['name'])) {
+                  $pName = (string)$initialDet['publisher']['name'];
+                  $pId = (int)($initialDet['publisher']['id'] ?? $initialPubId);
+                  $initPubGamesUrl = '/games-portal?publisher_id=' . $pId . '&publisher=' . urlencode($pName) . '&q=' . urlencode($pName) . '&mode=list';
+              }
+              ?>
+              <a href="<?= View::e($initPubGamesUrl) ?>" class="pub-games-link" id="detailGamesBadgeLink" title="View all games from this publisher">
                 <span id="detailGamesCount">0 Games</span>
                 <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
                   <path fill-rule="evenodd" d="M5.22 14.78a.75.75 0 001.06 0l7.22-7.22v5.69a.75.75 0 001.5 0v-7.5a.75.75 0 00-.75-.75h-7.5a.75.75 0 000 1.5h5.69l-7.22 7.22a.75.75 0 000 1.06z" clip-rule="evenodd"/>
@@ -1099,13 +1249,12 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
               <span id="detailConsolesText" style="color: #cbd5e1; font-weight: 500; margin-left: 4px;">Platforms</span>
             </span>
           </div>
-        </div>
-      </div>
 
-      <!-- Separator & Description with Justified Text -->
-      <div class="pub-detail-separator" id="detailDescSeparator" style="display: none;"></div>
-      <div class="pub-detail-comments-block" id="detailNotesSection" style="display: none;">
-        <p class="pub-detail-comments-text" id="detailDescriptionBox"></p>
+          <!-- Description with Justified Text under base info, wrapping around logo if needed -->
+          <div class="pub-detail-comments-block" id="detailNotesSection" style="display: none;">
+            <p class="pub-detail-comments-text" id="detailDescriptionBox"></p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1132,7 +1281,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
             <span>🎲</span>
             <span>Games Showcase</span>            
           </div>
-          <a href="#" class="btn-view-all-games" id="viewAllGamesBtn">
+          <a href="<?= View::e($initPubGamesUrl) ?>" class="btn-view-all-games" id="viewAllGamesBtn">
             <span>View All Games</span>
             <span id="viewAllCountLabel"></span>
             <span>→</span>
@@ -1172,6 +1321,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const searchInput = document.getElementById('portalSearchInput');
   const clearSearchBtn = document.getElementById('clearSearchBtn');
   const filterTypeBtns = document.querySelectorAll('.filter-type-btn');
+  const btnResetFilters = document.getElementById('pubBtnResetFilters');
   const filterStatsText = document.getElementById('filterStatsText');
   const alphabetPillRay = document.getElementById('alphabetPillRay');
 
@@ -1638,7 +1788,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       detailConsolesCount.textContent = String(consolesCount);
     }
 
-    const gamesCatalogUrl = `/games-portal?publisher_id=${publisher.id}&publisher=${encodeURIComponent(publisher.name)}&mode=list`;
+    const gamesCatalogUrl = `/games-portal?publisher_id=${publisher.id}&publisher=${encodeURIComponent(publisher.name)}&q=${encodeURIComponent(publisher.name)}&mode=list`;
     if (detailGamesBadgeLink) {
       detailGamesBadgeLink.href = gamesCatalogUrl;
     }
@@ -1789,11 +1939,21 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   // Event Bindings
   // --------------------------------------------------------------------------
 
+  function updateActiveFilterStyles() {
+    const hasQuery = currentSearchQuery !== '';
+    const hasType = currentTypeFilter !== 'all';
+    const hasAnyFilter = hasQuery || hasType;
+    if (btnResetFilters) {
+      btnResetFilters.style.display = hasAnyFilter ? 'inline-flex' : 'none';
+    }
+  }
+
   // Search input typing
   let searchDebounceTimer = null;
   searchInput.addEventListener('input', (e) => {
     currentSearchQuery = e.target.value.trim();
     clearSearchBtn.style.display = currentSearchQuery ? 'block' : 'none';
+    updateActiveFilterStyles();
 
     clearTimeout(searchDebounceTimer);
     searchDebounceTimer = setTimeout(() => {
@@ -1811,6 +1971,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     currentSearchQuery = '';
     clearSearchBtn.style.display = 'none';
     searchInput.focus();
+    updateActiveFilterStyles();
     renderPublishersList();
     updateUrlState();
   });
@@ -1822,6 +1983,8 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       btn.classList.add('active');
       currentTypeFilter = btn.dataset.type || 'all';
 
+      updateActiveFilterStyles();
+
       if (currentMode === 'detail') {
         setMode('list');
       }
@@ -1830,6 +1993,27 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       updateUrlState();
     });
   });
+
+  // Clear / Reset Filters button (resets search and type filter, preserves or shows list)
+  if (btnResetFilters) {
+    btnResetFilters.addEventListener('click', () => {
+      currentSearchQuery = '';
+      currentTypeFilter = 'all';
+      searchInput.value = '';
+      clearSearchBtn.style.display = 'none';
+
+      filterTypeBtns.forEach(b => b.classList.toggle('active', (b.dataset.type || 'all') === 'all'));
+
+      updateActiveFilterStyles();
+
+      if (currentMode === 'detail') {
+        setMode('list');
+      } else {
+        renderPublishersList();
+        updateUrlState();
+      }
+    });
+  }
 
   // Sort Order Toggle (Ascending A-Z vs Descending Z-A)
   sortOrderToggleBtn.addEventListener('click', () => {
@@ -1887,6 +2071,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     }
 
     renderPublishersList(); // Pre-render list so returning to list works seamlessly
+    updateActiveFilterStyles();
 
     if (INITIAL_PUB_ID > 0) {
       const pub = ALL_PUBLISHERS.find(p => Number(p.id) === INITIAL_PUB_ID);

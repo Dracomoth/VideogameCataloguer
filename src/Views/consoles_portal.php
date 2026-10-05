@@ -57,6 +57,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
    -------------------------------------------------------------------------- */
 .con-portal-wrapper {
   max-width: 1440px;
+  width: 100%;
   margin: 0 auto;
   padding: 16px 20px 48px;
   box-sizing: border-box;
@@ -64,6 +65,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   flex-direction: column;
   gap: 16px;
   color: var(--text-main, #f8fafc);
+  overflow-x: hidden;
 }
 
 /* Master Header */
@@ -110,6 +112,10 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   gap: 14px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   transition: border-color var(--transition-fast);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 .con-filter-bar:focus-within {
   border-color: rgba(56, 189, 248, 0.4);
@@ -120,6 +126,8 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   flex-wrap: wrap;
   gap: 12px;
   flex: 1 1 320px;
+  min-width: 0;
+  max-width: 100%;
 }
 .con-search-box {
   position: relative;
@@ -174,38 +182,63 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  background: var(--surface-alt, #0c121e);
+  padding: 3px;
+  border-radius: var(--radius-md, 6px);
+  border: 1px solid var(--border, #243049);
 }
-.filter-type-pill {
+.filter-type-pill,
+.filter-type-btn {
   padding: 6px 12px;
   font-size: 12px;
   font-weight: 500;
-  border: 1px solid var(--border, #243049);
-  background: var(--surface-alt, #0c121e);
+  border: none;
+  background: transparent;
   color: var(--text-muted, #94a3b8);
-  border-radius: var(--radius-pill, 9999px);
+  border-radius: 4px;
   cursor: pointer;
   transition: all var(--transition-fast);
   display: inline-flex;
   align-items: center;
   gap: 5px;
 }
-.filter-type-pill:hover {
+.filter-type-pill:hover,
+.filter-type-btn:hover {
   color: #fff;
   background: rgba(255, 255, 255, 0.05);
-  border-color: #38bdf8;
 }
-.filter-type-pill.active {
+.filter-type-pill.active,
+.filter-type-btn.active {
   background: var(--accent, #0284c7);
-  border-color: #38bdf8;
   color: #fff;
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
 }
+
+.btn-reset-filters {
+  height: 38px;
+  padding: 0 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-md, 6px);
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  gap: 5px;
+  transition: all var(--transition-fast);
+}
+.btn-reset-filters:hover {
+  background: #ef4444;
+  color: #fff;
+}
 .filter-summary-stats {
   font-size: 12px;
   color: var(--text-muted, #94a3b8);
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
 }
 
 /* 2. Sticky Horizontal Alphabet Pill Ray */
@@ -213,19 +246,25 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   position: sticky;
   top: 0;
   z-index: 45;
-  margin: 0 -20px;
-  padding: 8px 20px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 8px 12px;
+  box-sizing: border-box;
   background: rgba(11, 15, 25, 0.94);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
-  border-bottom: 1px solid var(--border, #243049);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--border, #243049);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
 }
 .con-alphabet-ray {
   display: flex;
   align-items: center;
   gap: 6px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   overflow-x: auto;
   overflow-y: hidden;
   white-space: nowrap;
@@ -572,26 +611,25 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Main Info: Left Boxed Images + Right Listed Details */
+/* Main Info: Left Floated Images Box + Right Specs & Wrapping Description */
 .con-detail-main-info {
-  display: flex;
-  align-items: flex-start;
-  gap: 32px;
+  display: block;
+  position: relative;
   width: 100%;
 }
-@media (max-width: 768px) {
-  .con-detail-main-info {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 20px;
-  }
+.con-detail-main-info::after {
+  content: "";
+  display: table;
+  clear: both;
 }
 
 /* Left: Boxed Section with the two images */
 .con-detail-images-box {
+  float: left;
   width: 270px;
   min-width: 270px;
   max-width: 290px;
+  margin: 0 28px 18px 0;
   background: var(--surface-alt, #0c121e);
   border: 1px solid var(--border, #243049);
   border-radius: var(--radius-lg, 10px);
@@ -604,9 +642,35 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 }
 @media (max-width: 768px) {
   .con-detail-images-box {
+    float: none;
     width: 100%;
     max-width: 100%;
     min-width: auto;
+    margin: 0 0 16px 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .con-logo-imagebox {
+    flex: 1 1 120px;
+    height: 80px;
+  }
+  .con-hardware-imagebox {
+    flex: 1 1 150px;
+    height: 160px;
+  }
+}
+@media (max-width: 420px) {
+  .con-detail-images-box {
+    flex-direction: column;
+  }
+  .con-logo-imagebox {
+    height: 68px;
+    width: 100%;
+  }
+  .con-hardware-imagebox {
+    height: 160px;
+    width: 100%;
   }
 }
 .con-imagebox {
@@ -646,18 +710,14 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 
 /* Right: The details, listed - NO BOXES, aligned directly next to images */
 .con-detail-specs-list {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 14px;
-  flex: 0 1 auto;
-  padding: 2px 0 0 0;
+  display: block;
 }
 .con-detail-spec-row {
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 0;
+  margin-bottom: 14px;
   background: transparent !important;
   border: none !important;
   border-radius: 0 !important;
@@ -707,21 +767,19 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   text-decoration: underline;
 }
 
-/* Separator & Justified Comments / Specs */
-.con-detail-separator {
-  height: 1px;
-  background: var(--border, #243049);
-  margin: 22px 0 16px;
-  width: 100%;
-}
+/* Justified Comments / Specs under base info */
 .con-detail-comments-block {
-  width: 100%;
+  margin-top: 18px;
 }
 .con-detail-comments-text {
   font-size: 14px;
   line-height: 1.75;
   color: #cbd5e1;
   text-align: justify;
+  text-justify: inter-word;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  word-break: break-word;
   white-space: pre-line;
   margin: 0;
 }
@@ -1069,32 +1127,149 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .con-portal-wrapper {
-    padding: 12px 14px 40px;
+    padding: 12px 10px 40px;
     gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
   }
-  .con-hero-title {
-    font-size: 24px;
+  .con-portal-title {
+    font-size: 20px;
   }
-  .con-hero-badge-bar {
+  .con-portal-subtitle {
+    font-size: 12px;
+  }
+  .con-filter-bar {
+    padding: 12px;
+  }
+  .con-filter-inputs {
     flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 8px;
+    flex: 1 1 100%;
   }
-  .con-hero-badge {
+  .con-search-box {
     min-width: 100%;
+    max-width: 100%;
+    width: 100%;
+    flex: 1 1 auto;
   }
-  .con-emu-cards-grid {
-    grid-template-columns: 1fr;
+  .con-filter-types {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 6px;
   }
-  .con-games-subgrid {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  .filter-type-pill,
+  .filter-type-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+  .btn-reset-filters {
+    width: 100%;
+    justify-content: center;
+    height: 38px;
+  }
+  .filter-summary-stats {
+    width: 100%;
+    text-align: right;
+    font-size: 11.5px;
+  }
+  .con-sticky-ray-wrapper {
+    margin: 0;
+    padding: 6px 10px;
+    width: 100%;
+    max-width: 100%;
+  }
+  .con-alphabet-pill {
+    height: 30px;
+    min-width: 32px;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+  .con-subnav-row {
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: auto;
+    padding: 6px 0;
+  }
+  .con-status-line {
+    font-size: 13px;
+  }
+  .con-breadcrumb {
+    font-size: 13px;
+    gap: 6px;
+  }
+  .con-cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
     gap: 10px;
   }
-  .con-game-thumb-slot {
-    height: 140px;
+  .con-card-image-slot {
+    height: 105px;
+  }
+  .con-card-name {
+    font-size: 12.5px;
+    min-height: 32px;
+  }
+  .con-detail-header-card {
+    padding: 16px 14px;
+  }
+  .con-detail-title-row {
+    gap: 10px;
+    margin-bottom: 14px;
+    justify-content: flex-start;
+  }
+  .con-detail-name {
+    font-size: 20px;
+  }
+  .con-detail-spec-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    margin-bottom: 12px;
+  }
+  .con-detail-spec-row .spec-label {
+    min-width: unset;
+    font-size: 12px;
+  }
+  .con-detail-spec-row .spec-value {
+    font-size: 13.5px;
+  }
+  .con-detail-comments-block {
+    margin-top: 14px;
   }
   .con-section-panel {
-    padding: 16px;
+    padding: 16px 14px;
+  }
+  .con-files-table th,
+  .con-files-table td {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  .con-emu-row {
+    padding: 10px 12px;
+  }
+  .emu-type-tag {
+    min-width: unset;
+  }
+  .con-games-subgrid {
+    grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+    gap: 8px;
+  }
+  .con-game-thumb-slot {
+    height: 130px;
+  }
+  .con-lightbox-close {
+    top: 12px;
+    right: 12px;
+    position: fixed;
+    width: 36px;
+    height: 36px;
   }
 }
 </style>
@@ -1131,6 +1306,12 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       <div class="con-filter-types" id="conFilterTypesContainer" role="radiogroup" aria-label="Hardware type classification">
         <!-- Rendered dynamically -->
       </div>
+
+      <!-- Clear / Reset Filters Button (visible only when filters active) -->
+      <button type="button" id="conBtnResetFilters" class="btn-reset-filters" title="Reset all filters">
+        <span>✕</span>
+        <span>Clear Filters</span>
+      </button>
     </div>
 
     <!-- Summary Stats -->
@@ -1209,7 +1390,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
           </div>
         </div>
 
-        <!-- Right: The details, listed -->
+        <!-- Right: The details, listed + Description -->
         <div class="con-detail-specs-list">
           <div class="con-detail-spec-row">
             <span class="spec-label">Maker / Manufacturer</span>
@@ -1234,13 +1415,12 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
               </a>
             </span>
           </div>
-        </div>
-      </div>
 
-      <!-- Separator & Comments / Specs with Justified Text -->
-      <div class="con-detail-separator" id="detailNotesSeparator" style="display: none;"></div>
-      <div class="con-detail-comments-block" id="detailNotesSection" style="display: none;">
-        <p class="con-detail-comments-text" id="detailSpecsText"></p>
+          <!-- Description / Comments: Under base info, justified, arranged around images if needed -->
+          <div class="con-detail-comments-block" id="detailNotesSection" style="display: none;">
+            <p class="con-detail-comments-text" id="detailSpecsText"></p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1350,6 +1530,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const searchInput = document.getElementById('conSearchInput');
   const clearSearchBtn = document.getElementById('conClearSearchBtn');
   const filterTypesContainer = document.getElementById('conFilterTypesContainer');
+  const btnResetFilters = document.getElementById('conBtnResetFilters');
   const filterStatsText = document.getElementById('conFilterStatsText');
   const alphabetPillRay = document.getElementById('conAlphabetPillRay');
 
@@ -1505,7 +1686,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 
     const allBtn = document.createElement('button');
     allBtn.type = 'button';
-    allBtn.className = 'filter-type-pill active';
+    allBtn.className = 'filter-type-btn active';
     allBtn.dataset.type = 'all';
     allBtn.textContent = 'All Types';
     allBtn.addEventListener('click', () => onTypeSelected('all', allBtn));
@@ -1514,7 +1695,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     CONSOLE_TYPES.forEach(type => {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'filter-type-pill';
+      btn.className = 'filter-type-btn';
       btn.dataset.type = String(type.id);
       btn.textContent = type.name;
       btn.addEventListener('click', () => onTypeSelected(String(type.id), btn));
@@ -1524,9 +1705,11 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 
   function onTypeSelected(typeId, activeBtn) {
     currentTypeFilter = typeId;
-    const btns = filterTypesContainer.querySelectorAll('.filter-type-pill');
+    const btns = filterTypesContainer.querySelectorAll('.filter-type-btn, .filter-type-pill');
     btns.forEach(b => b.classList.remove('active'));
     activeBtn.classList.add('active');
+
+    updateActiveFilterStyles();
 
     if (currentMode === 'detail') {
       setMode('list');
@@ -1949,11 +2132,11 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     if (con.comments && con.comments.trim() !== '') {
       detailSpecsText.textContent = con.comments.trim();
       detailNotesSection.style.display = 'block';
-      detailNotesSeparator.style.display = 'block';
+      if (detailNotesSeparator) detailNotesSeparator.style.display = 'block';
     } else {
       detailSpecsText.textContent = '';
       detailNotesSection.style.display = 'none';
-      detailNotesSeparator.style.display = 'none';
+      if (detailNotesSeparator) detailNotesSeparator.style.display = 'none';
     }
 
     // 2. BIOS & Downloadable Files (Compact List / Table View immediately below Hero)
@@ -2238,11 +2421,21 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   // Event Bindings
   // --------------------------------------------------------------------------
 
+  function updateActiveFilterStyles() {
+    const hasQuery = currentSearchQuery !== '';
+    const hasType = currentTypeFilter !== 'all';
+    const hasAnyFilter = hasQuery || hasType;
+    if (btnResetFilters) {
+      btnResetFilters.style.display = hasAnyFilter ? 'inline-flex' : 'none';
+    }
+  }
+
   // Search input typing
   let searchDebounceTimer = null;
   searchInput.addEventListener('input', (e) => {
     currentSearchQuery = e.target.value.trim();
     clearSearchBtn.style.display = currentSearchQuery ? 'block' : 'none';
+    updateActiveFilterStyles();
 
     clearTimeout(searchDebounceTimer);
     searchDebounceTimer = setTimeout(() => {
@@ -2260,9 +2453,32 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     currentSearchQuery = '';
     clearSearchBtn.style.display = 'none';
     searchInput.focus();
+    updateActiveFilterStyles();
     renderConsolesList();
     updateUrlState();
   });
+
+  // Clear / Reset Filters button (resets search and type filter, preserves or shows list)
+  if (btnResetFilters) {
+    btnResetFilters.addEventListener('click', () => {
+      currentSearchQuery = '';
+      currentTypeFilter = 'all';
+      searchInput.value = '';
+      clearSearchBtn.style.display = 'none';
+
+      const typeBtns = filterTypesContainer.querySelectorAll('.filter-type-btn, .filter-type-pill');
+      typeBtns.forEach(b => b.classList.toggle('active', b.dataset.type === 'all'));
+
+      updateActiveFilterStyles();
+
+      if (currentMode === 'detail') {
+        setMode('list');
+      } else {
+        renderConsolesList();
+        updateUrlState();
+      }
+    });
+  }
 
   // Sort Order Toggle (Ascending A-Z vs Descending Z-A)
   sortOrderToggleBtn.addEventListener('click', () => {
@@ -2323,6 +2539,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     }
 
     renderConsolesList(); // Pre-render list so returning to list works seamlessly
+    updateActiveFilterStyles();
 
     if (INITIAL_CON_ID > 0) {
       const con = ALL_CONSOLES.find(c => Number(c.id) === INITIAL_CON_ID);
