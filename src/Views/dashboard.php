@@ -705,6 +705,83 @@ ksort($collectionConsoles);
   cursor: pointer;
 }
 
+/* My Collection Pagination Bar & Controls */
+.collection-pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border, #1e293b);
+  border-radius: 8px;
+  padding: 10px 16px;
+  box-sizing: border-box;
+  margin-top: 4px;
+}
+
+.pagination-info {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+}
+
+.pagination-controls-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pagination-size-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pagination-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.col-page-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  background: #070b14;
+  border: 1px solid var(--border, #1e293b);
+  border-radius: 4px;
+  color: #f1f5f9;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.col-page-btn:hover:not(.disabled):not(.active) {
+  background: #1e293b;
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+.col-page-btn.active {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  border-color: #38bdf8;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
+}
+
+.col-page-btn.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* Downloaded Game Cards Grid */
 .downloaded-cards-grid {
   display: grid;
@@ -1445,6 +1522,30 @@ ksort($collectionConsoles);
           </div>
         <?php endif; ?>
       </div>
+
+      <!-- Pagination Toolbar Footer -->
+      <div class="collection-pagination-bar" id="myCollectionPagination">
+        <div class="pagination-info" id="myCollectionPageInfo">
+          Showing 0 – 0 of 0 games
+        </div>
+
+        <div class="pagination-controls-wrapper">
+          <div class="pagination-size-selector">
+            <label for="colPageSizeSelect" style="font-size: 12px; color: var(--text-muted, #94a3b8); font-weight: 600;">Show:</label>
+            <select id="colPageSizeSelect" class="toolbar-select" onchange="changeMyCollectionPageSize(this.value)">
+              <option value="12" selected>12 / page</option>
+              <option value="24">24 / page</option>
+              <option value="48">48 / page</option>
+              <option value="96">96 / page</option>
+              <option value="all">All</option>
+            </select>
+          </div>
+
+          <div class="pagination-nav-buttons" id="myCollectionNavBtns">
+            <!-- Dynamically populated page buttons -->
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -1489,6 +1590,7 @@ window.addEventListener('DOMContentLoaded', () => {
     switchDashboardTab('player');
   }
   renderDonutChart(currentPieData);
+  filterMyCollection(true);
 });
 
 /**
@@ -1534,17 +1636,43 @@ function renderDonutChart(pie) {
 }
 
 /**
- * Filter My Collection Grid (Search text, Console, Status)
+ * My Collection Pagination State
  */
-function filterMyCollection() {
+let colCurrentPage = 1;
+let colPageSize = 12;
+
+function changeMyCollectionPageSize(val) {
+  colPageSize = val === 'all' ? 0 : (parseInt(val, 10) || 12);
+  colCurrentPage = 1;
+  filterMyCollection(false);
+}
+
+function gotoMyCollectionPage(page) {
+  colCurrentPage = page;
+  filterMyCollection(false);
+  const section = document.querySelector('.my-collection-section');
+  if (section) {
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+/**
+ * Filter My Collection Grid (Search text, Console, Status) & Paginate
+ * @param {boolean} resetPage Whether to reset to page 1 (true when user filters)
+ */
+function filterMyCollection(resetPage = true) {
+  if (resetPage) {
+    colCurrentPage = 1;
+  }
+
   const search = (document.getElementById('colSearchInput')?.value || '').toLowerCase().trim();
   const consoleFilter = (document.getElementById('colConsoleFilter')?.value || '').trim();
   const statusFilter  = (document.getElementById('colStatusFilter')?.value || '').trim();
 
-  const cards = document.querySelectorAll('#myCollectionGrid .my-game-card');
-  let visibleCount = 0;
+  const cards = Array.from(document.querySelectorAll('#myCollectionGrid .my-game-card'));
 
-  cards.forEach(card => {
+  // 1. Filter matching cards
+  const matchingCards = cards.filter(card => {
     const title   = card.getAttribute('data-title') || '';
     const console = card.getAttribute('data-console') || '';
     const status  = card.getAttribute('data-status') || '';
@@ -1553,18 +1681,93 @@ function filterMyCollection() {
     const matchConsole = !consoleFilter || console === consoleFilter;
     const matchStatus  = !statusFilter || status === statusFilter;
 
-    if (matchSearch && matchConsole && matchStatus) {
+    return matchSearch && matchConsole && matchStatus;
+  });
+
+  const totalMatching = matchingCards.length;
+
+  const countBadge = document.getElementById('collectionFilteredCount');
+  if (countBadge) {
+    countBadge.textContent = `(${totalMatching} of ${cards.length} games)`;
+  }
+
+  // 2. Pagination geometry calculation
+  const effectivePageSize = colPageSize <= 0 ? totalMatching : colPageSize;
+  const totalPages = effectivePageSize > 0 ? Math.ceil(totalMatching / effectivePageSize) : 1;
+
+  if (colCurrentPage < 1) colCurrentPage = 1;
+  if (colCurrentPage > totalPages) colCurrentPage = totalPages;
+
+  const startIndex = (colCurrentPage - 1) * effectivePageSize;
+  const endIndex   = colPageSize <= 0 ? totalMatching : startIndex + effectivePageSize;
+
+  // 3. Update visibility of matching vs non-matching and page sliced cards
+  const activePageSet = new Set(matchingCards.slice(startIndex, endIndex));
+  cards.forEach(card => {
+    if (activePageSet.has(card)) {
       card.style.display = 'flex';
-      visibleCount++;
     } else {
       card.style.display = 'none';
     }
   });
 
-  const countBadge = document.getElementById('collectionFilteredCount');
-  if (countBadge) {
-    countBadge.textContent = `(${visibleCount} of ${cards.length} games)`;
+  // 4. Update Pagination controls UI
+  updateMyCollectionPaginationUI(totalMatching, startIndex, endIndex, totalPages);
+}
+
+function updateMyCollectionPaginationUI(totalMatching, startIndex, endIndex, totalPages) {
+  const infoEl = document.getElementById('myCollectionPageInfo');
+  const navBtnsEl = document.getElementById('myCollectionNavBtns');
+  const paginationBar = document.getElementById('myCollectionPagination');
+
+  if (!paginationBar) return;
+
+  if (totalMatching === 0) {
+    if (infoEl) infoEl.textContent = 'Showing 0 games';
+    if (navBtnsEl) navBtnsEl.innerHTML = '';
+    return;
   }
+
+  const startDisplay = Math.min(startIndex + 1, totalMatching);
+  const endDisplay   = Math.min(endIndex, totalMatching);
+
+  if (infoEl) {
+    if (colPageSize <= 0 || totalMatching <= colPageSize) {
+      infoEl.textContent = `Showing all ${totalMatching} games`;
+    } else {
+      infoEl.textContent = `Showing ${startDisplay}–${endDisplay} of ${totalMatching} games (Page ${colCurrentPage} of ${totalPages})`;
+    }
+  }
+
+  if (!navBtnsEl) return;
+
+  if (totalPages <= 1) {
+    navBtnsEl.innerHTML = '';
+    return;
+  }
+
+  let buttonsHtml = '';
+
+  const isFirst = colCurrentPage === 1;
+  buttonsHtml += `<button type="button" class="col-page-btn ${isFirst ? 'disabled' : ''}" onclick="gotoMyCollectionPage(1)" title="First Page">&laquo;</button>`;
+  buttonsHtml += `<button type="button" class="col-page-btn ${isFirst ? 'disabled' : ''}" onclick="gotoMyCollectionPage(${colCurrentPage - 1})" title="Previous Page">&lsaquo;</button>`;
+
+  let startPage = Math.max(1, colCurrentPage - 2);
+  let endPage   = Math.min(totalPages, startPage + 4);
+  if (endPage - startPage < 4) {
+    startPage = Math.max(1, endPage - 4);
+  }
+
+  for (let p = startPage; p <= endPage; p++) {
+    const isActive = p === colCurrentPage;
+    buttonsHtml += `<button type="button" class="col-page-btn ${isActive ? 'active' : ''}" onclick="gotoMyCollectionPage(${p})">${p}</button>`;
+  }
+
+  const isLast = colCurrentPage === totalPages;
+  buttonsHtml += `<button type="button" class="col-page-btn ${isLast ? 'disabled' : ''}" onclick="gotoMyCollectionPage(${colCurrentPage + 1})" title="Next Page">&rsaquo;</button>`;
+  buttonsHtml += `<button type="button" class="col-page-btn ${isLast ? 'disabled' : ''}" onclick="gotoMyCollectionPage(${totalPages})" title="Last Page">&raquo;</button>`;
+
+  navBtnsEl.innerHTML = buttonsHtml;
 }
 
 /**
