@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Vault\Controllers;
 
 use Vault\Auth\Auth;
+use Vault\Repositories\SystemInfoRepository;
 use Vault\Services\Response;
 use Vault\Services\View;
 
@@ -37,9 +38,13 @@ final class AuthController
         $error = $_SESSION['flash_error'] ?? null;
         unset($_SESSION['flash_error']);
 
+        $versions = SystemInfoRepository::getVersions();
+
         $html = View::render('login', [
-            'pageTitle' => 'Sign In',
-            'error'     => $error,
+            'pageTitle'       => 'Sign In',
+            'error'           => $error,
+            'systemVersion'   => $versions['system'],
+            'databaseVersion' => $versions['database'],
         ], null);
 
         Response::html($html);

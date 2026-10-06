@@ -10,12 +10,17 @@
 
 declare(strict_types=1);
 
+use Vault\Repositories\SystemInfoRepository;
 use Vault\Services\View;
 
 if (!defined('APP_INIT')) {
     http_response_code(403);
     exit('Direct access not permitted.');
 }
+
+$versions = SystemInfoRepository::getVersions();
+$sysVer   = $systemVersion ?? $versions['system'];
+$dbVer    = $databaseVersion ?? $versions['database'];
 
 $title = !empty($pageTitle) ? View::e($pageTitle) . ' | Videogame Vault' : 'Sign In | Videogame Vault';
 $stylePath = __DIR__ . '/../../assets/css/style.css';
@@ -242,7 +247,7 @@ $styleVer  = file_exists($stylePath) ? (string)filemtime($stylePath) : '1.0';
   </div>
 
   <div class="login-footer-copy">
-    Videogame Vault &copy; <?= date('Y') ?> &bull; Authorized Personnel Only
+    Videogame Vault &copy; <?= date('Y') ?> &bull; System v<?= View::e($sysVer) ?>, Database v<?= View::e($dbVer) ?>
   </div>
 </div>
 </body>
