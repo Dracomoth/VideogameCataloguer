@@ -1114,7 +1114,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   width: 100%;
   height: 165px;
   background: rgba(0, 0, 0, 0.45);
-  border-radius: 6px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1129,6 +1129,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   width: auto;
   height: auto;
   object-fit: contain;
+  border-radius: 8px;
   transition: transform var(--transition-fast);
 }
 .con-game-card:hover .con-game-thumb-img {

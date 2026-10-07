@@ -578,6 +578,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   width: auto;
   height: auto;
   object-fit: contain;
+  border-radius: 8px;
   transition: transform var(--transition-fast);
   filter: drop-shadow(0 4px 10px rgba(0,0,0,0.45));
 }
@@ -954,6 +955,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  border-radius: 8px;
   filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.6));
   transition: transform 0.2s ease;
 }
@@ -969,7 +971,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  border-radius: 4px;
+  border-radius: 8px;
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
   transition: transform 0.2s ease;
 }
@@ -1057,10 +1059,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   margin-top: 18px;
 }
 .game-detail-desc-label {
-  font-size: 13.5px;
-  font-weight: 400;
-  color: var(--text-dim, #94a3b8);
-  margin-bottom: 8px;
+  display: none;
 }
 .game-detail-desc-text {
   font-size: 14px;
@@ -1326,7 +1325,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   width: 100%;
   height: 120px;
   background: rgba(15, 23, 42, 0.6);
-  border-radius: 4px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1340,6 +1339,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   width: auto;
   height: auto;
   object-fit: contain;
+  border-radius: 6px;
   transition: transform var(--transition-fast);
   filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
 }
@@ -1827,7 +1827,6 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 
           <!-- Description: Under the tags, justified, arranged around images if needed -->
           <div class="game-detail-desc-block" id="detailDescriptionBlock">
-            <div class="game-detail-desc-label">Description</div>
             <p class="game-detail-desc-text" id="detailCommentsText"></p>
             <p class="game-detail-desc-empty" id="detailCommentsEmpty" style="display: none;">No description recorded for this entry.</p>
           </div>

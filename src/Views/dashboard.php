@@ -619,7 +619,7 @@ ksort($collectionConsoles);
 .in-play-thumb {
   width: 48px;
   height: 60px;
-  border-radius: 4px;
+  border-radius: 8px;
   overflow: hidden;
   background: #030712;
   flex-shrink: 0;
@@ -629,6 +629,7 @@ ksort($collectionConsoles);
   width: 100%;
   height: 100%;
   object-fit: contain;
+  border-radius: 8px;
 }
 
 .in-play-info {
@@ -815,21 +816,26 @@ ksort($collectionConsoles);
 }
 
 .my-card-thumb {
-  width: 60px;
-  height: 75px;
-  border-radius: 4px;
+  width: 80px;
+  height: 100px;
+  border-radius: 8px;
   background: #03050a;
   overflow: hidden;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 4px;
+  box-sizing: border-box;
 }
 
 .my-card-thumb img {
-  width: 100%;
-  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
   object-fit: contain;
+  border-radius: 6px;
 }
 
 .my-card-meta {
