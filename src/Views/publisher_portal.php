@@ -728,15 +728,70 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 }
 .pub-detail-comments-text {
   font-size: 14px;
-  line-height: 1.75;
+  line-height: 1.7;
   color: #cbd5e1;
   text-align: justify;
   text-justify: inter-word;
-  hyphens: auto;
-  -webkit-hyphens: auto;
   word-break: break-word;
-  white-space: pre-line;
+  white-space: normal;
   margin: 0;
+}
+.pub-detail-comments-text p {
+  margin: 0 0 10px 0;
+}
+.pub-detail-comments-text p:last-child {
+  margin-bottom: 0;
+}
+.pub-detail-comments-text ul,
+.pub-detail-comments-text ol {
+  margin: 8px 0 12px 22px;
+  padding: 0;
+}
+.pub-detail-comments-text li {
+  margin-bottom: 4px;
+}
+.pub-detail-comments-text h1,
+.pub-detail-comments-text h2,
+.pub-detail-comments-text h3,
+.pub-detail-comments-text h4,
+.pub-detail-comments-text h5,
+.pub-detail-comments-text h6 {
+  color: #f8fafc;
+  margin: 14px 0 6px 0;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.pub-detail-comments-text h1 { font-size: 18px; }
+.pub-detail-comments-text h2 { font-size: 16px; }
+.pub-detail-comments-text h3 { font-size: 15px; }
+.pub-detail-comments-text h4 { font-size: 14px; }
+.pub-detail-comments-text blockquote {
+  border-left: 3px solid #38bdf8;
+  margin: 10px 0;
+  padding: 6px 12px;
+  color: #94a3b8;
+  background: rgba(56, 189, 248, 0.06);
+  border-radius: 0 4px 4px 0;
+}
+.pub-detail-comments-text code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.9em;
+  color: #38bdf8;
+}
+.pub-detail-comments-text a {
+  color: #38bdf8;
+  text-decoration: underline;
+}
+.pub-detail-comments-text a:hover {
+  color: #7dd3fc;
+}
+.pub-detail-comments-text hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  margin: 14px 0;
 }
 
 /* 6. Dual Grids Section */
@@ -1829,11 +1884,11 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     }
 
     if (publisher.description && publisher.description.trim() !== '') {
-      detailDescriptionBox.textContent = publisher.description.trim();
+      detailDescriptionBox.innerHTML = parseSimpleMarkdown(publisher.description.trim());
       if (detailNotesSection) detailNotesSection.style.display = 'block';
       if (detailDescSeparator) detailDescSeparator.style.display = 'block';
     } else {
-      detailDescriptionBox.textContent = '';
+      detailDescriptionBox.innerHTML = '';
       if (detailNotesSection) detailNotesSection.style.display = 'none';
       if (detailDescSeparator) detailDescSeparator.style.display = 'none';
     }
@@ -2128,6 +2183,75 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     }
 
     setMode('list');
+  }
+
+  /**
+   * Parses simple markdown into safe HTML for description sections
+   */
+  function parseSimpleMarkdown(markdownText) {
+    if (!markdownText || typeof markdownText !== 'string') return '';
+
+    let safe = markdownText
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
+    safe = safe.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    const blocks = safe.split(/\n\n+/);
+    const htmlBlocks = blocks.map(block => {
+      const trimmed = block.trim();
+      if (!trimmed) return '';
+
+      const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)$/m);
+      if (headingMatch && headingMatch[0].trim() === trimmed) {
+        const level = headingMatch[1].length;
+        return `<h${level}>${parseInlineMarkdown(headingMatch[2])}</h${level}>`;
+      }
+
+      if (/^(---|[*]{3}|_{3})$/.test(trimmed)) {
+        return '<hr>';
+      }
+
+      if (trimmed.startsWith('&gt; ') || trimmed.startsWith('> ')) {
+        const quoteContent = trimmed.split('\n').map(l => l.replace(/^(&gt;|>)\s?/, '')).join('\n');
+        return `<blockquote>${parseInlineMarkdown(quoteContent)}</blockquote>`;
+      }
+
+      const lines = trimmed.split('\n');
+      const isUnordered = lines.every(l => /^[\*\-\+]\s+/.test(l.trim()));
+      if (isUnordered) {
+        const items = lines.map(l => `<li>${parseInlineMarkdown(l.trim().replace(/^[\*\-\+]\s+/, ''))}</li>`).join('');
+        return `<ul>${items}</ul>`;
+      }
+
+      const isOrdered = lines.every(l => /^\d+\.\s+/.test(l.trim()));
+      if (isOrdered) {
+        const items = lines.map(l => `<li>${parseInlineMarkdown(l.trim().replace(/^\d+\.\s+/, ''))}</li>`).join('');
+        return `<ol>${items}</ol>`;
+      }
+
+      return `<p>${parseInlineMarkdown(trimmed).replace(/\n/g, '<br>')}</p>`;
+    });
+
+    return htmlBlocks.filter(Boolean).join('');
+  }
+
+  function parseInlineMarkdown(str) {
+    return str
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/(\*\*|__)(.*?)\1/g, '<strong>$2</strong>')
+      .replace(/(\*|_)(.*?)\1/g, '<em>$2</em>')
+      .replace(/~~(.*?)~~/g, '<del>$1</del>')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
+        const cleanUrl = url.trim();
+        if (/^(https?:\/\/|\/)/i.test(cleanUrl)) {
+          return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+        }
+        return text;
+      });
   }
 
   if (document.readyState === 'loading') {
