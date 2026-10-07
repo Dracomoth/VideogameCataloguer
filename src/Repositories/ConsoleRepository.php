@@ -22,14 +22,19 @@ final class ConsoleRepository
 {
     private string $rootPath;
     private string $consolesImageDir;
+    private string $mappingsImageDir;
 
     public function __construct()
     {
         $this->rootPath = (string)($GLOBALS['config']['paths']['root'] ?? dirname(__DIR__, 2));
         $this->consolesImageDir = $this->rootPath . '/images/consoles';
+        $this->mappingsImageDir = $this->rootPath . '/images/mappings';
 
         if (!is_dir($this->consolesImageDir)) {
             @mkdir($this->consolesImageDir, 0755, true);
+        }
+        if (!is_dir($this->mappingsImageDir)) {
+            @mkdir($this->mappingsImageDir, 0755, true);
         }
     }
 
@@ -59,6 +64,9 @@ final class ConsoleRepository
                 (SELECT COUNT(*) FROM `consoles` sub_ref WHERE sub_ref.master_reference_id = c.id) AS reference_consoles_count,
                 c.image_path,
                 c.logo_path,
+                c.mapping_gamepad_path,
+                c.mapping_cellphone_path,
+                c.mapping_rog_ally_path,
                 c.comments,
                 c.emulator,
                 c.emulator_link,
@@ -121,6 +129,9 @@ final class ConsoleRepository
                 (SELECT COUNT(*) FROM `consoles` sub_ref WHERE sub_ref.master_reference_id = c.id) AS reference_consoles_count,
                 c.image_path,
                 c.logo_path,
+                c.mapping_gamepad_path,
+                c.mapping_cellphone_path,
+                c.mapping_rog_ally_path,
                 c.comments,
                 c.emulator,
                 c.emulator_link,
@@ -401,6 +412,76 @@ final class ConsoleRepository
     }
 
     /**
+     * Handles uploading, renaming, and storing a button mapping image asset according to the convention:
+     * <id>_pad.<ext>, <id>_cel.<ext>, or <id>_rog.<ext> stored in images/mappings/
+     *
+     * @param array<string, mixed> $file PHP $_FILES entry
+     * @param int $consoleId
+     * @param string $type 'pad', 'cel', or 'rog'
+     * @return string Relative path stored in database
+     * @throws InvalidArgumentException
+     * @throws RuntimeException
+     */
+    public function storeMappingAssetFile(array $file, int $consoleId, string $type): string
+    {
+        if (empty($file['tmp_name']) || (!is_uploaded_file($file['tmp_name']) && !file_exists($file['tmp_name']))) {
+            throw new InvalidArgumentException("No valid uploaded file found for mapping_{$type}.");
+        }
+
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            throw new RuntimeException("Upload failed for mapping_{$type} with error code {$file['error']}.");
+        }
+
+        $allowedMimes = [
+            'image/jpeg'    => 'jpg',
+            'image/png'     => 'png',
+            'image/webp'    => 'webp',
+            'image/gif'     => 'gif',
+            'image/svg+xml' => 'svg',
+        ];
+
+        $ext = null;
+        if (class_exists('finfo')) {
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->file($file['tmp_name']);
+            if (isset($allowedMimes[$mime])) {
+                $ext = $allowedMimes[$mime];
+            }
+        }
+
+        if ($ext === null) {
+            $origExt = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
+            if (in_array($origExt, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'], true)) {
+                $ext = ($origExt === 'jpeg') ? 'jpg' : $origExt;
+            }
+        }
+
+        if ($ext === null) {
+            throw new InvalidArgumentException("Invalid file format for mapping {$type}. Allowed formats: JPG, PNG, WEBP, GIF, SVG.");
+        }
+
+        $filename = "{$consoleId}_{$type}.{$ext}";
+        $destination = $this->mappingsImageDir . '/' . $filename;
+
+        if (file_exists($destination) && is_file($destination)) {
+            @unlink($destination);
+            clearstatcache(true, $destination);
+        }
+
+        $saved = is_uploaded_file($file['tmp_name'])
+            ? move_uploaded_file($file['tmp_name'], $destination)
+            : copy($file['tmp_name'], $destination);
+
+        if (!$saved) {
+            throw new RuntimeException("Failed to save uploaded mapping file to destination: {$filename}");
+        }
+
+        clearstatcache(true, $destination);
+
+        return "images/mappings/{$filename}";
+    }
+
+    /**
      * Creates a new console record with optional uploaded photo & logo assets.
      *
      * 1) Insert: Images uploaded are renamed before storing in the server folder.
@@ -503,6 +584,9 @@ final class ConsoleRepository
         // Process visual asset uploads
         $newImagePath = null;
         $newLogoPath = null;
+        $newMappingGamepad   = null;
+        $newMappingCellphone = null;
+        $newMappingRogAlly   = null;
 
         if (!empty($files['image_file']['tmp_name'])) {
             $newImagePath = $this->storeAssetFile($files['image_file'], $newId, $name, 'image');
@@ -512,10 +596,25 @@ final class ConsoleRepository
             $newLogoPath = $this->storeAssetFile($files['logo_file'], $newId, $name, 'logo');
         }
 
-        if ($newImagePath !== null || $newLogoPath !== null) {
-            Database::execute("UPDATE `consoles` SET `image_path` = :img, `logo_path` = :logo, `updated` = :updated WHERE `id` = :id", [
+        if (!empty($files['mapping_gamepad_file']['tmp_name'])) {
+            $newMappingGamepad = $this->storeMappingAssetFile($files['mapping_gamepad_file'], $newId, 'pad');
+        }
+
+        if (!empty($files['mapping_cellphone_file']['tmp_name'])) {
+            $newMappingCellphone = $this->storeMappingAssetFile($files['mapping_cellphone_file'], $newId, 'cel');
+        }
+
+        if (!empty($files['mapping_rog_ally_file']['tmp_name'])) {
+            $newMappingRogAlly = $this->storeMappingAssetFile($files['mapping_rog_ally_file'], $newId, 'rog');
+        }
+
+        if ($newImagePath !== null || $newLogoPath !== null || $newMappingGamepad !== null || $newMappingCellphone !== null || $newMappingRogAlly !== null) {
+            Database::execute("UPDATE `consoles` SET `image_path` = :img, `logo_path` = :logo, `mapping_gamepad_path` = :pad, `mapping_cellphone_path` = :cel, `mapping_rog_ally_path` = :rog, `updated` = :updated WHERE `id` = :id", [
                 ':img'     => $newImagePath,
                 ':logo'    => $newLogoPath,
+                ':pad'     => $newMappingGamepad,
+                ':cel'     => $newMappingCellphone,
+                ':rog'     => $newMappingRogAlly,
                 ':updated' => $now,
                 ':id'      => $newId,
             ]);
@@ -612,9 +711,15 @@ final class ConsoleRepository
 
         $deleteImage = !empty($data['delete_image']);
         $deleteLogo  = !empty($data['delete_logo']);
+        $deleteMappingGamepad   = !empty($data['delete_mapping_gamepad']);
+        $deleteMappingCellphone = !empty($data['delete_mapping_cellphone']);
+        $deleteMappingRogAlly   = !empty($data['delete_mapping_rog_ally']);
 
         $currentImagePath = $existing['image_path'];
         $currentLogoPath  = $existing['logo_path'];
+        $currentMappingGamepad   = $existing['mapping_gamepad_path'] ?? null;
+        $currentMappingCellphone = $existing['mapping_cellphone_path'] ?? null;
+        $currentMappingRogAlly   = $existing['mapping_rog_ally_path'] ?? null;
 
         // Manage Hardware Photo lifecycle
         if (!empty($files['image_file']['tmp_name'])) {
@@ -640,6 +745,33 @@ final class ConsoleRepository
             $currentLogoPath = null;
         }
 
+        // Manage Gamepad Mapping lifecycle
+        if (!empty($files['mapping_gamepad_file']['tmp_name'])) {
+            $this->deleteAssetFile($currentMappingGamepad);
+            $currentMappingGamepad = $this->storeMappingAssetFile($files['mapping_gamepad_file'], $id, 'pad');
+        } elseif ($deleteMappingGamepad) {
+            $this->deleteAssetFile($currentMappingGamepad);
+            $currentMappingGamepad = null;
+        }
+
+        // Manage Cellphone Adapter Mapping lifecycle
+        if (!empty($files['mapping_cellphone_file']['tmp_name'])) {
+            $this->deleteAssetFile($currentMappingCellphone);
+            $currentMappingCellphone = $this->storeMappingAssetFile($files['mapping_cellphone_file'], $id, 'cel');
+        } elseif ($deleteMappingCellphone) {
+            $this->deleteAssetFile($currentMappingCellphone);
+            $currentMappingCellphone = null;
+        }
+
+        // Manage ROG Ally Mapping lifecycle
+        if (!empty($files['mapping_rog_ally_file']['tmp_name'])) {
+            $this->deleteAssetFile($currentMappingRogAlly);
+            $currentMappingRogAlly = $this->storeMappingAssetFile($files['mapping_rog_ally_file'], $id, 'rog');
+        } elseif ($deleteMappingRogAlly) {
+            $this->deleteAssetFile($currentMappingRogAlly);
+            $currentMappingRogAlly = null;
+        }
+
         $now = date('Y-m-d H:i:s');
 
         $sql = "
@@ -653,6 +785,9 @@ final class ConsoleRepository
                 `master_reference_id`   = :master_reference_id,
                 `image_path`            = :image_path,
                 `logo_path`             = :logo_path,
+                `mapping_gamepad_path`  = :mapping_gamepad_path,
+                `mapping_cellphone_path` = :mapping_cellphone_path,
+                `mapping_rog_ally_path` = :mapping_rog_ally_path,
                 `comments`              = :comments,
                 `emulator`              = :emulator,
                 `emulator_link`         = :emulator_link,
@@ -674,6 +809,9 @@ final class ConsoleRepository
             ':master_reference_id'  => $masterReferenceId,
             ':image_path'           => $currentImagePath,
             ':logo_path'            => $currentLogoPath,
+            ':mapping_gamepad_path'  => $currentMappingGamepad,
+            ':mapping_cellphone_path' => $currentMappingCellphone,
+            ':mapping_rog_ally_path' => $currentMappingRogAlly,
             ':comments'             => $comments,
             ':emulator'             => $emulator,
             ':emulator_link'        => $emulatorLink,
@@ -725,9 +863,12 @@ final class ConsoleRepository
             throw new RuntimeException("Cannot delete this console because it is the master platform for {$refCount} other reference console(s). Reassign or delete those reference consoles first.");
         }
 
-        // Delete whatever files are referenced in image_path and logo_path
+        // Delete whatever files are referenced in image_path, logo_path, and mapping paths
         $this->deleteAssetFile($existing['image_path']);
         $this->deleteAssetFile($existing['logo_path']);
+        $this->deleteAssetFile($existing['mapping_gamepad_path'] ?? null);
+        $this->deleteAssetFile($existing['mapping_cellphone_path'] ?? null);
+        $this->deleteAssetFile($existing['mapping_rog_ally_path'] ?? null);
 
         $sql = "DELETE FROM `consoles` WHERE `id` = :id";
         $affected = Database::execute($sql, [':id' => $id]);
@@ -748,6 +889,9 @@ final class ConsoleRepository
     {
         $imagePath = (string)($row['image_path'] ?? '');
         $logoPath  = (string)($row['logo_path'] ?? '');
+        $mappingGamepadPath   = (string)($row['mapping_gamepad_path'] ?? '');
+        $mappingCellphonePath = (string)($row['mapping_cellphone_path'] ?? '');
+        $mappingRogAllyPath   = (string)($row['mapping_rog_ally_path'] ?? '');
 
         $row['id']                       = (int)$row['id'];
         $row['publisher_id']             = !empty($row['publisher_id']) ? (int)$row['publisher_id'] : null;
@@ -787,8 +931,38 @@ final class ConsoleRepository
             }
         }
 
-        $row['image_url'] = $imagePath !== '' ? ('/' . ltrim($imagePath, '/\\') . $imgVer) : '';
-        $row['logo_url']  = $logoPath !== ''  ? ('/' . ltrim($logoPath, '/\\')  . $logoVer) : '';
+        $padVer = '';
+        if ($mappingGamepadPath !== '') {
+            $cleanPad = ltrim(trim($mappingGamepadPath), '/\\');
+            $fullPad  = $this->rootPath . '/' . $cleanPad;
+            if (file_exists($fullPad)) {
+                $padVer = '?v=' . filemtime($fullPad);
+            }
+        }
+
+        $celVer = '';
+        if ($mappingCellphonePath !== '') {
+            $cleanCel = ltrim(trim($mappingCellphonePath), '/\\');
+            $fullCel  = $this->rootPath . '/' . $cleanCel;
+            if (file_exists($fullCel)) {
+                $celVer = '?v=' . filemtime($fullCel);
+            }
+        }
+
+        $rogVer = '';
+        if ($mappingRogAllyPath !== '') {
+            $cleanRog = ltrim(trim($mappingRogAllyPath), '/\\');
+            $fullRog  = $this->rootPath . '/' . $cleanRog;
+            if (file_exists($fullRog)) {
+                $rogVer = '?v=' . filemtime($fullRog);
+            }
+        }
+
+        $row['image_url']             = $imagePath !== ''            ? ('/' . ltrim($imagePath, '/\\')            . $imgVer) : '';
+        $row['logo_url']              = $logoPath !== ''             ? ('/' . ltrim($logoPath, '/\\')             . $logoVer) : '';
+        $row['mapping_gamepad_url']   = $mappingGamepadPath !== ''   ? ('/' . ltrim($mappingGamepadPath, '/\\')   . $padVer) : '';
+        $row['mapping_cellphone_url'] = $mappingCellphonePath !== '' ? ('/' . ltrim($mappingCellphonePath, '/\\') . $celVer) : '';
+        $row['mapping_rog_ally_url']  = $mappingRogAllyPath !== ''   ? ('/' . ltrim($mappingRogAllyPath, '/\\')  . $rogVer) : '';
 
         return $row;
     }

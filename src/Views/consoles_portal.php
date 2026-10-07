@@ -1030,6 +1030,72 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   pointer-events: none;
 }
 
+/* Button Mappings Panel */
+.con-mapping-select-wrapper {
+  position: relative;
+  display: inline-block;
+}
+.con-mapping-select {
+  background: var(--surface-alt, #0c121e);
+  border: 1px solid var(--border, #243049);
+  border-radius: var(--radius-md, 6px);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 32px 6px 12px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  transition: all var(--transition-fast);
+}
+.con-mapping-select:hover,
+.con-mapping-select:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
+.con-mapping-display-box {
+  background: var(--surface-alt, #0c121e);
+  border: 1px solid var(--border, #243049);
+  border-radius: var(--radius-md, 8px);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  overflow: hidden;
+}
+.con-mapping-img {
+  max-width: 100%;
+  max-height: 600px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease;
+}
+.con-mapping-img:hover {
+  transform: scale(1.01);
+}
+.con-mapping-empty {
+  color: var(--text-muted, #94a3b8);
+  font-size: 13px;
+  text-align: center;
+  padding: 32px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.con-mapping-empty span.icon {
+  font-size: 32px;
+  opacity: 0.7;
+}
+
 /* 3. Emulation Section (Single Box) */
 .con-emu-single-box {
   background: var(--surface-alt, #0c121e);
@@ -1577,6 +1643,32 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       </div>
     </section>
 
+    <!-- 2.5. Button Mappings Section -->
+    <section class="con-section-panel" id="detailButtonMappingsSection" style="display: none;">
+      <div class="con-panel-header">
+        <div class="con-panel-title-group">
+          <svg class="con-panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+            <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+            <path d="M6 12h4m-2-2v4"></path>
+            <circle cx="15" cy="11" r="1" fill="currentColor"></circle>
+            <circle cx="18" cy="13" r="1" fill="currentColor"></circle>
+          </svg>
+          <h2 class="con-panel-title">Button Mappings (For Emulation)</h2>
+        </div>
+        <div class="con-mapping-select-wrapper">
+          <select id="detailMappingSelect" class="con-mapping-select" aria-label="Select button mapping layout">
+            <option value="gamepad">Gamepad</option>
+            <option value="cellphone">Cellphone Gamepad Adapter</option>
+            <option value="rog_ally">Rog Ally</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="con-mapping-display-box" id="detailMappingDisplayBox">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
     <!-- 3. Emulation Info (Single Box: RetroArch Core with link, PC emulator with link, Android emulator with link) -->
     <section class="con-section-panel" id="detailEmulationSection" style="display: none;">
       <div class="con-panel-header">
@@ -1694,6 +1786,9 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const detailDownloadsSubsection = document.getElementById('detailDownloadsSubsection');
   const detailFilesCountBadge = document.getElementById('detailFilesCountBadge');
   const detailFilesList = document.getElementById('detailFilesList');
+  const detailButtonMappingsSection = document.getElementById('detailButtonMappingsSection');
+  const detailMappingSelect = document.getElementById('detailMappingSelect');
+  const detailMappingDisplayBox = document.getElementById('detailMappingDisplayBox');
   const detailEmulationSection = document.getElementById('detailEmulationSection');
   const detailEmuGrid = document.getElementById('detailEmuGrid');
 
@@ -2265,6 +2360,47 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   }
 
   /**
+   * Updates the button mapping image display based on selected layout option
+   */
+  function updateMappingImageDisplay(con, type) {
+    if (!con || !detailMappingDisplayBox) return;
+
+    const mapUrls = {
+      gamepad: con.mapping_gamepad_url || con.mapping_gamepad_path || '',
+      cellphone: con.mapping_cellphone_url || con.mapping_cellphone_path || '',
+      rog_ally: con.mapping_rog_ally_url || con.mapping_rog_ally_path || ''
+    };
+
+    const labels = {
+      gamepad: 'Gamepad',
+      cellphone: 'Cellphone Gamepad Adapter',
+      rog_ally: 'Rog Ally'
+    };
+
+    const rawUrl = mapUrls[type] || '';
+    const cleanUrl = rawUrl ? formatImageUrl(rawUrl, '') : '';
+
+    if (cleanUrl) {
+      detailMappingDisplayBox.innerHTML = `
+        <img 
+          src="${escapeHtml(cleanUrl)}" 
+          alt="${escapeHtml(con.name)} - ${escapeHtml(labels[type] || '')} Button Mapping" 
+          class="con-mapping-img"
+          loading="lazy"
+          onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'con-mapping-empty\\'><span class=\\'icon\\'>⚠️</span><span>Image failed to load</span></div>';"
+        >
+      `;
+    } else {
+      detailMappingDisplayBox.innerHTML = `
+        <div class="con-mapping-empty">
+          <span class="icon">🎮</span>
+          <span>No button mapping image available for <strong>${escapeHtml(labels[type] || type)}</strong> layout.</span>
+        </div>
+      `;
+    }
+  }
+
+  /**
    * Populates Personal Notes / Specs, BIOS & Downloadable Files, Emulation Hub, and 15 Random Games
    */
   function populateDetailSubsections(data) {
@@ -2396,6 +2532,39 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     }
   }
   window.reportBrokenLink = reportBrokenLink;
+
+    // 2.5. Button Mappings Section
+    const gUrl = con.mapping_gamepad_url   || con.mapping_gamepad_path   || '';
+    const cUrl = con.mapping_cellphone_url || con.mapping_cellphone_path || '';
+    const rUrl = con.mapping_rog_ally_url  || con.mapping_rog_ally_path  || '';
+
+    const hasAnyMapping = Boolean((gUrl && gUrl.trim()) || (cUrl && cUrl.trim()) || (rUrl && rUrl.trim()));
+
+    if (detailButtonMappingsSection) {
+      if (hasAnyMapping) {
+        detailButtonMappingsSection.style.display = 'flex';
+
+        let currentSel = detailMappingSelect ? detailMappingSelect.value : 'gamepad';
+        const urls = { gamepad: gUrl, cellphone: cUrl, rog_ally: rUrl };
+
+        if (!urls[currentSel]) {
+          if (gUrl) currentSel = 'gamepad';
+          else if (cUrl) currentSel = 'cellphone';
+          else if (rUrl) currentSel = 'rog_ally';
+
+          if (detailMappingSelect) {
+            detailMappingSelect.value = currentSel;
+          }
+        }
+
+        updateMappingImageDisplay(con, currentSel);
+      } else {
+        detailButtonMappingsSection.style.display = 'none';
+        if (detailMappingDisplayBox) {
+          detailMappingDisplayBox.innerHTML = '';
+        }
+      }
+    }
 
     // 3. Emulation Info (Single Box: RetroArch core, PC emulator, Android emulator)
     const emuItems = [];
@@ -2697,6 +2866,16 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     sortOrderToggleBtn.title = currentSortAsc ? 'Sorted Ascending (A to Z). Click to reverse.' : 'Sorted Descending (Z to A). Click to reverse.';
     renderConsolesList();
   });
+
+  // Button Mapping Select Dropdown change event
+  if (detailMappingSelect) {
+    detailMappingSelect.addEventListener('change', (e) => {
+      const con = activeDetailData?.console || activeConsole;
+      if (con) {
+        updateMappingImageDisplay(con, e.target.value);
+      }
+    });
+  }
 
   // Go Back button from Detail Mode
   btnGoBack.addEventListener('click', () => {

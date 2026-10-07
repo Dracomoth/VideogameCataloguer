@@ -418,6 +418,9 @@ if (!defined('APP_INIT')) {
       <input type="hidden" id="consoleId" name="id" value="">
       <input type="hidden" id="deleteImage" name="delete_image" value="0">
       <input type="hidden" id="deleteLogo" name="delete_logo" value="0">
+      <input type="hidden" id="deleteMappingGamepad" name="delete_mapping_gamepad" value="0">
+      <input type="hidden" id="deleteMappingCellphone" name="delete_mapping_cellphone" value="0">
+      <input type="hidden" id="deleteMappingRogAlly" name="delete_mapping_rog_ally" value="0">
 
       <!-- Console Title -->
       <div class="form-group">
@@ -678,6 +681,148 @@ if (!defined('APP_INIT')) {
             <div class="form-group">
               <label for="emulatorAndroidLink">Android URL</label>
               <input type="text" inputmode="url" id="emulatorAndroidLink" name="emulator_android_link" class="form-control" placeholder="https://..." <?= !$canWrite ? 'disabled' : '' ?>>
+            </div>
+          </div>
+
+          <!-- Button Mapping Images -->
+          <div class="section-label" style="margin-top: 10px; margin-bottom: 4px;">Button Mapping Images</div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+            <!-- Gamepad Mapping Dropzone -->
+            <div class="media-card" style="padding: 8px;">
+              <div class="media-card-title" style="font-size: 10px;">Gamepad Pad</div>
+              <input 
+                type="file" 
+                id="mappingGamepadFileInput" 
+                name="mapping_gamepad_file" 
+                accept="image/*" 
+                style="display: none;" 
+                onchange="handleFileSelect(this, 'mappingGamepadPreviewContainer', 'deleteMappingGamepadBtn')"
+                <?= !$canWrite ? 'disabled' : '' ?>
+              >
+              <div 
+                class="dropzone-box" 
+                id="mappingGamepadDropzone" 
+                style="min-height: 90px; height: 90px;"
+                onclick="triggerBrowse('mappingGamepadFileInput')"
+              >
+                <div id="mappingGamepadPreviewContainer" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                  <div class="dropzone-empty">
+                    <span style="font-size: 20px;">🎮</span>
+                    <strong style="font-size: 11px;">Upload Pad</strong>
+                    <small style="font-size: 10px;">Drop or click</small>
+                  </div>
+                </div>
+              </div>
+              <div class="media-actions" style="gap: 4px;">
+                <button 
+                  type="button" 
+                  class="btn" 
+                  style="padding: 2px 4px; font-size: 10px;"
+                  onclick="triggerBrowse('mappingGamepadFileInput')"
+                  <?= !$canWrite ? 'disabled' : '' ?>
+                >Browse</button>
+                <button 
+                  type="button" 
+                  id="deleteMappingGamepadBtn" 
+                  class="btn danger" 
+                  style="padding: 2px 4px; font-size: 10px;"
+                  onclick="removeAsset('mapping_gamepad')" 
+                  disabled
+                  <?= !$canWrite ? 'disabled' : '' ?>
+                >Remove</button>
+              </div>
+            </div>
+
+            <!-- Cellphone Pad Adapter Dropzone -->
+            <div class="media-card" style="padding: 8px;">
+              <div class="media-card-title" style="font-size: 10px;">Cellphone Pad</div>
+              <input 
+                type="file" 
+                id="mappingCellphoneFileInput" 
+                name="mapping_cellphone_file" 
+                accept="image/*" 
+                style="display: none;" 
+                onchange="handleFileSelect(this, 'mappingCellphonePreviewContainer', 'deleteMappingCellphoneBtn')"
+                <?= !$canWrite ? 'disabled' : '' ?>
+              >
+              <div 
+                class="dropzone-box" 
+                id="mappingCellphoneDropzone" 
+                style="min-height: 90px; height: 90px;"
+                onclick="triggerBrowse('mappingCellphoneFileInput')"
+              >
+                <div id="mappingCellphonePreviewContainer" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                  <div class="dropzone-empty">
+                    <span style="font-size: 20px;">📱</span>
+                    <strong style="font-size: 11px;">Upload Adapter</strong>
+                    <small style="font-size: 10px;">Drop or click</small>
+                  </div>
+                </div>
+              </div>
+              <div class="media-actions" style="gap: 4px;">
+                <button 
+                  type="button" 
+                  class="btn" 
+                  style="padding: 2px 4px; font-size: 10px;"
+                  onclick="triggerBrowse('mappingCellphoneFileInput')"
+                  <?= !$canWrite ? 'disabled' : '' ?>
+                >Browse</button>
+                <button 
+                  type="button" 
+                  id="deleteMappingCellphoneBtn" 
+                  class="btn danger" 
+                  style="padding: 2px 4px; font-size: 10px;"
+                  onclick="removeAsset('mapping_cellphone')" 
+                  disabled
+                  <?= !$canWrite ? 'disabled' : '' ?>
+                >Remove</button>
+              </div>
+            </div>
+
+            <!-- ROG Ally Dropzone -->
+            <div class="media-card" style="padding: 8px;">
+              <div class="media-card-title" style="font-size: 10px;">ROG Ally Pad</div>
+              <input 
+                type="file" 
+                id="mappingRogAllyFileInput" 
+                name="mapping_rog_ally_file" 
+                accept="image/*" 
+                style="display: none;" 
+                onchange="handleFileSelect(this, 'mappingRogAllyPreviewContainer', 'deleteMappingRogAllyBtn')"
+                <?= !$canWrite ? 'disabled' : '' ?>
+              >
+              <div 
+                class="dropzone-box" 
+                id="mappingRogAllyDropzone" 
+                style="min-height: 90px; height: 90px;"
+                onclick="triggerBrowse('mappingRogAllyFileInput')"
+              >
+                <div id="mappingRogAllyPreviewContainer" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                  <div class="dropzone-empty">
+                    <span style="font-size: 20px;">🕹️</span>
+                    <strong style="font-size: 11px;">Upload Ally</strong>
+                    <small style="font-size: 10px;">Drop or click</small>
+                  </div>
+                </div>
+              </div>
+              <div class="media-actions" style="gap: 4px;">
+                <button 
+                  type="button" 
+                  class="btn" 
+                  style="padding: 2px 4px; font-size: 10px;"
+                  onclick="triggerBrowse('mappingRogAllyFileInput')"
+                  <?= !$canWrite ? 'disabled' : '' ?>
+                >Browse</button>
+                <button 
+                  type="button" 
+                  id="deleteMappingRogAllyBtn" 
+                  class="btn danger" 
+                  style="padding: 2px 4px; font-size: 10px;"
+                  onclick="removeAsset('mapping_rog_ally')" 
+                  disabled
+                  <?= !$canWrite ? 'disabled' : '' ?>
+                >Remove</button>
+              </div>
             </div>
           </div>
         </div>
@@ -958,9 +1103,12 @@ document.addEventListener('DOMContentLoaded', () => {
     grid.addEventListener('page-change', () => syncRowHighlight());
   }
 
-  // Setup drag & drop on photo and logo dropzones
+  // Setup drag & drop on photo, logo, and mapping dropzones
   setupDropzone('photoDropzone', 'imageFileInput', 'photoPreviewContainer', 'deletePhotoBtn');
   setupDropzone('logoDropzone', 'logoFileInput', 'logoPreviewContainer', 'deleteLogoBtn');
+  setupDropzone('mappingGamepadDropzone', 'mappingGamepadFileInput', 'mappingGamepadPreviewContainer', 'deleteMappingGamepadBtn');
+  setupDropzone('mappingCellphoneDropzone', 'mappingCellphoneFileInput', 'mappingCellphonePreviewContainer', 'deleteMappingCellphoneBtn');
+  setupDropzone('mappingRogAllyDropzone', 'mappingRogAllyFileInput', 'mappingRogAllyPreviewContainer', 'deleteMappingRogAllyBtn');
 
   // 4. Global keyboard shortcut bindings: Ctrl+S to save, Esc to reset/new
   window.addEventListener('keydown', (e) => {
@@ -1004,6 +1152,9 @@ function selectConsole(id) {
   document.getElementById('consoleId').value = String(record.id);
   document.getElementById('deleteImage').value = '0';
   document.getElementById('deleteLogo').value = '0';
+  document.getElementById('deleteMappingGamepad').value = '0';
+  document.getElementById('deleteMappingCellphone').value = '0';
+  document.getElementById('deleteMappingRogAlly').value = '0';
 
   document.getElementById('consoleName').value = record.name || '';
   document.getElementById('publisherId').value = String(record.publisher_id || '');
@@ -1049,6 +1200,9 @@ function selectConsole(id) {
   // Set Visual Asset Previews (3. Read: retrieves values from fields, doesn't enforce convention)
   setDropzoneImage('photoPreviewContainer', record.image_url, 'deletePhotoBtn', '📷', 'Upload Photo');
   setDropzoneImage('logoPreviewContainer', record.logo_url, 'deleteLogoBtn', '🖼️', 'Upload Logo');
+  setDropzoneImage('mappingGamepadPreviewContainer', record.mapping_gamepad_url, 'deleteMappingGamepadBtn', '🎮', 'Upload Pad');
+  setDropzoneImage('mappingCellphonePreviewContainer', record.mapping_cellphone_url, 'deleteMappingCellphoneBtn', '📱', 'Upload Adapter');
+  setDropzoneImage('mappingRogAllyPreviewContainer', record.mapping_rog_ally_url, 'deleteMappingRogAllyBtn', '🕹️', 'Upload Ally');
 
   document.getElementById('formModeTitle').textContent = 'EDIT CONSOLE';
   document.getElementById('activeIdBadge').textContent = `#${record.id}`;
@@ -1120,9 +1274,15 @@ function resetForm() {
 
   document.getElementById('deleteImage').value = '0';
   document.getElementById('deleteLogo').value = '0';
+  document.getElementById('deleteMappingGamepad').value = '0';
+  document.getElementById('deleteMappingCellphone').value = '0';
+  document.getElementById('deleteMappingRogAlly').value = '0';
 
   resetDropzonePreview('photoPreviewContainer', 'deletePhotoBtn', '📷', 'Upload Photo');
   resetDropzonePreview('logoPreviewContainer', 'deleteLogoBtn', '🖼️', 'Upload Logo');
+  resetDropzonePreview('mappingGamepadPreviewContainer', 'deleteMappingGamepadBtn', '🎮', 'Upload Pad');
+  resetDropzonePreview('mappingCellphonePreviewContainer', 'deleteMappingCellphoneBtn', '📱', 'Upload Adapter');
+  resetDropzonePreview('mappingRogAllyPreviewContainer', 'deleteMappingRogAllyBtn', '🕹️', 'Upload Ally');
 
   document.getElementById('formModeTitle').textContent = 'NEW CONSOLE';
   document.getElementById('activeIdBadge').textContent = '(Auto ID)';
@@ -1549,6 +1709,12 @@ function handleFileSelect(input, containerId, deleteBtnId) {
       document.getElementById('deleteImage').value = '0';
     } else if (input.id === 'logoFileInput') {
       document.getElementById('deleteLogo').value = '0';
+    } else if (input.id === 'mappingGamepadFileInput') {
+      document.getElementById('deleteMappingGamepad').value = '0';
+    } else if (input.id === 'mappingCellphoneFileInput') {
+      document.getElementById('deleteMappingCellphone').value = '0';
+    } else if (input.id === 'mappingRogAllyFileInput') {
+      document.getElementById('deleteMappingRogAlly').value = '0';
     }
   }
 }
@@ -1569,6 +1735,21 @@ function removeAsset(type) {
     if (fileInput) fileInput.value = '';
     document.getElementById('deleteLogo').value = '1';
     resetDropzonePreview('logoPreviewContainer', 'deleteLogoBtn', '🖼️', 'Upload Logo');
+  } else if (type === 'mapping_gamepad') {
+    const fileInput = document.getElementById('mappingGamepadFileInput');
+    if (fileInput) fileInput.value = '';
+    document.getElementById('deleteMappingGamepad').value = '1';
+    resetDropzonePreview('mappingGamepadPreviewContainer', 'deleteMappingGamepadBtn', '🎮', 'Upload Pad');
+  } else if (type === 'mapping_cellphone') {
+    const fileInput = document.getElementById('mappingCellphoneFileInput');
+    if (fileInput) fileInput.value = '';
+    document.getElementById('deleteMappingCellphone').value = '1';
+    resetDropzonePreview('mappingCellphonePreviewContainer', 'deleteMappingCellphoneBtn', '📱', 'Upload Adapter');
+  } else if (type === 'mapping_rog_ally') {
+    const fileInput = document.getElementById('mappingRogAllyFileInput');
+    if (fileInput) fileInput.value = '';
+    document.getElementById('deleteMappingRogAlly').value = '1';
+    resetDropzonePreview('mappingRogAllyPreviewContainer', 'deleteMappingRogAllyBtn', '🕹️', 'Upload Ally');
   }
 }
 

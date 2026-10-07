@@ -10,9 +10,11 @@ Thumbs.db
 images/games/*
 images/consoles/*
 images/publishers/*
+images/mappings/*
 !images/games/.gitkeep
 !images/consoles/.gitkeep
 !images/publishers/.gitkeep
+!images/mappings/.gitkeep
 
 # Scratch files
 scratch/*
