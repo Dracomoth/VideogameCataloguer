@@ -2191,7 +2191,22 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   function parseSimpleMarkdown(markdownText) {
     if (!markdownText || typeof markdownText !== 'string') return '';
 
-    let safe = markdownText
+    const escapeMap = {};
+    let escapeCounter = 0;
+
+    const escapedText = markdownText.replace(/\\([^a-zA-Z0-9\s])/g, (match, char) => {
+      const key = `\uE000ESC${escapeCounter++}\uE000`;
+      const safeChar = char
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+      escapeMap[key] = safeChar;
+      return key;
+    });
+
+    let safe = escapedText
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
@@ -2236,7 +2251,9 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       return `<p>${parseInlineMarkdown(trimmed).replace(/\n/g, '<br>')}</p>`;
     });
 
-    return htmlBlocks.filter(Boolean).join('');
+    let result = htmlBlocks.filter(Boolean).join('');
+    result = result.replace(/\uE000ESC\d+\uE000/g, match => escapeMap[match] || match);
+    return result;
   }
 
   function parseInlineMarkdown(str) {
