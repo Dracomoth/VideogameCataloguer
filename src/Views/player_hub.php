@@ -351,7 +351,7 @@ $canWriteCollection = \Vault\Auth\Auth::canWrite('collection');
   max-width: 275px;
   height: 270px;
   background: #04070e;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
@@ -368,6 +368,7 @@ $canWriteCollection = \Vault\Auth\Auth::canWrite('collection');
   object-fit: contain !important;
   display: block;
   margin: auto;
+  border-radius: 8px;
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
 }
 
@@ -378,7 +379,7 @@ $canWriteCollection = \Vault\Auth\Auth::canWrite('collection');
   max-width: 275px;
   height: 190px;
   background: #03050a;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
@@ -395,6 +396,7 @@ $canWriteCollection = \Vault\Auth\Auth::canWrite('collection');
   object-fit: contain !important;
   display: block;
   margin: auto;
+  border-radius: 8px;
 }
 
 /* Media Label Badge (Box Art / Screenshot) */

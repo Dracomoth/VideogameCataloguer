@@ -816,8 +816,8 @@ ksort($collectionConsoles);
 }
 
 .my-card-thumb {
-  width: 80px;
-  height: 100px;
+  width: 100px;
+  height: 120px;
   border-radius: 8px;
   background: #03050a;
   overflow: hidden;
@@ -825,7 +825,7 @@ ksort($collectionConsoles);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
+  padding: 6px;
   box-sizing: border-box;
 }
 
