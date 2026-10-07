@@ -62,10 +62,16 @@ ON DUPLICATE KEY UPDATE
   `access_other` = VALUES(`access_other`);
 
 -- --------------------------------------------------------
--- 5. Update system_info database version to 11.0.0
+-- 5. Update system_info
 -- --------------------------------------------------------
 INSERT INTO `system_info` (`item`, `version`, `created`, `updated`)
 VALUES ('database', '11.0.0', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON DUPLICATE KEY UPDATE 
+  `version` = VALUES(`version`),
+  `updated` = CURRENT_TIMESTAMP;
+
+INSERT INTO `system_info` (`item`, `version`, `created`, `updated`)
+VALUES ('system', '4.5.0', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON DUPLICATE KEY UPDATE 
   `version` = VALUES(`version`),
   `updated` = CURRENT_TIMESTAMP;
