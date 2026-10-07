@@ -149,4 +149,28 @@ final class DownloadController
         $files = $this->repo->getByGameId($gameId);
         Response::json($files);
     }
+
+    /**
+     * Reports a broken link for a downloadable file: POST /api/download/{id}/report-broken
+     *
+     * @param array<string, mixed> $request
+     * @return never
+     */
+    public function reportBroken(array $request): void
+    {
+        $body = $request['body'] ?? [];
+        $fileId = (int)($request['params']['id'] ?? ($body['file_id'] ?? 0));
+        if ($fileId <= 0) {
+            Response::json(['success' => false, 'error' => 'Invalid file ID.'], 400);
+        }
+
+        $userId = Auth::id();
+        $success = $this->repo->reportBrokenLink($fileId, $userId);
+
+        if ($success) {
+            Response::json(['success' => true, 'message' => 'Broken link report submitted. Thank you!']);
+        } else {
+            Response::json(['success' => false, 'error' => 'Downloadable file not found.'], 404);
+        }
+    }
 }

@@ -1215,6 +1215,46 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   transform: translateY(0);
 }
 
+.file-action-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.btn-report-broken-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #64748b;
+  border-radius: var(--radius-md, 6px);
+  cursor: pointer;
+  transition: all var(--transition-fast, 0.15s ease);
+  opacity: 0.65;
+}
+.btn-report-broken-action:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  opacity: 1;
+  transform: translateY(-1px);
+}
+.btn-report-broken-action:active {
+  transform: translateY(0);
+}
+.btn-report-broken-action.reported {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #f87171;
+  opacity: 1;
+  cursor: default;
+  pointer-events: none;
+}
+
 /* ==========================================================================
    3. Dual Grids (Console Games & Similar Games)
    ========================================================================== */
@@ -3089,12 +3129,21 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
                 <span class="file-downloads-pill">${dCount} ${dCount === 1 ? 'download' : 'downloads'}</span>
               </td>
               <td style="text-align: right;">
-                <a href="/download/${encodeURIComponent(fileId)}" target="_blank" class="btn-file-download-action" title="Download ${escapeHtml(name)}">
-                  <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
-                    <path fill-rule="evenodd" d="M10 3a.75.75 0 01.75.75v8.19l2.72-2.72a.75.75 0 111.06 1.06l-4 4a.75.75 0 01-1.06 0l-4-4a.75.75 0 111.06-1.06l2.72 2.72V3.75A.75.75 0 0110 3zM3.75 14.25a.75.75 0 01.75.75v1.5c0 .138.112.25.25.25h10.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 0115.25 18H4.75A1.75 1.75 0 013 16.25v-1.5a.75.75 0 01.75-.75z" clip-rule="evenodd"/>
-                  </svg>
-                  <span>Download</span>
-                </a>
+                <div class="file-action-group">
+                  <a href="/download/${encodeURIComponent(fileId)}" target="_blank" class="btn-file-download-action" title="Download ${escapeHtml(name)}">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
+                      <path fill-rule="evenodd" d="M10 3a.75.75 0 01.75.75v8.19l2.72-2.72a.75.75 0 111.06 1.06l-4 4a.75.75 0 01-1.06 0l-4-4a.75.75 0 111.06-1.06l2.72 2.72V3.75A.75.75 0 0110 3zM3.75 14.25a.75.75 0 01.75.75v1.5c0 .138.112.25.25.25h10.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 0115.25 18H4.75A1.75 1.75 0 013 16.25v-1.5a.75.75 0 01.75-.75z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>Download</span>
+                  </a>
+                  <button type="button" class="btn-report-broken-action" onclick="reportBrokenLink(${encodeURIComponent(fileId)}, this)" title="Report broken link" aria-label="Report broken link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                      <line x1="2" y1="2" x2="22" y2="22"></line>
+                    </svg>
+                  </button>
+                </div>
               </td>
             </tr>
           `;
@@ -3107,6 +3156,54 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         }
       }
     }
+
+  /**
+   * Reports a broken link for a downloadable file
+   */
+  async function reportBrokenLink(fileId, btnElem) {
+    if (!fileId || !btnElem || btnElem.classList.contains('reported')) return;
+
+    btnElem.disabled = true;
+    btnElem.style.opacity = '0.4';
+
+    try {
+      const res = await fetch(`/api/download/${fileId}/report-broken`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ file_id: fileId })
+      });
+
+      const json = await res.json();
+      if (res.ok && json.success) {
+        btnElem.classList.add('reported');
+        btnElem.title = 'Reported as broken';
+        btnElem.innerHTML = `
+          <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
+            <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+          </svg>
+        `;
+        if (typeof window.showToast === 'function') {
+          window.showToast('Broken link report submitted. Thank you!', 'success');
+        }
+      } else {
+        btnElem.disabled = false;
+        btnElem.style.opacity = '1';
+        if (typeof window.showToast === 'function') {
+          window.showToast((json && json.error) ? json.error : 'Failed to submit report. Please try again.', 'error');
+        }
+      }
+    } catch (err) {
+      btnElem.disabled = false;
+      btnElem.style.opacity = '1';
+      if (typeof window.showToast === 'function') {
+        window.showToast('Network error while reporting broken link.', 'error');
+      }
+    }
+  }
+  window.reportBrokenLink = reportBrokenLink;
 
     // 2. Dual Grids - More for this Console (NO "Random..." subtitle, NO "15 titles" badge)
     const consoleName = game.console_name || 'Console';

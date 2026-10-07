@@ -188,4 +188,29 @@ final class DownloadRepository
     {
         return Database::execute("DELETE FROM `downloadable_files` WHERE id = :id", [':id' => $id]) > 0;
     }
+
+    /**
+     * Records a reported broken link for a downloadable file in the broken_links table.
+     *
+     * @param int $fileId
+     * @param int|null $userId
+     * @return bool
+     */
+    public function reportBrokenLink(int $fileId, ?int $userId = null): bool
+    {
+        $file = $this->getById($fileId);
+        if (!$file) {
+            return false;
+        }
+
+        $sql = "
+            INSERT INTO `broken_links` (file_id, user_id, status, created, updated)
+            VALUES (:file_id, :user_id, 'open', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ";
+
+        return Database::execute($sql, [
+            ':file_id' => $fileId,
+            ':user_id' => $userId > 0 ? $userId : null,
+        ]) > 0;
+    }
 }

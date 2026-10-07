@@ -53,9 +53,10 @@ $hasMetadata      = $canConsoleTypes || $canCategories || $canSubcategories || $
 $hasGroup2        = $hasCatalog || $hasMetadata;
 
 // 3. Group 3: Tools & Administration
-$canReports       = $canView('reports');
-$canBulkUpload    = $canView('bulk_upload');
-$hasTools         = $canReports || $canBulkUpload;
+$canReports         = $canView('reports');
+$canBulkUpload      = $canView('bulk_upload');
+$canCatalogServices = $canView('catalog_services');
+$hasTools           = $canReports || $canBulkUpload || $canCatalogServices;
 
 $canUsers         = $canView('users');
 $canRoles         = $canView('roles');
@@ -70,7 +71,7 @@ $showSep2 = $hasGroup2 && $hasGroup3;
 // Active group states for collapsible menus
 $isCatalogActive  = in_array($active, ['games', 'consoles', 'publishers'], true);
 $isMetadataActive = in_array($active, ['console_types', 'categories', 'subcategories', 'languages'], true);
-$isToolsActive    = in_array($active, ['reports', 'bulk_upload'], true);
+$isToolsActive    = in_array($active, ['reports', 'bulk_upload', 'catalog_services', 'catalog-services'], true);
 $isAdminActive    = in_array($active, ['users', 'roles'], true);
 ?>
 
@@ -241,6 +242,13 @@ $isAdminActive    = in_array($active, ['users', 'roles'], true);
               <a href="/bulk-upload" class="sidebar-sub-link <?= $active === 'bulk_upload' ? 'active' : '' ?>" onclick="closeSidebar()">
                 <span class="sub-bullet">•</span>
                 <span>Bulk Upload</span>
+              </a>
+            <?php endif; ?>
+
+            <?php if ($canCatalogServices): ?>
+              <a href="/catalog-services" class="sidebar-sub-link <?= in_array($active, ['catalog_services', 'catalog-services'], true) ? 'active' : '' ?>" onclick="closeSidebar()">
+                <span class="sub-bullet">•</span>
+                <span>Catalog Services</span>
               </a>
             <?php endif; ?>
           </div>

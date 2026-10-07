@@ -50,6 +50,7 @@ spl_autoload_register(function (string $class): void {
 
 use Vault\Controllers\AuthController;
 use Vault\Controllers\BulkUploadController;
+use Vault\Controllers\CatalogServicesController;
 use Vault\Controllers\CategoryController;
 use Vault\Controllers\ConsoleController;
 use Vault\Controllers\ConsoleTypeController;
@@ -385,9 +386,20 @@ $router->get('/api/reports/premade', [ReportController::class, 'apiPremade']);
 $router->post('/api/reports/custom', [ReportController::class, 'apiCustom']);
 $router->get('/api/reports/export', [ReportController::class, 'export']);
 
+// Catalog Services & Broken Link Maintenance Routes
+$router->get('/catalog-services', [CatalogServicesController::class, 'index']);
+$router->get('/catalog_services', function () {
+    Response::redirect('/catalog-services');
+});
+$router->post('/api/catalog-services/fix-broken-link', [CatalogServicesController::class, 'fixBrokenLink']);
+$router->post('/api/catalog-services/dismiss-broken-link', [CatalogServicesController::class, 'dismissBrokenLink']);
+$router->post('/api/catalog-services/close-broken-link', [CatalogServicesController::class, 'dismissBrokenLink']);
+
 // Download & Asset Dispatch Routes
 $router->get('/download/{id}', [DownloadController::class, 'download']);
 $router->get('/api/download/{id}', [DownloadController::class, 'apiDownload']);
+$router->post('/api/download/{id}/report-broken', [DownloadController::class, 'reportBroken']);
+$router->post('/api/games-portal/report-broken-link', [DownloadController::class, 'reportBroken']);
 $router->get('/api/downloads/console/{id}', [DownloadController::class, 'byConsole']);
 $router->get('/api/downloads/game/{id}', [DownloadController::class, 'byGame']);
 
