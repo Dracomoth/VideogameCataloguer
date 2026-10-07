@@ -481,7 +481,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 .pub-card-logo-slot {
   width: 100%;
   height: 80px;
-  background: var(--surface-alt, #0c121e);
+  background: #ffffff;
   border-radius: var(--radius-md, 6px);
   border: 1px solid rgba(255, 255, 255, 0.04);
   display: flex;
@@ -630,7 +630,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   height: 120px;
   min-width: 160px;
   margin: 0 28px 18px 0;
-  background: var(--surface-alt, #0c121e);
+  background: #ffffff;
   border: 1px solid var(--border, #243049);
   border-radius: var(--radius-lg, 10px);
   display: flex;
@@ -639,7 +639,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   padding: 12px;
   box-sizing: border-box;
   overflow: hidden;
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 @media (max-width: 768px) {
   .pub-detail-logo-box {
@@ -828,7 +828,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 .console-thumb-slot {
   width: 100%;
   height: 85px;
-  background: rgba(0, 0, 0, 0.35);
+  background: #ffffff;
   border-radius: 4px;
   display: flex;
   align-items: center;

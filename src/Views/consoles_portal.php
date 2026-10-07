@@ -481,7 +481,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 .con-card-image-slot {
   width: 100%;
   height: 125px;
-  background: var(--surface-alt, #0c121e);
+  background: #ffffff;
   border-radius: var(--radius-md, 6px);
   display: flex;
   align-items: center;
@@ -678,14 +678,15 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   }
 }
 .con-imagebox {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(51, 65, 85, 0.45);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: var(--radius-md, 8px);
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
   overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
 .con-logo-imagebox {
   height: 72px;
@@ -695,7 +696,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  filter: none;
 }
 .con-hardware-imagebox {
   height: 175px;
@@ -705,7 +706,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.55));
+  filter: none;
   transition: transform 0.2s ease;
 }
 .con-hardware-imagebox:hover img {
