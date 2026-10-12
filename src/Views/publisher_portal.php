@@ -495,7 +495,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  filter: none;
 }
 .pub-card-info {
   display: flex;
@@ -651,7 +651,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  filter: none;
 }
 
 /* Right: The details, listed - NO BOXES, aligned directly next to logo */
