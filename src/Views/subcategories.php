@@ -290,6 +290,8 @@ function selectSubcategory(id) {
  */
 function resetForm() {
   selectedId = null;
+  const grid = document.getElementById('subcategoriesGrid');
+  if (grid) grid.selectedId = null;
   document.getElementById('subcategoryId').value = '';
   document.getElementById('parentCategory').value = '';
   document.getElementById('subcatName').value = '';
@@ -381,7 +383,8 @@ async function handleSave(e) {
     showToast(payload.message || 'Saved successfully.', 'success');
 
     // Reload latest dataset from API and re-select record
-    await reloadGridData(isUpdate ? parseInt(id, 10) : payload.id);
+    const targetId = isUpdate ? parseInt(id, 10) : parseInt(payload.id || (payload.data && payload.data.id), 10);
+    await reloadGridData(targetId);
   } catch (err) {
     showToast(err.message, 'error');
   } finally {
@@ -430,7 +433,9 @@ async function handleDelete() {
     const payload = result.data || result;
     showToast(payload.message || 'Subcategory deleted successfully.', 'success');
     resetForm();
-    await reloadGridData();
+    const grid = document.getElementById('subcategoriesGrid');
+    if (grid) grid.resetPagination();
+    await reloadGridData(null);
   } catch (err) {
     showToast(err.message, 'error');
     deleteBtn.disabled = false;
@@ -442,15 +447,28 @@ async function handleDelete() {
  */
 async function reloadGridData(selectIdAfter = null) {
   try {
-    const res = await fetch('/api/subcategories', {
-      headers: { 'Accept': 'application/json' }
+    const res = await fetch(`/api/subcategories?_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
     });
     const json = await res.json();
     subcategoriesList = (json.data && json.data.subcategories) ? json.data.subcategories : (json.subcategories || []);
 
     const grid = document.getElementById('subcategoriesGrid');
     if (grid) {
+      if (selectIdAfter) {
+        grid.selectedId = selectIdAfter;
+      } else {
+        grid.selectedId = null;
+      }
       grid.data = subcategoriesList;
+      if (selectIdAfter) {
+        grid.navigateToId(selectIdAfter);
+      }
     }
 
     if (selectIdAfter) {

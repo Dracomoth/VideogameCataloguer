@@ -1109,6 +1109,8 @@ function selectGame(id) {
  */
 function resetForm() {
   selectedId = null;
+  const grid = document.getElementById('gamesGrid');
+  if (grid) grid.selectedId = null;
   document.getElementById('gameForm').reset();
   document.getElementById('gameId').value = '';
   document.getElementById('deleteBoxart').value = '0';
@@ -1626,6 +1628,8 @@ async function handleDelete() {
     showToast(payload.message || 'Game deleted successfully.', 'success');
 
     resetForm();
+    const grid = document.getElementById('gamesGrid');
+    if (grid) grid.resetPagination();
     await reloadGridData(null);
   } catch (err) {
     showToast(err.message, 'error');
@@ -1708,32 +1712,18 @@ async function reloadGridData(selectTargetId = null) {
 
     const grid = document.getElementById('gamesGrid');
     if (grid) {
-      // If a target record was saved/updated, ensure active filters don't hide it
-      if (selectTargetId !== null && selectTargetId > 0 && grid._activeFilters) {
-        const targetItem = gamesList.find(g => Number(g.id) === Number(selectTargetId));
-        if (targetItem) {
-          for (const [key, filterVal] of Object.entries(grid._activeFilters)) {
-            if (filterVal && filterVal !== 'all' && String(targetItem[key]) !== String(filterVal)) {
-              grid._activeFilters[key] = 'all';
-              const sel = grid.querySelector(`.vault-grid-select-filter[data-filter-key="${key}"]`);
-              if (sel) sel.value = 'all';
-            }
-          }
-        }
+      if (selectTargetId !== null && selectTargetId > 0) {
+        grid.selectedId = selectTargetId;
+      } else {
+        grid.selectedId = null;
       }
       grid.data = [...gamesList];
+      if (selectTargetId !== null && selectTargetId > 0) {
+        grid.navigateToId(selectTargetId);
+      }
     }
 
     if (selectTargetId !== null && selectTargetId > 0) {
-      if (grid && typeof grid.goToPage === 'function') {
-        const listToSearch = (grid._filteredData && grid._filteredData.length > 0) ? grid._filteredData : gamesList;
-        const itemIndex = listToSearch.findIndex(g => Number(g.id) === Number(selectTargetId));
-        if (itemIndex >= 0) {
-          const pageSize = grid.pageSize || 25;
-          const targetPage = Math.floor(itemIndex / pageSize) + 1;
-          grid.goToPage(targetPage);
-        }
-      }
       selectGame(selectTargetId);
       syncRowHighlight();
     } else {

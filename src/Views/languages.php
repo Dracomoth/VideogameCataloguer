@@ -224,6 +224,8 @@ function selectLanguage(id) {
  */
 function resetForm() {
   selectedId = null;
+  const grid = document.getElementById('languagesGrid');
+  if (grid) grid.selectedId = null;
   document.getElementById('langId').value = '';
   document.getElementById('langName').value = '';
   document.getElementById('formModeTitle').textContent = 'NEW LANGUAGE';
@@ -302,7 +304,8 @@ async function handleSave(e) {
     showToast(payload.message || 'Saved successfully.', 'success');
 
     // Reload latest dataset from API and re-select record
-    await reloadGridData(isUpdate ? parseInt(id, 10) : payload.id);
+    const targetId = isUpdate ? parseInt(id, 10) : parseInt(payload.id || (payload.data && payload.data.id), 10);
+    await reloadGridData(targetId);
   } catch (err) {
     showToast(err.message, 'error');
   } finally {
@@ -351,7 +354,9 @@ async function handleDelete() {
     const payload = result.data || result;
     showToast(payload.message || 'Language deleted successfully.', 'success');
     resetForm();
-    await reloadGridData();
+    const grid = document.getElementById('languagesGrid');
+    if (grid) grid.resetPagination();
+    await reloadGridData(null);
   } catch (err) {
     showToast(err.message, 'error');
     deleteBtn.disabled = false;
@@ -363,15 +368,28 @@ async function handleDelete() {
  */
 async function reloadGridData(selectIdAfter = null) {
   try {
-    const res = await fetch('/api/languages', {
-      headers: { 'Accept': 'application/json' }
+    const res = await fetch(`/api/languages?_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
     });
     const json = await res.json();
     languagesList = (json.data && json.data.languages) ? json.data.languages : (json.languages || []);
 
     const grid = document.getElementById('languagesGrid');
     if (grid) {
+      if (selectIdAfter) {
+        grid.selectedId = selectIdAfter;
+      } else {
+        grid.selectedId = null;
+      }
       grid.data = languagesList;
+      if (selectIdAfter) {
+        grid.navigateToId(selectIdAfter);
+      }
     }
 
     if (selectIdAfter) {

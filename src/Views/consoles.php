@@ -1258,6 +1258,8 @@ function selectConsole(id) {
  */
 function resetForm() {
   selectedId = null;
+  const grid = document.getElementById('consolesGrid');
+  if (grid) grid.selectedId = null;
   document.getElementById('consoleForm').reset();
   document.getElementById('consoleId').value = '';
   document.getElementById('consoleTypeId').value = '';
@@ -1858,7 +1860,7 @@ async function handleSave(e) {
     const payload = result.data || result;
     showToast(payload.message || 'Console saved successfully.', 'success');
 
-    const targetId = isUpdate ? parseInt(id, 10) : parseInt(payload.id, 10);
+    const targetId = isUpdate ? parseInt(id, 10) : parseInt(payload.id || (payload.data && payload.data.id), 10);
     // Reload latest dataset from API and re-select record
     await reloadGridData(targetId);
   } catch (err) {
@@ -1915,7 +1917,9 @@ async function handleDelete() {
     const payload = result.data || result;
     showToast(payload.message || 'Console deleted successfully.', 'success');
     resetForm();
-    await reloadGridData();
+    const grid = document.getElementById('consolesGrid');
+    if (grid) grid.resetPagination();
+    await reloadGridData(null);
   } catch (err) {
     showToast(err.message, 'error');
     deleteBtn.disabled = false;
@@ -1964,7 +1968,15 @@ async function reloadGridData(selectIdAfter = null) {
 
     const grid = document.getElementById('consolesGrid');
     if (grid) {
+      if (selectIdAfter) {
+        grid.selectedId = selectIdAfter;
+      } else {
+        grid.selectedId = null;
+      }
       grid.data = consolesList;
+      if (selectIdAfter) {
+        grid.navigateToId(selectIdAfter);
+      }
     }
 
     // Refresh master candidates dropdown

@@ -2979,6 +2979,13 @@ vault-grid {
     background: var(--row-hover);
 }
 
+.vault-grid-table tbody tr.vault-grid-row-selected td,
+.vault-grid-table tbody tr.active td {
+    background: rgba(56, 189, 248, 0.14) !important;
+    color: #fff !important;
+    border-bottom-color: rgba(56, 189, 248, 0.3) !important;
+}
+
 /* Badges */
 .vault-grid-badge {
     display: inline-flex;

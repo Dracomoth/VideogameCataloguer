@@ -49,6 +49,7 @@ class DataGrid extends HTMLElement {
     this._sortColumn = null;
     this._sortDirection = 'asc'; // 'asc' | 'desc'
     this._customFilters = [];
+    this._selectedId = null;
 
     // Unique component ID for element scoping
     this._uid = 'vg_' + Math.random().toString(36).substring(2, 9);
@@ -84,6 +85,15 @@ class DataGrid extends HTMLElement {
   // Public Properties & Setters
   // =========================================================================
 
+  get selectedId() {
+    return this._selectedId;
+  }
+
+  set selectedId(id) {
+    this._selectedId = (id !== null && id !== undefined && id !== '') ? id : null;
+    this._highlightSelectedRow();
+  }
+
   get columns() {
     return this._columns;
   }
@@ -99,8 +109,16 @@ class DataGrid extends HTMLElement {
 
   set data(items) {
     this._rawData = Array.isArray(items) ? items : [];
-    this._currentPage = 1;
     this._applyDataPipeline();
+  }
+
+  /**
+   * Explicitly resets pagination to page 1 and clears selection (used on record deletion).
+   */
+  resetPagination() {
+    this._currentPage = 1;
+    this._selectedId = null;
+    this._updateBodyAndPagination();
   }
 
   get pageSize() {
@@ -183,12 +201,31 @@ class DataGrid extends HTMLElement {
 
     this._filteredData = result;
 
-    // Validate page range
-    const totalPages = this.totalPages;
-    if (this._currentPage > totalPages && totalPages > 0) {
-      this._currentPage = totalPages;
-    } else if (this._currentPage < 1) {
-      this._currentPage = 1;
+    // Validate page range & determine appropriate target page:
+    // If a selected ID is active, prioritize the page that contains that record!
+    if (this._selectedId !== null && this._selectedId !== undefined && this._selectedId !== '') {
+      const targetIndex = this._filteredData.findIndex(row => {
+        return row && row.id !== undefined && (Number(row.id) === Number(this._selectedId) || String(row.id) === String(this._selectedId));
+      });
+      if (targetIndex >= 0) {
+        this._currentPage = Math.floor(targetIndex / this._pageSize) + 1;
+      } else {
+        // Record not found in current filtered set (e.g. filtered out by search/filter) -> clamp current page
+        const totalPages = this.totalPages;
+        if (this._currentPage > totalPages && totalPages > 0) {
+          this._currentPage = totalPages;
+        } else if (this._currentPage < 1) {
+          this._currentPage = 1;
+        }
+      }
+    } else {
+      // No selected item -> preserve current page, clamped within valid range (NEVER arbitrarily reset to page 1)
+      const totalPages = this.totalPages;
+      if (this._currentPage > totalPages && totalPages > 0) {
+        this._currentPage = totalPages;
+      } else if (this._currentPage < 1) {
+        this._currentPage = 1;
+      }
     }
 
     this._updateBodyAndPagination();
@@ -211,9 +248,9 @@ class DataGrid extends HTMLElement {
   // Navigation & Pagination Actions
   // =========================================================================
 
-  goToPage(page) {
+  goToPage(page, force = false) {
     const target = Math.max(1, Math.min(page, this.totalPages));
-    if (target !== this._currentPage) {
+    if (target !== this._currentPage || force) {
       this._currentPage = target;
       this._updateBodyAndPagination();
       this.dispatchEvent(new CustomEvent('page-change', {
@@ -226,6 +263,53 @@ class DataGrid extends HTMLElement {
         }
       }));
     }
+  }
+
+  /**
+   * Navigates to the page containing the given record ID and highlights it.
+   * If the record is not found in the filtered data (e.g. filtered out by search/filter),
+   * returns false while preserving active filters and valid page range.
+   */
+  navigateToId(id) {
+    if (id === null || id === undefined || id === '') return false;
+    this._selectedId = id;
+    const index = this._filteredData.findIndex(row => {
+      return row && row.id !== undefined && (Number(row.id) === Number(id) || String(row.id) === String(id));
+    });
+
+    if (index >= 0) {
+      const targetPage = Math.floor(index / this._pageSize) + 1;
+      this.goToPage(targetPage, true);
+      this._highlightSelectedRow();
+      return true;
+    } else {
+      this._highlightSelectedRow();
+      return false;
+    }
+  }
+
+  /**
+   * Synchronizes visual highlight on the currently visible rows matching _selectedId
+   */
+  _highlightSelectedRow() {
+    const tbody = this.querySelector('.vault-grid-tbody');
+    if (!tbody) return;
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach(tr => {
+      tr.classList.remove('vault-grid-row-selected', 'active');
+      if (this._selectedId !== null && this._selectedId !== undefined && this._selectedId !== '') {
+        const rowIndex = parseInt(tr.getAttribute('data-row-index'), 10);
+        const row = this._filteredData[rowIndex];
+        if (row && row.id !== undefined && (Number(row.id) === Number(this._selectedId) || String(row.id) === String(this._selectedId))) {
+          tr.classList.add('vault-grid-row-selected', 'active');
+        } else {
+          const firstTd = tr.querySelector('td');
+          if (firstTd && firstTd.textContent.trim() === '#' + this._selectedId) {
+            tr.classList.add('vault-grid-row-selected', 'active');
+          }
+        }
+      }
+    });
   }
 
   // =========================================================================
@@ -368,8 +452,10 @@ class DataGrid extends HTMLElement {
     } else {
       tbody.innerHTML = rows.map((row, idx) => {
         const absoluteIndex = (this._currentPage - 1) * this._pageSize + idx;
+        const isSelected = this._selectedId !== null && this._selectedId !== undefined && this._selectedId !== '' &&
+          (row && row.id !== undefined && (Number(row.id) === Number(this._selectedId) || String(row.id) === String(this._selectedId)));
         return `
-          <tr data-row-index="${absoluteIndex}">
+          <tr data-row-index="${absoluteIndex}" class="${isSelected ? 'vault-grid-row-selected active' : ''}">
             ${this._columns.map(col => {
               const align = col.align ? `text-align: ${col.align};` : '';
               return `
@@ -641,6 +727,10 @@ class DataGrid extends HTMLElement {
         const action = actionBtn.getAttribute('data-action');
         const rowIndex = parseInt(actionBtn.getAttribute('data-row-index'), 10);
         const rowData = this._filteredData[rowIndex];
+        if (rowData && rowData.id !== undefined && action === 'edit') {
+          this._selectedId = rowData.id;
+          this._highlightSelectedRow();
+        }
         this.dispatchEvent(new CustomEvent('action-click', {
           bubbles: true,
           detail: { action, row: rowData, index: rowIndex }
@@ -652,6 +742,10 @@ class DataGrid extends HTMLElement {
       if (tr && !tr.classList.contains('vault-grid-empty-row')) {
         const rowIndex = parseInt(tr.getAttribute('data-row-index'), 10);
         const rowData = this._filteredData[rowIndex];
+        if (rowData && rowData.id !== undefined) {
+          this._selectedId = rowData.id;
+          this._highlightSelectedRow();
+        }
         this.dispatchEvent(new CustomEvent('row-click', {
           bubbles: true,
           detail: { row: rowData, index: rowIndex }

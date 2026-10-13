@@ -460,6 +460,8 @@ function selectConsoleType(id) {
  */
 function resetForm() {
   selectedId = null;
+  const grid = document.getElementById('consoleTypesGrid');
+  if (grid) grid.selectedId = null;
   document.getElementById('typeId').value = '';
   document.getElementById('typeName').value = '';
   document.getElementById('badgeBgColorText').value = DEFAULT_BG_COLOR;
@@ -565,11 +567,12 @@ async function handleSave(event) {
       throw new Error(result.error || (result.data && result.data.message) || result.message || 'Operation failed');
     }
 
-    const payload = result.data || result;
-    showToast(payload.message || 'Saved successfully', 'success');
+    const respData = result.data || result;
+    showToast(respData.message || 'Saved successfully', 'success');
 
     // Refresh grid dataset
-    await reloadDataset(isEdit ? Number(id) : Number(payload.id));
+    const targetId = isEdit ? Number(id) : Number(respData.id || (respData.data && respData.data.id));
+    await reloadDataset(targetId);
   } catch (err) {
     console.error('Save failed:', err);
     showToast(err.message || 'Failed to save console type', 'error');
@@ -624,6 +627,8 @@ async function handleDelete() {
     const payload = result.data || result;
     showToast(payload.message || 'Console type deleted successfully', 'success');
     resetForm();
+    const grid = document.getElementById('consoleTypesGrid');
+    if (grid) grid.resetPagination();
     await reloadDataset(null);
   } catch (err) {
     console.error('Delete error:', err);
@@ -639,8 +644,13 @@ async function handleDelete() {
  */
 async function reloadDataset(targetSelectId = null) {
   try {
-    const res = await fetch('/api/console-types', {
-      headers: { 'Accept': 'application/json' }
+    const res = await fetch(`/api/console-types?_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
     });
     const json = await res.json();
     const payload = json.data || json;
@@ -648,7 +658,15 @@ async function reloadDataset(targetSelectId = null) {
 
     const grid = document.getElementById('consoleTypesGrid');
     if (grid) {
+      if (targetSelectId !== null) {
+        grid.selectedId = targetSelectId;
+      } else {
+        grid.selectedId = null;
+      }
       grid.data = consoleTypesList;
+      if (targetSelectId !== null) {
+        grid.navigateToId(targetSelectId);
+      }
     }
 
     if (targetSelectId !== null) {

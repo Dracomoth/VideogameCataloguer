@@ -593,6 +593,8 @@ function selectPublisher(id) {
  */
 function resetForm() {
   selectedId = null;
+  const grid = document.getElementById('publishersGrid');
+  if (grid) grid.selectedId = null;
   document.getElementById('publisherId').value = '';
   document.getElementById('publisherName').value = '';
   document.getElementById('isConsoleMaker').checked = false;
@@ -699,7 +701,8 @@ async function handleSave(e) {
     showToast(payload.message || 'Saved successfully.', 'success');
 
     // Reload latest dataset from API and re-select record
-    await reloadGridData(isUpdate ? parseInt(id, 10) : payload.id);
+    const targetId = isUpdate ? parseInt(id, 10) : parseInt(payload.id || (payload.data && payload.data.id), 10);
+    await reloadGridData(targetId);
   } catch (err) {
     showToast(err.message, 'error');
   } finally {
@@ -755,7 +758,9 @@ async function handleDelete() {
     const payload = result.data || result;
     showToast(payload.message || 'Publisher deleted successfully.', 'success');
     resetForm();
-    await reloadGridData();
+    const grid = document.getElementById('publishersGrid');
+    if (grid) grid.resetPagination();
+    await reloadGridData(null);
   } catch (err) {
     showToast(err.message, 'error');
     deleteBtn.disabled = false;
@@ -767,15 +772,28 @@ async function handleDelete() {
  */
 async function reloadGridData(selectIdAfter = null) {
   try {
-    const res = await fetch('/api/publishers', {
-      headers: { 'Accept': 'application/json' }
+    const res = await fetch(`/api/publishers?_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
     });
     const json = await res.json();
     publishersList = (json.data && json.data.publishers) ? json.data.publishers : (json.publishers || []);
 
     const grid = document.getElementById('publishersGrid');
     if (grid) {
+      if (selectIdAfter) {
+        grid.selectedId = selectIdAfter;
+      } else {
+        grid.selectedId = null;
+      }
       grid.data = publishersList;
+      if (selectIdAfter) {
+        grid.navigateToId(selectIdAfter);
+      }
     }
 
     if (selectIdAfter) {
