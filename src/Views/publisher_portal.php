@@ -1398,6 +1398,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const CAN_ACCESS_GAMES     = <?= json_encode($canAccessGames) ?>;
   const CAN_ACCESS_CONSOLES  = <?= json_encode($canAccessConsoles) ?>;
   const CAN_WRITE_PUBLISHERS = <?= json_encode($canWritePublishers) ?>;
+  const FALLBACK_BOXART      = '/images/support/no_cover.jpg';
 
   // Runtime State
   let currentMode = 'list'; // 'list' | 'detail'
@@ -1493,28 +1494,6 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
   }
 
-  /**
-   * Helper: Generates SVG placeholder for game covers
-   */
-  function getGameFallbackSvg(title) {
-    const label = (title || 'Game').substring(0, 16);
-    const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 180" width="100%" height="100%">
-        <defs>
-          <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#1e293b"/>
-            <stop offset="100%" stop-color="#0f172a"/>
-          </linearGradient>
-        </defs>
-        <rect width="140" height="180" rx="6" fill="url(#g)"/>
-        <rect x="10" y="10" width="120" height="160" rx="4" fill="none" stroke="#334155" stroke-dasharray="4,4"/>
-        <circle cx="70" cy="70" r="28" fill="#0284c7" opacity="0.3"/>
-        <text x="70" y="78" font-family="sans-serif" font-size="28" fill="#38bdf8" text-anchor="middle">🕹️</text>
-        <text x="70" y="130" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="11" font-weight="600" fill="#e2e8f0" text-anchor="middle">${escapeHtml(label)}</text>
-      </svg>
-    `.trim();
-    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
-  }
 
   /**
    * Helper: Normalizes relative or absolute image URLs
@@ -1973,9 +1952,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     } else {
       const gFragment = document.createDocumentFragment();
       games.forEach(game => {
-        const fallback = getGameFallbackSvg(game.title);
-        const artPath = game.boxart_path || game.screenshot_path;
-        const imgUrl = formatImageUrl(artPath, fallback);
+        const imgUrl = formatImageUrl(game.boxart_path, FALLBACK_BOXART);
 
         const card = document.createElement(CAN_ACCESS_GAMES ? 'a' : 'div');
         card.className = 'game-item-card' + (CAN_ACCESS_GAMES ? '' : ' no-link');
@@ -1991,7 +1968,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
               alt="${escapeHtml(game.title)}" 
               class="game-thumb-img" 
               loading="lazy"
-              onerror="this.onerror=null; this.src='${fallback}';"
+              onerror="this.onerror=null; this.src='${FALLBACK_BOXART}';"
             >
           </div>
           <div class="game-item-title">${escapeHtml(game.title)}</div>
