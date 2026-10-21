@@ -216,13 +216,13 @@ $styleVer  = file_exists($stylePath) ? (string)filemtime($stylePath) : '1.0';
     <!-- Credentials Form -->
     <form method="POST" action="/login" autocomplete="off">
       <div class="login-form-group">
-        <label for="email" class="login-label">Email Address</label>
+        <label for="login" class="login-label">Username or Email</label>
         <input 
-          type="email" 
-          id="email" 
-          name="email" 
+          type="text" 
+          id="login" 
+          name="login" 
           class="login-input" 
-          placeholder="name@domain.com" 
+          placeholder="username or name@domain.com" 
           required 
           autofocus
         >

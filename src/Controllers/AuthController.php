@@ -59,21 +59,21 @@ final class AuthController
     public function login(array $request): void
     {
         $body = $request['body'] ?? [];
-        $email = trim((string)($body['email'] ?? ''));
+        $login = trim((string)($body['login'] ?? ($body['username'] ?? ($body['email'] ?? ''))));
         $password = (string)($body['password'] ?? '');
 
-        if ($email === '' || $password === '') {
-            $this->handleFailedLogin('Please enter both your email address and password.', $request);
+        if ($login === '' || $password === '') {
+            $this->handleFailedLogin('Please enter both your username or email, and password.', $request);
         }
 
-        if (Auth::attempt($email, $password)) {
+        if (Auth::attempt($login, $password)) {
             if ($this->wantsJson($request)) {
                 Response::json(['success' => true, 'redirect' => '/']);
             }
             Response::redirect('/');
         }
 
-        $this->handleFailedLogin('Invalid email or password. Please verify your credentials.', $request);
+        $this->handleFailedLogin('Invalid username, email, or password. Please verify your credentials.', $request);
     }
 
     /**

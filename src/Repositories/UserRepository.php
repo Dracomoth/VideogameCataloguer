@@ -31,6 +31,7 @@ final class UserRepository
             SELECT 
                 u.id,
                 u.role_id,
+                u.username,
                 u.first_name,
                 u.last_name,
                 u.email,
@@ -61,6 +62,7 @@ final class UserRepository
             SELECT 
                 u.id,
                 u.role_id,
+                u.username,
                 u.first_name,
                 u.last_name,
                 u.email,
@@ -93,6 +95,18 @@ final class UserRepository
     }
 
     /**
+     * Looks up an existing user by unique username.
+     *
+     * @param string $username
+     * @return array<string, mixed>|null
+     */
+    public function findByUsername(string $username): ?array
+    {
+        $sql = "SELECT * FROM `users` WHERE `username` = :username LIMIT 1";
+        return Database::fetchOne($sql, [':username' => trim($username)]);
+    }
+
+    /**
      * Creates a new user record with validation and password hashing.
      *
      * @param array<string, mixed> $data
@@ -100,6 +114,7 @@ final class UserRepository
      */
     public function create(array $data): int
     {
+        $username  = trim((string)($data['username'] ?? ''));
         $firstName = trim((string)($data['first_name'] ?? ''));
         $lastName  = trim((string)($data['last_name'] ?? ''));
         $email     = strtolower(trim((string)($data['email'] ?? '')));
@@ -113,6 +128,18 @@ final class UserRepository
         $targetRole = $roleRepo->getById($roleId);
         if (!empty($targetRole['is_super'])) {
             $isActive = 1;
+        }
+
+        if ($username === '') {
+            throw new InvalidArgumentException('Username is required.');
+        }
+
+        if (!preg_match('/^[a-zA-Z0-9_.-]{3,50}$/', $username)) {
+            throw new InvalidArgumentException('Username must be 3-50 characters and contain only letters, numbers, underscores, dashes, or dots.');
+        }
+
+        if ($this->findByUsername($username) !== null) {
+            throw new InvalidArgumentException("Username '{$username}' is already in use.");
         }
 
         if ($firstName === '' || $lastName === '') {
@@ -139,14 +166,15 @@ final class UserRepository
 
         $sql = "
             INSERT INTO `users` (
-                `role_id`, `first_name`, `last_name`, `email`, `password_hash`, `avatar_path`, `is_active`
+                `role_id`, `username`, `first_name`, `last_name`, `email`, `password_hash`, `avatar_path`, `is_active`
             ) VALUES (
-                :role_id, :first_name, :last_name, :email, :password_hash, :avatar_path, :is_active
+                :role_id, :username, :first_name, :last_name, :email, :password_hash, :avatar_path, :is_active
             )
         ";
 
         Database::execute($sql, [
             ':role_id'       => $roleId,
+            ':username'      => $username,
             ':first_name'    => $firstName,
             ':last_name'     => $lastName,
             ':email'         => $email,
@@ -172,6 +200,7 @@ final class UserRepository
             throw new RuntimeException("User with ID {$id} not found.");
         }
 
+        $username  = trim((string)($data['username'] ?? ($user['username'] ?? '')));
         $firstName = trim((string)($data['first_name'] ?? $user['first_name']));
         $lastName  = trim((string)($data['last_name'] ?? $user['last_name']));
         $email     = strtolower(trim((string)($data['email'] ?? $user['email'])));
@@ -192,6 +221,19 @@ final class UserRepository
             $roleId = 1;
         }
 
+        if ($username === '') {
+            throw new InvalidArgumentException('Username is required.');
+        }
+
+        if (!preg_match('/^[a-zA-Z0-9_.-]{3,50}$/', $username)) {
+            throw new InvalidArgumentException('Username must be 3-50 characters and contain only letters, numbers, underscores, dashes, or dots.');
+        }
+
+        $existingUsername = $this->findByUsername($username);
+        if ($existingUsername && (int)$existingUsername['id'] !== $id) {
+            throw new InvalidArgumentException("Username '{$username}' is already in use by another user.");
+        }
+
         // Email uniqueness check
         $existing = $this->findByEmail($email);
         if ($existing && (int)$existing['id'] !== $id) {
@@ -201,6 +243,7 @@ final class UserRepository
         $params = [
             ':id'         => $id,
             ':role_id'    => $roleId,
+            ':username'   => $username,
             ':first_name' => $firstName,
             ':last_name'  => $lastName,
             ':email'      => $email,
@@ -222,6 +265,7 @@ final class UserRepository
         $sql = "
             UPDATE `users` SET 
                 `role_id`     = :role_id,
+                `username`    = :username,
                 `first_name`  = :first_name,
                 `last_name`   = :last_name,
                 `email`       = :email,

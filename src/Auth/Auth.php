@@ -45,9 +45,9 @@ final class Auth
     }
 
     /**
-     * Attempts authentication with email and plaintext password.
+     * Attempts authentication with username or email and plaintext password.
      */
-    public static function attempt(string $email, string $password): bool
+    public static function attempt(string $identifier, string $password): bool
     {
         self::startSession();
 
@@ -55,9 +55,12 @@ final class Auth
             "SELECT u.*, r.name AS role_name, r.is_super 
              FROM `users` u 
              INNER JOIN `roles` r ON r.id = u.role_id 
-             WHERE u.email = :email AND u.is_active = 1 
+             WHERE (u.email = :email OR u.username = :username) AND u.is_active = 1 
              LIMIT 1",
-            [':email' => trim($email)]
+            [
+                ':email'    => trim($identifier),
+                ':username' => trim($identifier),
+            ]
         );
 
         if (!$user) {
@@ -92,6 +95,7 @@ final class Auth
             'id'         => (int)$user['id'],
             'role_id'    => (int)$user['role_id'],
             'role_name'  => (string)($user['role_name'] ?? 'User'),
+            'username'   => (string)($user['username'] ?? ''),
             'first_name' => (string)$user['first_name'],
             'last_name'  => (string)$user['last_name'],
             'email'      => (string)$user['email'],

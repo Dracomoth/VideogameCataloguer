@@ -77,6 +77,7 @@ if (!defined('APP_INIT')) {
         <thead>
           <tr style="border-bottom: 1px solid var(--border); background: var(--surface-alt); color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">
             <th style="padding: 12px 16px;">User Profile</th>
+            <th style="padding: 12px 16px;">Username</th>
             <th style="padding: 12px 16px;">Email Address</th>
             <th style="padding: 12px 16px;">Assigned Role</th>
             <th style="padding: 12px 16px;">Account Status</th>
@@ -109,6 +110,11 @@ if (!defined('APP_INIT')) {
                       <div style="font-size: 10px; color: var(--text-dim);">ID #<?= (int)$u['id'] ?></div>
                     </div>
                   </div>
+                </td>
+
+                <!-- Username -->
+                <td style="padding: 12px 16px; font-weight: 600; color: #38bdf8; font-family: var(--font-mono, monospace); font-size: 12px;">
+                  @<?= View::e($u['username'] ?? '') ?>
                 </td>
 
                 <!-- Email -->
@@ -234,10 +240,16 @@ if (!defined('APP_INIT')) {
         </div>
       </div>
 
-      <!-- Email Address -->
-      <div>
-        <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Email Address *</label>
-        <input type="email" id="userEmail" name="email" required style="width: 100%; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius-md); color: #fff; padding: 8px 12px; font-size: 13px;">
+      <!-- Username & Email Address -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div>
+          <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Username *</label>
+          <input type="text" id="userUsername" name="username" required pattern="[a-zA-Z0-9_.-]{3,50}" title="3-50 characters: letters, numbers, underscores, dashes, dots" placeholder="e.g. admin" style="width: 100%; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius-md); color: #fff; padding: 8px 12px; font-size: 13px;">
+        </div>
+        <div>
+          <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Email Address *</label>
+          <input type="email" id="userEmail" name="email" required style="width: 100%; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius-md); color: #fff; padding: 8px 12px; font-size: 13px;">
+        </div>
       </div>
 
       <!-- Role Selection -->
@@ -335,6 +347,7 @@ function openCreateUserModal() {
   document.getElementById('modalTitle').textContent = 'Create User Account';
   document.getElementById('userForm').action = '/users';
   document.getElementById('userId').value = '';
+  document.getElementById('userUsername').value = '';
   document.getElementById('userFirstName').value = '';
   document.getElementById('userLastName').value = '';
   document.getElementById('userEmail').value = '';
@@ -358,9 +371,10 @@ function openCreateUserModal() {
  * Opens modal configured for editing an existing user record.
  */
 function openEditUserModal(user) {
-  document.getElementById('modalTitle').textContent = 'Edit User #' + user.id + ' (' + user.email + ')';
+  document.getElementById('modalTitle').textContent = 'Edit User #' + user.id + ' (@' + (user.username || user.email) + ')';
   document.getElementById('userForm').action = '/users/' + user.id + '/update';
   document.getElementById('userId').value = user.id;
+  document.getElementById('userUsername').value = user.username || '';
   document.getElementById('userFirstName').value = user.first_name || '';
   document.getElementById('userLastName').value = user.last_name || '';
   document.getElementById('userEmail').value = user.email || '';
