@@ -274,7 +274,7 @@ img {
     align-items: center;
     justify-content: center;
     line-height: 1;
-    transform: translateY(-0.25em);
+    transform: translateY(-0.15em);
 }
 
 .brand-title {
@@ -949,6 +949,12 @@ body.sidebar-open .master-sidebar {
         height: 32px;
         font-size: 16px;
         flex-shrink: 0;
+    }
+
+    .brand-logo-badge .brand-logo-icon,
+    .brand-logo-badge span {
+        transform: none;
+        line-height: normal;
     }
 
     .brand-text-block {
@@ -2594,6 +2600,12 @@ tr.active td {
         height: 32px;
         font-size: 16px;
         flex-shrink: 0;
+    }
+
+    .brand-logo-badge .brand-logo-icon,
+    .brand-logo-badge span {
+        transform: none;
+        line-height: normal;
     }
 
     .brand-title {
