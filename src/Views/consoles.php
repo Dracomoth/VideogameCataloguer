@@ -1198,11 +1198,11 @@ function selectConsole(id) {
   document.getElementById('comments').value = record.comments || '';
 
   // Set Visual Asset Previews (3. Read: retrieves values from fields, doesn't enforce convention)
-  setDropzoneImage('photoPreviewContainer', record.image_url, 'deletePhotoBtn', '📷', 'Upload Photo');
-  setDropzoneImage('logoPreviewContainer', record.logo_url, 'deleteLogoBtn', '🖼️', 'Upload Logo');
-  setDropzoneImage('mappingGamepadPreviewContainer', record.mapping_gamepad_url, 'deleteMappingGamepadBtn', '🎮', 'Upload Pad');
-  setDropzoneImage('mappingCellphonePreviewContainer', record.mapping_cellphone_url, 'deleteMappingCellphoneBtn', '📱', 'Upload Adapter');
-  setDropzoneImage('mappingRogAllyPreviewContainer', record.mapping_rog_ally_url, 'deleteMappingRogAllyBtn', '🕹️', 'Upload Ally');
+  setDropzoneImage('photoPreviewContainer', record.image_url, 'deletePhotoBtn', '📷', 'Upload Photo', record.updated);
+  setDropzoneImage('logoPreviewContainer', record.logo_url, 'deleteLogoBtn', '🖼️', 'Upload Logo', record.updated);
+  setDropzoneImage('mappingGamepadPreviewContainer', record.mapping_gamepad_url, 'deleteMappingGamepadBtn', '🎮', 'Upload Pad', record.updated);
+  setDropzoneImage('mappingCellphonePreviewContainer', record.mapping_cellphone_url, 'deleteMappingCellphoneBtn', '📱', 'Upload Adapter', record.updated);
+  setDropzoneImage('mappingRogAllyPreviewContainer', record.mapping_rog_ally_url, 'deleteMappingRogAllyBtn', '🕹️', 'Upload Ally', record.updated);
 
   document.getElementById('formModeTitle').textContent = 'EDIT CONSOLE';
   document.getElementById('activeIdBadge').textContent = `#${record.id}`;
@@ -1547,13 +1547,29 @@ function renderBiosViewMode() {
 /**
  * Helper to display image preview in dropzone
  */
-function setDropzoneImage(containerId, url, deleteBtnId, icon, label) {
+function setDropzoneImage(containerId, url, deleteBtnId, icon, label, modified) {
   const container = document.getElementById(containerId);
   const deleteBtn = document.getElementById(deleteBtnId);
   if (!container) return;
 
   if (url && url.trim() !== '') {
-    const cacheBuster = (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+    let ts = null;
+    if (modified) {
+      if (typeof modified === 'number') {
+        ts = Math.floor(modified);
+      } else if (typeof modified === 'string' && !isNaN(modified) && modified.trim() !== '') {
+        ts = Math.floor(Number(modified));
+      } else if (typeof modified === 'string') {
+        const parsed = Date.parse(modified.replace(' ', 'T'));
+        if (!isNaN(parsed) && parsed > 0) {
+          ts = Math.floor(parsed / 1000);
+        }
+      }
+    }
+    if (!ts) {
+      ts = Math.floor(Date.now() / 1000);
+    }
+    const cacheBuster = (url.includes('?') ? '&' : '?') + 'v=' + encodeURIComponent(ts);
     const displayUrl = url + cacheBuster;
     container.innerHTML = `<img src="${escapeHtml(displayUrl)}" class="dropzone-preview-img" alt="Asset Preview" onerror="this.parentElement.innerHTML='<div class=\\'dropzone-empty\\'><span>⚠️</span><small>Image not found</small></div>';">`;
     if (deleteBtn && canWrite) deleteBtn.disabled = false;

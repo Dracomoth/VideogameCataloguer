@@ -544,7 +544,7 @@ function selectPublisher(id) {
   document.getElementById('activeIdBadge').textContent = `#${record.id}`;
 
   // Configure logo dropzone preview
-  setLogoPreview(record.logo_path);
+  setLogoPreview(record.logo_path, record.updated);
   const logoInput = document.getElementById('logoFileInput');
   if (logoInput) logoInput.value = '';
   document.getElementById('removeLogo').value = '0';
@@ -924,14 +924,30 @@ async function autofillPublisherHistory() {
 /**
  * Sets logo dropzone preview with cache-busting
  */
-function setLogoPreview(logoPath) {
+function setLogoPreview(logoPath, modified) {
   const container = document.getElementById('logoPreviewContainer');
   const deleteBtn = document.getElementById('deleteLogoBtn');
   if (!container) return;
 
   if (logoPath && logoPath.trim() !== '') {
     const cleanPath = '/' + logoPath.replace(/^\/+/, '');
-    const cacheBuster = (cleanPath.includes('?') ? '&' : '?') + '_t=' + Date.now();
+    let ts = null;
+    if (modified) {
+      if (typeof modified === 'number') {
+        ts = Math.floor(modified);
+      } else if (typeof modified === 'string' && !isNaN(modified) && modified.trim() !== '') {
+        ts = Math.floor(Number(modified));
+      } else if (typeof modified === 'string') {
+        const parsed = Date.parse(modified.replace(' ', 'T'));
+        if (!isNaN(parsed) && parsed > 0) {
+          ts = Math.floor(parsed / 1000);
+        }
+      }
+    }
+    if (!ts) {
+      ts = Math.floor(Date.now() / 1000);
+    }
+    const cacheBuster = (cleanPath.includes('?') ? '&' : '?') + 'v=' + encodeURIComponent(ts);
     const displayUrl = cleanPath + cacheBuster;
     container.innerHTML = `<img src="${escapeHtml(displayUrl)}" class="dropzone-preview-img" alt="Publisher Logo" onerror="this.parentElement.innerHTML='<div class=\\'dropzone-empty\\'><span>⚠️</span><small>Image not found</small></div>';">`;
     if (deleteBtn && canWrite) deleteBtn.disabled = false;

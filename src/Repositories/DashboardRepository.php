@@ -337,7 +337,7 @@ final class DashboardRepository
 
         // Currently playing
         $currentlyPlaying = Database::fetchAll("
-            SELECT pg.id AS pg_id, pg.played_date, g.id AS game_id, g.title, g.boxart_path,
+            SELECT pg.id AS pg_id, pg.played_date, g.id AS game_id, g.title, g.boxart_path, g.updated,
                    c.name AS console_name, ct.badge_bg_color, ct.badge_font_color,
                    cat.name AS category_name
             FROM player_games pg
@@ -353,7 +353,7 @@ final class DashboardRepository
         $myCollection = Database::fetchAll("
             SELECT pg.id AS pg_id, pg.is_downloaded, pg.first_download_date, pg.last_download_date,
                    pg.is_played, pg.played_date, pg.is_won, pg.win_date,
-                   g.id AS game_id, g.title, g.boxart_path,
+                   g.id AS game_id, g.title, g.boxart_path, g.updated,
                    c.id AS console_id, c.name AS console_name,
                    ct.name AS console_type_name, ct.badge_bg_color, ct.badge_font_color,
                    cat.id AS category_id, cat.name AS category_name,

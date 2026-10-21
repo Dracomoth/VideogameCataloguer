@@ -96,7 +96,7 @@ if (!defined('APP_INIT')) {
                 <td style="padding: 12px 16px;">
                   <div style="display: flex; align-items: center; gap: 10px;">
                     <?php if (!empty($u['avatar_path'])): ?>
-                      <img src="<?= View::e($u['avatar_path']) ?>" alt="Avatar" style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-focus);">
+                      <img src="<?= View::e(View::assetUrl($u['avatar_path'], $u['updated_at'] ?? null)) ?>" alt="Avatar" style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-focus);">
                     <?php else: ?>
                       <div style="width: 34px; height: 34px; border-radius: 50%; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--border-focus); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #38bdf8;">
                         <?= View::e($initials) ?>

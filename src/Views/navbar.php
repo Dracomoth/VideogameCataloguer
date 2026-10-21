@@ -288,7 +288,7 @@ $isAdminActive    = in_array($active, ['users', 'roles'], true);
     <div class="sidebar-footer">
       <?php if ($currentUser !== null): ?>
         <?php
-          $sidebarAvatarUrl = !empty($currentUser['avatar_path']) ? (string)$currentUser['avatar_path'] : null;
+          $sidebarAvatarUrl = !empty($currentUser['avatar_path']) ? View::assetUrl((string)$currentUser['avatar_path'], $currentUser['updated_at'] ?? null) : null;
           $sFirst = trim((string)($currentUser['first_name'] ?? ''));
           $sLast  = trim((string)($currentUser['last_name'] ?? ''));
           $sInitials = '';

@@ -2528,15 +2528,29 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   /**
    * Formats image URLs with proper leading slash and fallback
    */
-  function formatImageUrl(path, fallback) {
+  function formatImageUrl(path, fallback, modified) {
     if (!path || typeof path !== 'string' || path.trim() === '') {
       return fallback;
     }
     const clean = path.trim().replace(/\\/g, '/');
-    if (clean.startsWith('http://') || clean.startsWith('https://')) {
-      return clean;
+    let url = (clean.startsWith('http://') || clean.startsWith('https://')) ? clean : ('/' + clean.replace(/^\/+/, ''));
+    if (modified) {
+      let ts = null;
+      if (typeof modified === 'number') {
+        ts = Math.floor(modified);
+      } else if (typeof modified === 'string' && !isNaN(modified) && modified.trim() !== '') {
+        ts = Math.floor(Number(modified));
+      } else if (typeof modified === 'string') {
+        const parsed = Date.parse(modified.replace(' ', 'T'));
+        if (!isNaN(parsed) && parsed > 0) {
+          ts = Math.floor(parsed / 1000);
+        }
+      }
+      if (ts) {
+        url += (url.includes('?') ? '&' : '?') + 'v=' + encodeURIComponent(ts);
+      }
     }
-    return '/' + clean.replace(/^\/+/, '');
+    return url;
   }
 
   /**
@@ -2795,7 +2809,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       card.role = 'button';
       card.setAttribute('aria-label', `View details for ${game.title}`);
 
-      const boxartUrl = formatImageUrl(game.boxart_path, FALLBACK_BOXART);
+      const boxartUrl = formatImageUrl(game.boxart_path, FALLBACK_BOXART, game.updated);
 
       card.innerHTML = `
         <div class="game-card-cover-slot">
@@ -3027,7 +3041,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     }
 
     // 3. Boxart (top left)
-    const boxartUrl = formatImageUrl(game.boxart_path, FALLBACK_BOXART);
+    const boxartUrl = formatImageUrl(game.boxart_path, FALLBACK_BOXART, game.updated);
     detailBoxartImg.src = boxartUrl;
     detailBoxartImg.onerror = function() {
       this.onerror = null;
@@ -3035,7 +3049,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     };
 
     // 4. Screenshot (below boxart)
-    const screenshotUrl = formatImageUrl(game.screenshot_path, FALLBACK_SCREENSHOT);
+    const screenshotUrl = formatImageUrl(game.screenshot_path, FALLBACK_SCREENSHOT, game.updated);
     detailScreenshotImg.src = screenshotUrl;
     detailScreenshotImg.onerror = function() {
       this.onerror = null;
@@ -3295,7 +3309,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       card.href = `/games-portal?id=${item.id}&mode=detail`;
       card.title = `View ${item.title}`;
 
-      const coverUrl = formatImageUrl(item.boxart_path, FALLBACK_BOXART);
+      const coverUrl = formatImageUrl(item.boxart_path, FALLBACK_BOXART, item.updated);
 
       card.innerHTML = `
         <div class="game-mini-thumb-slot">

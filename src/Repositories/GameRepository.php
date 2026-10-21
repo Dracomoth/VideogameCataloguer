@@ -716,6 +716,8 @@ final class GameRepository
                 g.in_collection,
                 g.boxart_path,
                 g.screenshot_path,
+                g.created,
+                g.updated,
                 c.name AS console_name,
                 cat.name AS category_name,
                 sub.name AS subcategory_name,
@@ -768,6 +770,7 @@ final class GameRepository
                 g.boxart_path,
                 g.screenshot_path,
                 g.year,
+                g.updated,
                 c.name AS console_name,
                 p.name AS publisher_name
             FROM `games` g
@@ -824,6 +827,7 @@ final class GameRepository
                     g.boxart_path,
                     g.screenshot_path,
                     g.year,
+                    g.updated,
                     c.name AS console_name,
                     p.name AS publisher_name,
                     cat.name AS category_name,
@@ -861,6 +865,7 @@ final class GameRepository
                     g.boxart_path,
                     g.screenshot_path,
                     g.year,
+                    g.updated,
                     c.name AS console_name,
                     p.name AS publisher_name,
                     cat.name AS category_name,

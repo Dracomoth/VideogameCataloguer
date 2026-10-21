@@ -1498,12 +1498,29 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   /**
    * Helper: Normalizes relative or absolute image URLs
    */
-  function formatImageUrl(path, fallbackUrl) {
+  function formatImageUrl(path, fallbackUrl, modified) {
     if (!path || typeof path !== 'string' || path.trim() === '') {
       return fallbackUrl;
     }
-    const clean = path.trim().replace(/^\/+/, '');
-    return '/' + clean;
+    const clean = path.trim().replace(/\\/g, '/').replace(/^\/+/, '');
+    let url = '/' + clean;
+    if (modified) {
+      let ts = null;
+      if (typeof modified === 'number') {
+        ts = Math.floor(modified);
+      } else if (typeof modified === 'string' && !isNaN(modified) && modified.trim() !== '') {
+        ts = Math.floor(Number(modified));
+      } else if (typeof modified === 'string') {
+        const parsed = Date.parse(modified.replace(' ', 'T'));
+        if (!isNaN(parsed) && parsed > 0) {
+          ts = Math.floor(parsed / 1000);
+        }
+      }
+      if (ts) {
+        url += (url.includes('?') ? '&' : '?') + 'v=' + encodeURIComponent(ts);
+      }
+    }
+    return url;
   }
 
   /**
@@ -1680,7 +1697,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       const isMaker = Number(pub.is_console_maker) === 1;
       const gamesCount = Number(pub.games_count ?? pub.game_count ?? 0);
       const fallbackUrl = getLogoFallbackSvg(pub.name);
-      const logoUrl = formatImageUrl(pub.logo_path, fallbackUrl);
+      const logoUrl = formatImageUrl(pub.logo_path, fallbackUrl, pub.updated);
 
       card.innerHTML = `
         <div class="pub-card-logo-slot">
@@ -1811,7 +1828,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     detailPublisherName.textContent = publisher.name;
 
     const fallbackUrl = getLogoFallbackSvg(publisher.name);
-    const logoUrl = formatImageUrl(publisher.logo_path, fallbackUrl);
+    const logoUrl = formatImageUrl(publisher.logo_path, fallbackUrl, publisher.updated);
 
     detailLogoBox.innerHTML = `
       <img 
@@ -1909,7 +1926,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         const cFragment = document.createDocumentFragment();
         consoles.forEach(con => {
           const fallback = getConsoleFallbackSvg(con.name);
-          const imgUrl = formatImageUrl(con.image_path, fallback);
+          const imgUrl = formatImageUrl(con.image_path, fallback, con.updated);
 
           const card = document.createElement(CAN_ACCESS_CONSOLES ? 'a' : 'div');
           card.className = 'console-item-card' + (CAN_ACCESS_CONSOLES ? '' : ' no-link');
@@ -1952,7 +1969,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     } else {
       const gFragment = document.createDocumentFragment();
       games.forEach(game => {
-        const imgUrl = formatImageUrl(game.boxart_path, FALLBACK_BOXART);
+        const imgUrl = formatImageUrl(game.boxart_path, FALLBACK_BOXART, game.updated);
 
         const card = document.createElement(CAN_ACCESS_GAMES ? 'a' : 'div');
         card.className = 'game-item-card' + (CAN_ACCESS_GAMES ? '' : ' no-link');

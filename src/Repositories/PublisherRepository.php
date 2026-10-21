@@ -43,6 +43,8 @@ final class PublisherRepository
                 p.is_console_maker,
                 p.description,
                 p.logo_path,
+                p.created,
+                p.updated,
                 COUNT(DISTINCT c.id) AS consoles_count,
                 COUNT(DISTINCT c.id) AS console_count,
                 COUNT(DISTINCT g.id) AS games_count,
@@ -63,6 +65,8 @@ final class PublisherRepository
             $row['is_console_maker'] = (int)($row['is_console_maker'] ?? 0);
             $row['description'] = $row['description'] !== null ? (string)$row['description'] : '';
             $row['logo_path'] = ($row['logo_path'] !== null && $row['logo_path'] !== '') ? (string)$row['logo_path'] : null;
+            $row['created'] = !empty($row['created']) ? (string)$row['created'] : '';
+            $row['updated'] = !empty($row['updated']) ? (string)$row['updated'] : '';
             unset($row['consoles_raw']);
             return $row;
         }, $rows);
@@ -100,6 +104,8 @@ final class PublisherRepository
                 p.is_console_maker,
                 p.description,
                 p.logo_path,
+                p.created,
+                p.updated,
                 COUNT(DISTINCT c.id) AS consoles_count,
                 COUNT(DISTINCT c.id) AS console_count,
                 COUNT(DISTINCT g.id) AS games_count,
@@ -122,6 +128,8 @@ final class PublisherRepository
         $row['is_console_maker'] = (int)($row['is_console_maker'] ?? 0);
         $row['description'] = $row['description'] !== null ? (string)$row['description'] : '';
         $row['logo_path'] = ($row['logo_path'] !== null && $row['logo_path'] !== '') ? (string)$row['logo_path'] : null;
+        $row['created'] = !empty($row['created']) ? (string)$row['created'] : '';
+        $row['updated'] = !empty($row['updated']) ? (string)$row['updated'] : '';
         unset($row['consoles_raw']);
 
         return $row;
@@ -267,8 +275,9 @@ final class PublisherRepository
     public function removeLogo(int $publisherId): void
     {
         $this->deleteLogoFileOnly($publisherId);
-        $sql = "UPDATE `publishers` SET `logo_path` = NULL WHERE `id` = :id";
-        Database::execute($sql, [':id' => $publisherId]);
+        $now = date('Y-m-d H:i:s');
+        $sql = "UPDATE `publishers` SET `logo_path` = NULL, `updated` = :updated WHERE `id` = :id";
+        Database::execute($sql, [':updated' => $now, ':id' => $publisherId]);
     }
 
     /**
@@ -372,12 +381,14 @@ final class PublisherRepository
             $currentLogoPath = $this->storeLogoFile($logoFile, $id);
         }
 
-        $sql = "UPDATE `publishers` SET `name` = :name, `is_console_maker` = :is_console_maker, `description` = :description, `logo_path` = :logo_path WHERE `id` = :id";
+        $now = date('Y-m-d H:i:s');
+        $sql = "UPDATE `publishers` SET `name` = :name, `is_console_maker` = :is_console_maker, `description` = :description, `logo_path` = :logo_path, `updated` = :updated WHERE `id` = :id";
         $affected = Database::execute($sql, [
             ':name'             => $cleanName,
             ':is_console_maker' => $isConsoleMaker ? 1 : 0,
             ':description'      => $cleanDesc,
             ':logo_path'        => $currentLogoPath,
+            ':updated'          => $now,
             ':id'               => $id,
         ]);
 
@@ -432,6 +443,7 @@ final class PublisherRepository
                 c.logo_path,
                 c.year,
                 c.generation,
+                c.updated,
                 ct.name AS console_type_name
             FROM `consoles` c
             LEFT JOIN `console_types` ct ON ct.id = c.console_type_id
@@ -459,6 +471,7 @@ final class PublisherRepository
                 g.boxart_path,
                 g.screenshot_path,
                 g.year,
+                g.updated,
                 c.name AS console_name
             FROM `games` g
             LEFT JOIN `consoles` c ON c.id = g.console_id

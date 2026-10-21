@@ -1233,7 +1233,7 @@ $canWriteCollection = \Vault\Auth\Auth::canWrite('collection');
           <div class="fixed-media-box">
             <span class="media-label-badge">BOX ART</span>
             <img id="cardBoxArt"
-                 src="<?= View::e($initialGame['boxart_path']) ?>"
+                 src="<?= View::e(View::assetUrl($initialGame['boxart_path'], $initialGame['updated'] ?? null)) ?>"
                  alt="<?= View::e($initialGame['title']) ?>"
                  onerror="this.src='/images/support/no_cover.jpg'">
           </div>
@@ -1241,7 +1241,7 @@ $canWriteCollection = \Vault\Auth\Auth::canWrite('collection');
           <div class="fixed-media-screenshot">
             <span class="media-label-badge">SCREENSHOT</span>
             <img id="cardScreenshot"
-                 src="<?= View::e($initialGame['screenshot_path']) ?>"
+                 src="<?= View::e(View::assetUrl($initialGame['screenshot_path'], $initialGame['updated'] ?? null)) ?>"
                  alt="<?= View::e($initialGame['title']) ?>"
                  onerror="this.src='/images/support/no_screen.jpg'">
           </div>
@@ -1718,7 +1718,7 @@ function renderGameCard(game) {
         <div class="fixed-media-box">
           <span class="media-label-badge">BOX ART</span>
           <img id="cardBoxArt"
-               src="${escapeHtml(game.boxart_path)}"
+               src="${escapeHtml(formatAssetUrl(game.boxart_path, game.updated))}"
                alt="${escapeHtml(game.title)}"
                onerror="this.src='/images/support/no_cover.jpg'">
         </div>
@@ -1726,7 +1726,7 @@ function renderGameCard(game) {
         <div class="fixed-media-screenshot">
           <span class="media-label-badge">SCREENSHOT</span>
           <img id="cardScreenshot"
-               src="${escapeHtml(game.screenshot_path)}"
+               src="${escapeHtml(formatAssetUrl(game.screenshot_path, game.updated))}"
                alt="${escapeHtml(game.title)}"
                onerror="this.src='/images/support/no_screen.jpg'">
         </div>
@@ -1854,7 +1854,7 @@ function renderGalleryItems(games) {
 
     card.innerHTML = `
       <div class="thumb-image-wrap">
-        <img src="${escapeHtml(g.screenshot_path)}"
+        <img src="${escapeHtml(formatAssetUrl(g.screenshot_path, g.updated))}"
              alt="${escapeHtml(g.title)}"
              loading="lazy"
              onerror="this.src='/images/support/no_screen.jpg'">
@@ -1886,5 +1886,39 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+/**
+ * Formats image URLs with ?v=<timestamp> based on parent record last modification
+ */
+function formatAssetUrl(url, modified) {
+  if (!url || typeof url !== 'string' || url.trim() === '' || url.startsWith('data:')) {
+    return url || '';
+  }
+  let clean = url.trim().replace(/\\/g, '/');
+  if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('/')) {
+    clean = '/' + clean;
+  }
+  let ts = null;
+  if (modified) {
+    if (typeof modified === 'number') {
+      ts = Math.floor(modified);
+    } else if (typeof modified === 'string' && !isNaN(modified) && modified.trim() !== '') {
+      ts = Math.floor(Number(modified));
+    } else if (typeof modified === 'string') {
+      const parsed = Date.parse(modified.replace(' ', 'T'));
+      if (!isNaN(parsed) && parsed > 0) {
+        ts = Math.floor(parsed / 1000);
+      }
+    }
+  }
+  if (!ts) {
+    ts = Math.floor(Date.now() / 1000);
+  }
+  const urlParts = clean.split('?');
+  const base = urlParts[0];
+  const params = new URLSearchParams(urlParts[1] || '');
+  params.set('v', ts);
+  return base + '?' + params.toString();
 }
 </script>

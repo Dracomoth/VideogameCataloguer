@@ -570,10 +570,21 @@ class DataGrid extends HTMLElement {
           return `<span class="vault-grid-no-img">No Image</span>`;
         }
         const alt = col.altKey ? (row[col.altKey] || 'Image') : 'Thumbnail';
+        const modified = col.timestampKey ? row[col.timestampKey] : (row.updated || row.updated_at || null);
+        let imgUrl = String(rawVal);
+        if (modified && !imgUrl.startsWith('data:')) {
+          let ts = modified;
+          if (typeof modified === 'string' && isNaN(modified)) {
+            const parsed = Date.parse(modified.replace(' ', 'T'));
+            if (!isNaN(parsed) && parsed > 0) ts = Math.floor(parsed / 1000);
+          }
+          const separator = imgUrl.includes('?') ? '&' : '?';
+          imgUrl += separator + 'v=' + encodeURIComponent(ts);
+        }
         return `
           <div class="vault-grid-thumb-wrap">
             <img 
-              src="${this._escapeHtml(rawVal)}" 
+              src="${this._escapeHtml(imgUrl)}" 
               alt="${this._escapeHtml(alt)}" 
               class="vault-grid-thumb"
               loading="lazy"

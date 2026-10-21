@@ -31,7 +31,7 @@ $roleName     = 'Guest';
 $initials     = 'U';
 
 if ($currentUser !== null) {
-    $avatarUrl = !empty($currentUser['avatar_path']) ? (string)$currentUser['avatar_path'] : null;
+    $avatarUrl = !empty($currentUser['avatar_path']) ? View::assetUrl((string)$currentUser['avatar_path'], $currentUser['updated_at'] ?? null) : null;
     $first     = trim((string)($currentUser['first_name'] ?? ''));
     $last      = trim((string)($currentUser['last_name'] ?? ''));
     $userFullName = trim($first . ' ' . $last);

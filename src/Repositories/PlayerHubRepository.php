@@ -143,6 +143,7 @@ final class PlayerHubRepository
                 g.tags,
                 g.screenshot_path,
                 g.boxart_path,
+                g.updated,
                 g.in_collection,
                 g.comments,
                 c.name AS console_name,
@@ -187,6 +188,7 @@ final class PlayerHubRepository
                 g.tags,
                 g.screenshot_path,
                 g.boxart_path,
+                g.updated,
                 g.in_collection,
                 g.comments,
                 c.name AS console_name,
@@ -230,7 +232,8 @@ final class PlayerHubRepository
                 g.id,
                 g.title,
                 g.screenshot_path,
-                g.boxart_path
+                g.boxart_path,
+                g.updated
             FROM `games` g
             {$where['sql']}
             ORDER BY g.title ASC
@@ -245,6 +248,7 @@ final class PlayerHubRepository
                 'title'           => (string)$r['title'],
                 'screenshot_path' => $this->normalizeImagePath($r['screenshot_path'], 'no_screen.jpg'),
                 'boxart_path'     => $this->normalizeImagePath($r['boxart_path'], 'no_cover.jpg'),
+                'updated'         => (string)($r['updated'] ?? ''),
             ];
         }, $rows);
     }
@@ -314,6 +318,7 @@ final class PlayerHubRepository
             'emulator'           => (string)($game['emulator'] ?? ''),
             'comments'           => (string)($game['comments'] ?? ''),
             'tags'               => (string)($game['tags'] ?? ''),
+            'updated'            => (string)($game['updated'] ?? ''),
             'download_file_id'   => $latestBlackblaze ? (int)$latestBlackblaze['id'] : null,
             'has_download_files' => $hasAnyFiles,
         ];

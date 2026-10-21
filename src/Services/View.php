@@ -74,6 +74,68 @@ final class View
     }
 
     /**
+     * Appends a cache-busting timestamp query parameter (?v=...) to an image asset URL
+     * based on the parent record's modification date/timestamp.
+     *
+     * @param string|null $path Relative or absolute web path to asset
+     * @param string|int|null $modified Datetime string or UNIX timestamp of parent record
+     * @return string Formatted asset URL with ?v=<timestamp>
+     */
+    public static function assetUrl(?string $path, mixed $modified = null): string
+    {
+        if ($path === null) {
+            return '';
+        }
+        $trimmed = trim($path);
+        if ($trimmed === '' || str_starts_with($trimmed, 'data:')) {
+            return $trimmed;
+        }
+
+        // Normalize URL with leading slash if relative
+        $url = (str_starts_with($trimmed, 'http://') || str_starts_with($trimmed, 'https://') || str_starts_with($trimmed, '/'))
+            ? $trimmed
+            : '/' . ltrim($trimmed, '/\\');
+
+        // Parse base URL and existing query params if any
+        $parts = explode('?', $url, 2);
+        $base = $parts[0];
+        $queryString = $parts[1] ?? '';
+        parse_str($queryString, $queryParams);
+
+        // Resolve UNIX timestamp from $modified
+        $ts = null;
+        if ($modified !== null && $modified !== '') {
+            if (is_numeric($modified)) {
+                $ts = (int)$modified;
+            } else {
+                $parsed = strtotime((string)$modified);
+                if ($parsed !== false && $parsed > 0) {
+                    $ts = $parsed;
+                }
+            }
+        }
+
+        // Fallback: check filemtime on disk if path points to local file
+        if ($ts === null || $ts <= 0) {
+            $cleanPath = ltrim(parse_url($base, PHP_URL_PATH) ?? '', '/\\');
+            $fullPath = dirname(__DIR__, 2) . '/' . $cleanPath;
+            if (is_file($fullPath)) {
+                $mtime = @filemtime($fullPath);
+                if ($mtime !== false && $mtime > 0) {
+                    $ts = $mtime;
+                }
+            }
+        }
+
+        if ($ts === null || $ts <= 0) {
+            $ts = time();
+        }
+
+        $queryParams['v'] = (string)$ts;
+        return $base . '?' . http_build_query($queryParams);
+    }
+
+    /**
      * Resolves the disk path for a requested template name.
      */
     private static function resolveViewPath(string $viewName): string

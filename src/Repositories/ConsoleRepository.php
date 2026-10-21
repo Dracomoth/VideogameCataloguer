@@ -984,6 +984,7 @@ final class ConsoleRepository
                 g.boxart_path,
                 g.screenshot_path,
                 g.year,
+                g.updated,
                 c.name AS console_name,
                 p.name AS publisher_name
             FROM `games` g

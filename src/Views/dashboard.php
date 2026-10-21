@@ -1386,7 +1386,7 @@ ksort($collectionConsoles);
             <?php foreach ($currentlyPlaying as $play): ?>
               <div class="in-play-card">
                 <div class="in-play-thumb">
-                  <img src="<?= View::e($play['boxart_path'] ?: '/images/support/no_cover.jpg') ?>"
+                  <img src="<?= View::e(View::assetUrl($play['boxart_path'] ?: '/images/support/no_cover.jpg', $play['updated'] ?? null)) ?>"
                        alt="<?= View::e($play['title']) ?>"
                        onerror="this.src='/images/support/no_cover.jpg'">
                 </div>
@@ -1467,7 +1467,7 @@ ksort($collectionConsoles);
                  data-status="<?= $statusTag ?>">
               <div class="my-card-header">
                 <div class="my-card-thumb">
-                  <img src="<?= View::e($game['boxart_path'] ?: '/images/support/no_cover.jpg') ?>"
+                  <img src="<?= View::e(View::assetUrl($game['boxart_path'] ?: '/images/support/no_cover.jpg', $game['updated'] ?? null)) ?>"
                        alt="<?= View::e($game['title']) ?>"
                        onerror="this.src='/images/support/no_cover.jpg'">
                 </div>
@@ -1922,7 +1922,7 @@ function applyPlayerUpdates(playerData, playedConsoles) {
         html += `
           <div class="in-play-card">
             <div class="in-play-thumb">
-              <img src="${item.boxart_path || '/images/support/no_cover.jpg'}"
+              <img src="${escapeHtml(formatAssetUrl(item.boxart_path || '/images/support/no_cover.jpg', item.updated))}"
                    alt="${escapeHtml(item.title)}"
                    onerror="this.src='/images/support/no_cover.jpg'">
             </div>
@@ -2002,5 +2002,39 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+/**
+ * Formats image URLs with ?v=<timestamp> based on parent record last modification
+ */
+function formatAssetUrl(url, modified) {
+  if (!url || typeof url !== 'string' || url.trim() === '' || url.startsWith('data:')) {
+    return url || '';
+  }
+  let clean = url.trim().replace(/\\/g, '/');
+  if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('/')) {
+    clean = '/' + clean;
+  }
+  let ts = null;
+  if (modified) {
+    if (typeof modified === 'number') {
+      ts = Math.floor(modified);
+    } else if (typeof modified === 'string' && !isNaN(modified) && modified.trim() !== '') {
+      ts = Math.floor(Number(modified));
+    } else if (typeof modified === 'string') {
+      const parsed = Date.parse(modified.replace(' ', 'T'));
+      if (!isNaN(parsed) && parsed > 0) {
+        ts = Math.floor(parsed / 1000);
+      }
+    }
+  }
+  if (!ts) {
+    ts = Math.floor(Date.now() / 1000);
+  }
+  const urlParts = clean.split('?');
+  const base = urlParts[0];
+  const params = new URLSearchParams(urlParts[1] || '');
+  params.set('v', ts);
+  return base + '?' + params.toString();
 }
 </script>
