@@ -97,12 +97,14 @@ $titleTooltip = $userFullName . ' (' . $roleName . ')';
     <!-- Right Side: User section displaying ONLY the avatar (or avatar initials) -->
     <div class="header-user-section">
       <?php if ($currentUser !== null): ?>
-        <button type="button" class="header-avatar-btn" onclick="toggleSidebar()" title="<?= View::e($titleTooltip) ?>" aria-label="<?= View::e($titleTooltip) ?>">
-          <?php if (!empty($avatarUrl)): ?>
-            <img src="<?= View::e($avatarUrl) ?>" alt="<?= View::e($userFullName) ?>" class="header-avatar-img">
-          <?php else: ?>
-            <div class="header-avatar-initials"><?= View::e($initials) ?></div>
-          <?php endif; ?>
+        <button type="button" class="header-avatar-btn" id="headerUserAvatarBtn" onclick="openUserProfileModal()" title="<?= View::e($titleTooltip) ?>" aria-label="<?= View::e($titleTooltip) ?>">
+          <span id="headerUserAvatarSlot" style="display: contents;">
+            <?php if (!empty($avatarUrl)): ?>
+              <img src="<?= View::e($avatarUrl) ?>" alt="<?= View::e($userFullName) ?>" class="header-avatar-img" id="headerUserAvatarImg">
+            <?php else: ?>
+              <div class="header-avatar-initials" id="headerUserAvatarInitials"><?= View::e($initials) ?></div>
+            <?php endif; ?>
+          </span>
         </button>
       <?php else: ?>
         <a href="/login" class="header-login-link" title="Sign In">🔑 Sign In</a>
@@ -110,3 +112,7 @@ $titleTooltip = $userFullName . ' (' . $roleName . ')';
     </div>
   </div>
 </header>
+
+<?php if ($currentUser !== null): ?>
+  <?php require __DIR__ . '/profile_modal.php'; ?>
+<?php endif; ?>

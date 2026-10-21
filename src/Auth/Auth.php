@@ -101,10 +101,57 @@ final class Auth
             'email'      => (string)$user['email'],
             'avatar_path'=> $user['avatar_path'] ?? null,
             'is_super'   => (bool)($user['is_super'] ?? false),
+            'updated_at' => (string)($user['updated_at'] ?? ''),
         ];
 
         self::$currentUser = $_SESSION[self::SESSION_KEY];
         self::$permissionsCache = null;
+    }
+
+    /**
+     * Refreshes active session state from fresh database record.
+     *
+     * @param int|null $userId
+     * @return array<string, mixed>|null
+     */
+    public static function refreshSession(?int $userId = null): ?array
+    {
+        self::startSession();
+        $id = $userId ?? self::id();
+        if (!$id) {
+            return null;
+        }
+
+        $user = Database::fetchOne(
+            "SELECT u.*, r.name AS role_name, r.is_super 
+             FROM `users` u 
+             INNER JOIN `roles` r ON r.id = u.role_id 
+             WHERE u.id = :id AND u.is_active = 1 
+             LIMIT 1",
+            [':id' => $id]
+        );
+
+        if (!$user) {
+            return null;
+        }
+
+        $_SESSION[self::SESSION_KEY] = [
+            'id'         => (int)$user['id'],
+            'role_id'    => (int)$user['role_id'],
+            'role_name'  => (string)($user['role_name'] ?? 'User'),
+            'username'   => (string)($user['username'] ?? ''),
+            'first_name' => (string)$user['first_name'],
+            'last_name'  => (string)$user['last_name'],
+            'email'      => (string)$user['email'],
+            'avatar_path'=> $user['avatar_path'] ?? null,
+            'is_super'   => (bool)($user['is_super'] ?? false),
+            'updated_at' => (string)($user['updated_at'] ?? ''),
+        ];
+
+        self::$currentUser = $_SESSION[self::SESSION_KEY];
+        self::$permissionsCache = null;
+
+        return self::user();
     }
 
     /**

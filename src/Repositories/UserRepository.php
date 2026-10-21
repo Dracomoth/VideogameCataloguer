@@ -20,6 +20,16 @@ if (!defined('APP_INIT')) {
 
 final class UserRepository
 {
+    private string $avatarDir;
+
+    public function __construct()
+    {
+        $this->avatarDir = dirname(__DIR__, 2) . '/images/avatars';
+        if (!is_dir($this->avatarDir)) {
+            @mkdir($this->avatarDir, 0775, true);
+        }
+    }
+
     /**
      * Retrieves all registered users joined with their assigned role.
      *
@@ -316,7 +326,219 @@ final class UserRepository
             throw new RuntimeException('Super Admin accounts cannot be deleted.');
         }
 
+        $this->deleteAvatarFileOnly($id);
+
         $sql = "DELETE FROM `users` WHERE `id` = :id";
         return Database::execute($sql, [':id' => $id]) > 0;
+    }
+
+    /**
+     * Uploads and validates an avatar file, saving as images/avatars/<userId>_avatar.<ext>.
+     * Returns the relative asset path.
+     *
+     * @param int $userId
+     * @param array<string, mixed> $file
+     * @return string
+     */
+    public function uploadAvatarFileOnly(int $userId, array $file): string
+    {
+        if (isset($file['error']) && $file['error'] !== UPLOAD_ERR_OK) {
+            throw new RuntimeException("Upload failed for avatar with error code {$file['error']}.");
+        }
+
+        $allowedMimes = [
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/webp' => 'webp',
+            'image/gif'  => 'gif',
+        ];
+
+        $ext = null;
+        if (class_exists('finfo')) {
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->file($file['tmp_name']);
+            if (isset($allowedMimes[$mime])) {
+                $ext = $allowedMimes[$mime];
+            }
+        }
+
+        if ($ext === null) {
+            $origExt = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
+            if (in_array($origExt, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true)) {
+                $ext = ($origExt === 'jpeg') ? 'jpg' : $origExt;
+            }
+        }
+
+        if ($ext === null) {
+            throw new InvalidArgumentException("Invalid file format for avatar. Allowed formats: JPG, PNG, WEBP, GIF.");
+        }
+
+        $filename = "{$userId}_avatar.{$ext}";
+        $destination = $this->avatarDir . '/' . $filename;
+
+        // Purge any prior avatar files for this user ID regardless of extension
+        $this->deleteAvatarFileOnly($userId);
+
+        $saved = is_uploaded_file($file['tmp_name'])
+            ? move_uploaded_file($file['tmp_name'], $destination)
+            : copy($file['tmp_name'], $destination);
+
+        if (!$saved) {
+            throw new RuntimeException("Failed to save avatar asset to disk.");
+        }
+
+        @chmod($destination, 0664);
+
+        return "images/avatars/{$filename}";
+    }
+
+    /**
+     * Uploads avatar and immediately updates user record in DB.
+     *
+     * @param int $userId
+     * @param array<string, mixed> $file
+     * @return string
+     */
+    public function uploadAvatar(int $userId, array $file): string
+    {
+        $path = $this->uploadAvatarFileOnly($userId, $file);
+        Database::execute(
+            "UPDATE `users` SET `avatar_path` = :avatar_path WHERE `id` = :id",
+            [':avatar_path' => $path, ':id' => $userId]
+        );
+        return $path;
+    }
+
+    /**
+     * Removes avatar for user and deletes physical file.
+     *
+     * @param int $userId
+     */
+    public function removeAvatar(int $userId): void
+    {
+        $this->deleteAvatarFileOnly($userId);
+        Database::execute(
+            "UPDATE `users` SET `avatar_path` = NULL WHERE `id` = :id",
+            [':id' => $userId]
+        );
+    }
+
+    /**
+     * Purges physical avatar file(s) for a user from disk.
+     *
+     * @param int $userId
+     */
+    public function deleteAvatarFileOnly(int $userId): void
+    {
+        $pattern = $this->avatarDir . '/' . $userId . '_avatar.*';
+        $files = glob($pattern);
+        if (is_array($files)) {
+            foreach ($files as $f) {
+                if (is_file($f)) {
+                    @unlink($f);
+                    clearstatcache(true, $f);
+                }
+            }
+        }
+    }
+
+    /**
+     * Updates an authenticated user's own profile.
+     *
+     * @param int $id
+     * @param array<string, mixed> $data
+     * @param array<string, mixed>|null $avatarFile
+     * @return array<string, mixed>
+     */
+    public function updateProfile(int $id, array $data, ?array $avatarFile = null): array
+    {
+        $user = $this->getById($id);
+        if (!$user) {
+            throw new RuntimeException("User with ID {$id} not found.");
+        }
+
+        $firstName = trim((string)($data['first_name'] ?? $user['first_name']));
+        $lastName  = trim((string)($data['last_name'] ?? $user['last_name']));
+        $username  = trim((string)($data['username'] ?? $user['username']));
+        $email     = strtolower(trim((string)($data['email'] ?? $user['email'])));
+
+        if ($firstName === '' || $lastName === '') {
+            throw new InvalidArgumentException('First and last name are required.');
+        }
+
+        if ($username === '') {
+            throw new InvalidArgumentException('Username is required.');
+        }
+
+        if (!preg_match('/^[a-zA-Z0-9_.-]{3,50}$/', $username)) {
+            throw new InvalidArgumentException('Username must be 3-50 characters and contain only letters, numbers, underscores, dashes, or dots.');
+        }
+
+        $existingUsername = $this->findByUsername($username);
+        if ($existingUsername && (int)$existingUsername['id'] !== $id) {
+            throw new InvalidArgumentException("Username '{$username}' is already in use by another user.");
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new InvalidArgumentException('A valid email address is required.');
+        }
+
+        $existingEmail = $this->findByEmail($email);
+        if ($existingEmail && (int)$existingEmail['id'] !== $id) {
+            throw new InvalidArgumentException("Email '{$email}' is already in use by another user.");
+        }
+
+        $params = [
+            ':id'         => $id,
+            ':first_name' => $firstName,
+            ':last_name'  => $lastName,
+            ':username'   => $username,
+            ':email'      => $email,
+        ];
+
+        // Password change handling
+        $passwordSql = '';
+        if (!empty($data['password'])) {
+            $newPassword = (string)$data['password'];
+            $confirmPassword = (string)($data['password_confirmation'] ?? '');
+
+            if ($newPassword !== $confirmPassword) {
+                throw new InvalidArgumentException('Password confirmation does not match.');
+            }
+
+            if (strlen($newPassword) < 8) {
+                throw new InvalidArgumentException('New password must be at least 8 characters in length.');
+            }
+
+            $passwordSql = ", `password_hash` = :password_hash";
+            $params[':password_hash'] = Auth::hashPassword($newPassword);
+        }
+
+        // Avatar handling
+        $avatarSql = '';
+        if (!empty($data['delete_avatar'])) {
+            $this->deleteAvatarFileOnly($id);
+            $avatarSql = ", `avatar_path` = NULL";
+        } elseif ($avatarFile !== null && !empty($avatarFile['tmp_name']) && (!isset($avatarFile['error']) || $avatarFile['error'] === UPLOAD_ERR_OK)) {
+            $avatarPath = $this->uploadAvatarFileOnly($id, $avatarFile);
+            $avatarSql = ", `avatar_path` = :avatar_path";
+            $params[':avatar_path'] = $avatarPath;
+        }
+
+        $sql = "
+            UPDATE `users` SET 
+                `first_name`  = :first_name,
+                `last_name`   = :last_name,
+                `username`    = :username,
+                `email`       = :email,
+                `updated_at`  = NOW()
+                {$passwordSql}
+                {$avatarSql}
+            WHERE `id` = :id
+        ";
+
+        Database::execute($sql, $params);
+
+        return $this->getById($id) ?? [];
     }
 }

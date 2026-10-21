@@ -11,10 +11,12 @@ images/games/*
 images/consoles/*
 images/publishers/*
 images/mappings/*
+images/avatars/*
 !images/games/.gitkeep
 !images/consoles/.gitkeep
 !images/publishers/.gitkeep
 !images/mappings/.gitkeep
+!images/avatars/.gitkeep
 
 # Scratch files
 scratch/*

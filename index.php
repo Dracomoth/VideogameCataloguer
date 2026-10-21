@@ -297,6 +297,11 @@ $router->post('/users/{id}/toggle', [UserController::class, 'toggle']);
 $router->post('/users/{id}/delete', [UserController::class, 'delete']);
 $router->delete('/users/{id}', [UserController::class, 'delete']);
 
+// User Self-Service Profile Routes
+$router->get('/api/profile', [UserController::class, 'getProfile']);
+$router->post('/api/profile', [UserController::class, 'updateProfile']);
+$router->post('/profile', [UserController::class, 'updateProfile']);
+
 // Role & Dual-Device Permission Matrix Routes
 $router->get('/roles', [RoleController::class, 'index']);
 $router->post('/roles', [RoleController::class, 'store']);

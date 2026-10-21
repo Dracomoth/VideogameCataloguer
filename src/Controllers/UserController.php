@@ -187,6 +187,88 @@ final class UserController
     }
 
     /**
+     * Returns JSON profile data for the authenticated user.
+     *
+     * @param array<string, mixed> $request
+     * @return never
+     */
+    public function getProfile(array $request): void
+    {
+        if (!Auth::check()) {
+            Response::error('Authentication required.', 401);
+        }
+
+        $userId = (int)Auth::id();
+        $user = $this->userRepo->getById($userId);
+        if (!$user) {
+            Response::error('User profile not found.', 404);
+        }
+
+        $avatarUrl = !empty($user['avatar_path'])
+            ? View::assetUrl((string)$user['avatar_path'], $user['updated_at'] ?? null)
+            : null;
+
+        $first = trim((string)($user['first_name'] ?? ''));
+        $last  = trim((string)($user['last_name'] ?? ''));
+        $initials = strtoupper(substr($first, 0, 1) . substr($last, 0, 1));
+        if ($initials === '') {
+            $initials = 'U';
+        }
+
+        $user['avatar_url'] = $avatarUrl;
+        $user['initials']   = $initials;
+        unset($user['password_hash']);
+
+        Response::json([
+            'user' => $user,
+        ]);
+    }
+
+    /**
+     * Updates profile attributes and avatar for the authenticated user.
+     *
+     * @param array<string, mixed> $request
+     * @return never
+     */
+    public function updateProfile(array $request): void
+    {
+        if (!Auth::check()) {
+            Response::error('Authentication required.', 401);
+        }
+
+        $userId = (int)Auth::id();
+        $body = $request['body'] ?? [];
+        $avatarFile = $request['files']['avatar'] ?? null;
+
+        try {
+            $updatedUser = $this->userRepo->updateProfile($userId, $body, $avatarFile);
+            Auth::refreshSession($userId);
+
+            $avatarUrl = !empty($updatedUser['avatar_path'])
+                ? View::assetUrl((string)$updatedUser['avatar_path'], $updatedUser['updated_at'] ?? null)
+                : null;
+
+            $first = trim((string)($updatedUser['first_name'] ?? ''));
+            $last  = trim((string)($updatedUser['last_name'] ?? ''));
+            $initials = strtoupper(substr($first, 0, 1) . substr($last, 0, 1));
+            if ($initials === '') {
+                $initials = 'U';
+            }
+
+            $updatedUser['avatar_url'] = $avatarUrl;
+            $updatedUser['initials']   = $initials;
+            unset($updatedUser['password_hash']);
+
+            Response::json([
+                'message' => 'Profile updated successfully.',
+                'user'    => $updatedUser,
+            ]);
+        } catch (Throwable $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    /**
      * Determines whether the incoming request expects a JSON response.
      */
     private function wantsJson(array $request): bool
