@@ -77,76 +77,68 @@ $initials = strtoupper($initials ?: 'U');
     <form id="userProfileForm" onsubmit="handleProfileFormSubmit(event)" enctype="multipart/form-data" novalidate>
       <input type="hidden" id="profileDeleteAvatar" name="delete_avatar" value="0">
 
-      <!-- Section 1: Avatar Upload & Management Box -->
+      <!-- Section 1: Avatar Upload & Management (Same layout as system forms: image box, browse button, remove button) -->
       <div class="profile-section">
-        <label class="profile-section-title">Profile Avatar</label>
-        <div class="profile-avatar-row">
-          <!-- Circular Avatar Preview -->
-          <div class="profile-avatar-preview-wrap">
-            <div id="profileAvatarPreviewCircle" class="profile-avatar-preview-circle">
+        <div class="media-card">
+          <div class="media-card-title">Profile Avatar</div>
+          <input 
+            type="file" 
+            id="profileAvatarInput" 
+            name="avatar" 
+            accept="image/jpeg,image/png,image/webp,image/gif" 
+            style="display: none;" 
+            onchange="handleAvatarFileSelect(this.files)"
+          >
+
+          <!-- Dropzone / Image Box -->
+          <div 
+            class="dropzone-box" 
+            id="profileAvatarDropzone" 
+            onclick="triggerAvatarFileInput()"
+            ondragover="handleAvatarDragOver(event)"
+            ondragleave="handleAvatarDragLeave(event)"
+            ondrop="handleAvatarDrop(event)"
+            title="Click or drag & drop to upload avatar"
+          >
+            <div id="avatarPreviewContainer" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
               <?php if (!empty($initAvatarUrl)): ?>
                 <img 
                   id="profileModalAvatarImg" 
                   src="<?= View::e($initAvatarUrl) ?>" 
                   alt="Avatar Preview" 
-                  class="profile-avatar-preview-img"
+                  class="dropzone-preview-img"
+                  style="max-height: 100%; max-width: 100%; object-fit: contain;"
                 >
               <?php else: ?>
-                <div id="profileModalAvatarInitials" class="profile-avatar-preview-initials">
-                  <?= View::e($initials) ?>
+                <div class="dropzone-empty" id="profileDropzoneEmpty">
+                  <span>📷</span>
+                  <strong>Upload Avatar</strong>
+                  <small>Drop or click • &lt;ID&gt;_avatar.ext</small>
                 </div>
               <?php endif; ?>
             </div>
-            <div id="profileAvatarBadge" class="profile-avatar-status-badge" title="Avatar loaded">✓</div>
           </div>
 
-          <!-- Interactive Upload Dropzone Box -->
-          <div 
-            id="profileAvatarDropzone" 
-            class="profile-avatar-dropzone" 
-            onclick="triggerAvatarFileInput()"
-            ondragover="handleAvatarDragOver(event)"
-            ondragleave="handleAvatarDragLeave(event)"
-            ondrop="handleAvatarDrop(event)"
-          >
-            <input 
-              type="file" 
-              id="profileAvatarInput" 
-              name="avatar" 
-              accept="image/jpeg,image/png,image/webp,image/gif" 
-              style="display: none;" 
-              onchange="handleAvatarFileSelect(this.files)"
+          <!-- Action Buttons: Browse & Remove -->
+          <div class="media-actions">
+            <button 
+              type="button" 
+              class="btn" 
+              onclick="triggerAvatarFileInput()"
             >
-            <div class="dropzone-icon">📷</div>
-            <div class="dropzone-text-block">
-              <span class="dropzone-primary-text">Click or drag & drop an image here to upload</span>
-              <span class="dropzone-secondary-text">Supported formats: JPG, PNG, WEBP, GIF (Saved as <code>&lt;id&gt;_avatar.&lt;ext&gt;</code>)</span>
-            </div>
-            <div id="profileSelectedFileName" class="profile-selected-file" style="display: none;"></div>
+              Browse
+            </button>
+            <button 
+              type="button" 
+              id="profileRemoveAvatarBtn" 
+              class="btn danger" 
+              onclick="toggleRemoveAvatar()"
+              <?= empty($initAvatarUrl) ? 'disabled' : '' ?>
+            >
+              Remove
+            </button>
           </div>
-        </div>
-
-        <!-- Avatar Controls (Remove / Undo) -->
-        <div class="profile-avatar-actions">
-          <button 
-            type="button" 
-            id="profileRemoveAvatarBtn" 
-            class="profile-action-btn profile-action-btn-danger" 
-            onclick="toggleRemoveAvatar()"
-            style="<?= empty($initAvatarUrl) ? 'display: none;' : '' ?>"
-          >
-            🗑 Remove Avatar
-          </button>
-          <button 
-            type="button" 
-            id="profileResetFileBtn" 
-            class="profile-action-btn profile-action-btn-secondary" 
-            onclick="resetStagedAvatarFile()" 
-            style="display: none;"
-          >
-            ↩ Cancel Image Selection
-          </button>
-          <span id="profileAvatarNote" class="profile-avatar-note"></span>
+          <div id="profileSelectedFileName" class="profile-selected-file" style="display: none;"></div>
         </div>
       </div>
 
@@ -236,7 +228,7 @@ $initials = strtoupper($initials ?: 'U');
         </div>
       </div>
 
-      <!-- Section 3: Password Change Box -->
+      <!-- Section 3: Password Change Box with Minimalist SVG Eye Icons -->
       <div class="profile-section password-section">
         <div class="password-section-header">
           <div>
@@ -272,10 +264,14 @@ $initials = strtoupper($initials ?: 'U');
                 type="button" 
                 class="password-toggle-btn" 
                 onclick="togglePasswordVisibility('profilePassword', this)" 
-                aria-label="Toggle password visibility"
-                title="Show / Hide"
+                aria-label="Show password"
+                title="Show password"
               >
-                👁️
+                <!-- Minimalist Eye Icon (Hidden) -->
+                <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
               </button>
             </div>
           </div>
@@ -297,10 +293,14 @@ $initials = strtoupper($initials ?: 'U');
                 type="button" 
                 class="password-toggle-btn" 
                 onclick="togglePasswordVisibility('profilePasswordConfirmation', this)" 
-                aria-label="Toggle password confirmation visibility"
-                title="Show / Hide"
+                aria-label="Show password"
+                title="Show password"
               >
-                👁️
+                <!-- Minimalist Eye Icon (Hidden) -->
+                <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
               </button>
             </div>
           </div>
@@ -489,158 +489,120 @@ $initials = strtoupper($initials ?: 'U');
   margin-bottom: 12px;
 }
 
-.profile-avatar-row {
+/* System-Standard Form Media Card & Dropzone */
+.profile-section .media-card {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
   display: flex;
-  align-items: center;
-  gap: 16px;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.profile-avatar-preview-wrap {
-  position: relative;
-  flex-shrink: 0;
+.profile-section .media-card-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #38bdf8;
+  letter-spacing: 0.04em;
 }
 
-.profile-avatar-preview-circle {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  border: 2px solid #38bdf8;
-  box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
-  background: #0f172a;
-  overflow: hidden;
+.profile-section .dropzone-box {
+  min-height: 140px;
+  height: 140px;
+  border: 2px dashed rgba(148, 163, 184, 0.25);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 12, 22, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.profile-section .dropzone-box:hover,
+.profile-section .dropzone-box.drag-over {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.06);
+}
+
+.profile-section .dropzone-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-dim);
+  font-size: 12px;
   user-select: none;
 }
 
-.profile-avatar-preview-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.profile-section .dropzone-empty span {
+  font-size: 28px;
+  opacity: 0.85;
+}
+
+.profile-section .dropzone-preview-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
   display: block;
 }
 
-.profile-avatar-preview-initials {
-  width: 100%;
-  height: 100%;
+.profile-section .media-actions {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #4f46e5 100%);
-  color: #ffffff;
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+  gap: 8px;
 }
 
-.profile-avatar-status-badge {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #10b981;
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #111827;
-}
-
-.profile-avatar-dropzone {
+.profile-section .media-actions .btn {
   flex: 1;
-  border: 2px dashed rgba(56, 189, 248, 0.35);
-  border-radius: 8px;
-  background: rgba(15, 23, 42, 0.6);
-  padding: 14px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-height: 72px;
-  box-sizing: border-box;
-}
-
-.profile-avatar-dropzone:hover,
-.profile-avatar-dropzone.drag-active {
-  border-color: #38bdf8;
-  background: rgba(56, 189, 248, 0.1);
-  transform: translateY(-1px);
-}
-
-.dropzone-icon {
-  font-size: 22px;
-  flex-shrink: 0;
-}
-
-.dropzone-text-block {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.dropzone-primary-text {
-  font-size: 13px;
-  font-weight: 600;
-  color: #f8fafc;
-}
-
-.dropzone-secondary-text {
-  font-size: 11px;
-  color: #94a3b8;
-  line-height: 1.3;
-}
-
-.profile-selected-file {
-  margin-top: 6px;
-  font-size: 12px;
-  color: #38bdf8;
-  font-weight: 600;
-  word-break: break-all;
-}
-
-.profile-avatar-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.profile-action-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #e2e8f0;
-  padding: 5px 12px;
-  border-radius: 6px;
+  padding: 6px 14px;
   font-size: 12px;
   font-weight: 600;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  transition: all var(--transition-fast);
 }
 
-.profile-action-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: #38bdf8;
-  color: #ffffff;
+.profile-section .media-actions .btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--border-focus);
+  color: #fff;
 }
 
-.profile-action-btn-danger:hover {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: #ef4444;
+.profile-section .media-actions .btn.danger {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
   color: #fca5a5;
 }
 
-.profile-avatar-note {
+.profile-section .media-actions .btn.danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: #ef4444;
+  color: #fff;
+}
+
+.profile-section .media-actions .btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.profile-selected-file {
   font-size: 11px;
-  color: #f59e0b;
+  color: #38bdf8;
   font-weight: 600;
+  margin-top: 2px;
+  word-break: break-all;
 }
 
 .profile-form-grid {
@@ -652,10 +614,6 @@ $initials = strtoupper($initials ?: 'U');
 @media (max-width: 520px) {
   .profile-form-grid {
     grid-template-columns: 1fr;
-  }
-  .profile-avatar-row {
-    flex-direction: column;
-    align-items: flex-start;
   }
 }
 
@@ -793,30 +751,43 @@ $initials = strtoupper($initials ?: 'U');
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
 }
 
 .password-input {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  padding-right: 36px;
+  padding-right: 40px !important;
 }
 
+/* Minimalist SVG Password Toggle Button */
 .password-toggle-btn {
   position: absolute;
   right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
   background: none;
   border: none;
-  color: #94a3b8;
+  color: var(--text-dim);
   cursor: pointer;
-  font-size: 14px;
-  padding: 4px;
+  padding: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+  line-height: 1;
 }
 
 .password-toggle-btn:hover {
   color: #38bdf8;
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.password-toggle-btn svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+  pointer-events: none;
 }
 
 .password-match-status {
@@ -966,32 +937,34 @@ $initials = strtoupper($initials ?: 'U');
       roleBadge.textContent = '🛡 ' + (user.role_name || 'User') + isSuper;
     }
 
-    // Avatar preview
-    renderAvatarPreview(user.avatar_url, user.initials, user.first_name + ' ' + user.last_name);
+    // Avatar preview in the media-card dropzone
+    renderAvatarPreview(user.avatar_url, user.first_name + ' ' + user.last_name);
 
-    // Remove Avatar button visibility
+    // Remove Avatar button state
     const removeBtn = document.getElementById('profileRemoveAvatarBtn');
     if (removeBtn) {
-      removeBtn.style.display = user.avatar_url ? 'inline-block' : 'none';
-      removeBtn.textContent = '🗑 Remove Avatar';
+      removeBtn.disabled = !user.avatar_url;
+      removeBtn.textContent = 'Remove';
     }
   }
 
   /**
-   * Renders the avatar circle preview with image or fallback initials.
+   * Renders the avatar preview inside the media-card dropzone container.
    */
-  function renderAvatarPreview(avatarUrl, initials, name) {
-    const circle = document.getElementById('profileAvatarPreviewCircle');
-    if (!circle) return;
+  function renderAvatarPreview(avatarUrl, name) {
+    const container = document.getElementById('avatarPreviewContainer');
+    if (!container) return;
 
     if (avatarUrl) {
-      circle.innerHTML = `<img id="profileModalAvatarImg" src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(name || 'Avatar')}" class="profile-avatar-preview-img">`;
+      container.innerHTML = `<img id="profileModalAvatarImg" src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(name || 'Avatar')}" class="dropzone-preview-img" style="max-height: 100%; max-width: 100%; object-fit: contain;">`;
     } else {
-      const initText = initials || computeInitials(
-        document.getElementById('profileFirstName').value,
-        document.getElementById('profileLastName').value
-      );
-      circle.innerHTML = `<div id="profileModalAvatarInitials" class="profile-avatar-preview-initials">${escapeHtml(initText)}</div>`;
+      container.innerHTML = `
+        <div class="dropzone-empty" id="profileDropzoneEmpty">
+          <span>📷</span>
+          <strong>Upload Avatar</strong>
+          <small>Drop or click • &lt;ID&gt;_avatar.ext</small>
+        </div>
+      `;
     }
   }
 
@@ -1043,21 +1016,21 @@ $initials = strtoupper($initials ?: 'U');
     e.preventDefault();
     e.stopPropagation();
     const dropzone = document.getElementById('profileAvatarDropzone');
-    if (dropzone) dropzone.classList.add('drag-active');
+    if (dropzone) dropzone.classList.add('drag-over');
   }
 
   function handleAvatarDragLeave(e) {
     e.preventDefault();
     e.stopPropagation();
     const dropzone = document.getElementById('profileAvatarDropzone');
-    if (dropzone) dropzone.classList.remove('drag-active');
+    if (dropzone) dropzone.classList.remove('drag-over');
   }
 
   function handleAvatarDrop(e) {
     e.preventDefault();
     e.stopPropagation();
     const dropzone = document.getElementById('profileAvatarDropzone');
-    if (dropzone) dropzone.classList.remove('drag-active');
+    if (dropzone) dropzone.classList.remove('drag-over');
 
     if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       stageAvatarFile(e.dataTransfer.files[0]);
@@ -1085,12 +1058,15 @@ $initials = strtoupper($initials ?: 'U');
     }
     stagedObjectUrl = URL.createObjectURL(file);
 
-    // Preview staged image
-    renderAvatarPreview(stagedObjectUrl, null, file.name);
+    // Preview staged image in the image box
+    renderAvatarPreview(stagedObjectUrl, file.name);
 
-    // Cancel staged button visibility
-    const resetBtn = document.getElementById('profileResetFileBtn');
-    if (resetBtn) resetBtn.style.display = 'inline-block';
+    // Enable remove button
+    const removeBtn = document.getElementById('profileRemoveAvatarBtn');
+    if (removeBtn) {
+      removeBtn.disabled = false;
+      removeBtn.textContent = 'Remove';
+    }
 
     // Show selected filename
     const fileLabel = document.getElementById('profileSelectedFileName');
@@ -1101,9 +1077,6 @@ $initials = strtoupper($initials ?: 'U');
 
     // Reset delete avatar flag since a new image was chosen
     document.getElementById('profileDeleteAvatar').value = '0';
-    const note = document.getElementById('profileAvatarNote');
-    if (note) note.textContent = '✨ New image ready to save.';
-
     hideProfileAlert();
   }
 
@@ -1120,24 +1093,18 @@ $initials = strtoupper($initials ?: 'U');
     const input = document.getElementById('profileAvatarInput');
     if (input) input.value = '';
 
-    const resetBtn = document.getElementById('profileResetFileBtn');
-    if (resetBtn) resetBtn.style.display = 'none';
-
     const fileLabel = document.getElementById('profileSelectedFileName');
     if (fileLabel) {
       fileLabel.textContent = '';
       fileLabel.style.display = 'none';
     }
 
-    const note = document.getElementById('profileAvatarNote');
-    if (note) note.textContent = '';
-
     if (currentUserData) {
       const isPendingDelete = document.getElementById('profileDeleteAvatar').value === '1';
       if (isPendingDelete) {
-        renderAvatarPreview(null, currentUserData.initials, currentUserData.first_name);
+        renderAvatarPreview(null, null);
       } else {
-        renderAvatarPreview(currentUserData.avatar_url, currentUserData.initials, currentUserData.first_name);
+        renderAvatarPreview(currentUserData.avatar_url, currentUserData.first_name);
       }
     }
   }
@@ -1148,27 +1115,30 @@ $initials = strtoupper($initials ?: 'U');
   function toggleRemoveAvatar() {
     const deleteInput = document.getElementById('profileDeleteAvatar');
     const removeBtn = document.getElementById('profileRemoveAvatarBtn');
-    const note = document.getElementById('profileAvatarNote');
+
+    if (stagedFile) {
+      // If a file was merely staged, clicking remove cancels staging and restores current avatar
+      resetStagedAvatarFile();
+      if (removeBtn) {
+        removeBtn.disabled = !currentUserData?.avatar_url;
+        removeBtn.textContent = 'Remove';
+      }
+      return;
+    }
 
     if (deleteInput.value === '1') {
       // Undo remove
       deleteInput.value = '0';
-      if (removeBtn) removeBtn.textContent = '🗑 Remove Avatar';
-      if (note) note.textContent = '';
+      if (removeBtn) removeBtn.textContent = 'Remove';
       if (currentUserData) {
-        renderAvatarPreview(currentUserData.avatar_url, currentUserData.initials, currentUserData.first_name);
+        renderAvatarPreview(currentUserData.avatar_url, currentUserData.first_name);
       }
     } else {
       // Flag for removal
       resetStagedAvatarFile();
       deleteInput.value = '1';
-      if (removeBtn) removeBtn.textContent = '↩ Undo Remove';
-      if (note) note.textContent = '⚠️ Avatar will be removed upon saving.';
-      const initials = computeInitials(
-        document.getElementById('profileFirstName').value,
-        document.getElementById('profileLastName').value
-      );
-      renderAvatarPreview(null, initials, 'Initials');
+      if (removeBtn) removeBtn.textContent = 'Undo Remove';
+      renderAvatarPreview(null, null);
     }
   }
 
@@ -1220,22 +1190,50 @@ $initials = strtoupper($initials ?: 'U');
     pwdInput.type = 'text';
     confirmInput.type = 'text';
 
+    // Update toggle button states to show eye-off
+    const toggleBtns = document.querySelectorAll('#userProfileModal .password-toggle-btn');
+    toggleBtns.forEach(btn => {
+      btn.setAttribute('aria-label', 'Hide password');
+      btn.setAttribute('title', 'Hide password');
+      btn.innerHTML = `
+        <svg class="eye-off-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+        </svg>
+      `;
+    });
+
     validatePasswordMatch();
     showProfileAlert('A secure random password has been generated. Please record it before saving.', 'success');
   }
 
   /**
-   * Toggles password field visibility between text and password.
+   * Minimalist SVG Password Visibility Toggle.
    */
   function togglePasswordVisibility(fieldId, btn) {
     const input = document.getElementById(fieldId);
     if (!input) return;
-    if (input.type === 'password') {
-      input.type = 'text';
-      btn.textContent = '🙈';
+    const isPassword = input.type === 'password';
+    input.type = isPassword ? 'text' : 'password';
+    btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+    btn.setAttribute('title', isPassword ? 'Hide password' : 'Show password');
+    
+    if (isPassword) {
+      // Slashed eye (Eye Off)
+      btn.innerHTML = `
+        <svg class="eye-off-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+        </svg>
+      `;
     } else {
-      input.type = 'password';
-      btn.textContent = '👁️';
+      // Regular eye (Eye)
+      btn.innerHTML = `
+        <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      `;
     }
   }
 

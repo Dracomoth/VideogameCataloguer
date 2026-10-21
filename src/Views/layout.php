@@ -50,6 +50,9 @@ $totalSystems = (int)($stats['total_consoles'] ?? 0);
 $stylePath = __DIR__ . '/../../assets/css/style.css';
 $styleVer  = file_exists($stylePath) ? (string)filemtime($stylePath) : '1.0';
 
+$favPath = __DIR__ . '/../../favicon.ico';
+$favVer  = file_exists($favPath) ? (string)filemtime($favPath) : '1.0';
+
 $gridJsPath = __DIR__ . '/../../assets/js/components/data-grid.js';
 $gridJsVer  = file_exists($gridJsPath) ? (string)filemtime($gridJsPath) : '1.0';
 ?>
@@ -59,6 +62,13 @@ $gridJsVer  = file_exists($gridJsPath) ? (string)filemtime($gridJsPath) : '1.0';
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $title ?></title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
+  <link rel="shortcut icon" href="/favicon.ico?v=<?= $favVer ?>">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico?v=<?= $favVer ?>">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=<?= $favVer ?>">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png?v=<?= $favVer ?>">
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=<?= $favVer ?>">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=<?= $favVer ?>">
   <link rel="stylesheet" href="/assets/css/style.css?v=<?= $styleVer ?>">
 </head>
 <body>

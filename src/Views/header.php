@@ -71,7 +71,7 @@ $titleTooltip = $userFullName . ' (' . $roleName . ')';
       <div class="header-brand-block">
         <div class="header-brand-top">
           <a href="/" class="brand-link">
-            <div class="brand-logo-badge">🎮</div>
+            <div class="brand-logo-badge"><span class="brand-logo-icon">🎮</span></div>
             <div class="brand-text-block">
               <h1 class="brand-title">Videogame Vault</h1>
               <p class="brand-subtitle">Collection Tracker & Cataloguer</p>
