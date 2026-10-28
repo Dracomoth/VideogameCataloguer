@@ -722,6 +722,7 @@ final class GameRepository
                 cat.name AS category_name,
                 sub.name AS subcategory_name,
                 pub.name AS publisher_name,
+                lang.name AS language_name,
                 COALESCE(pg.is_downloaded, 0) AS is_downloaded,
                 COALESCE(pg.download_count, 0) AS download_count,
                 pg.last_download_date,
@@ -733,6 +734,7 @@ final class GameRepository
             LEFT JOIN `categories` cat ON cat.id = g.category_id
             LEFT JOIN `subcategories` sub ON sub.id = g.subcategory_id
             LEFT JOIN `publishers` pub ON pub.id = g.publisher_id
+            LEFT JOIN `languages` lang ON lang.id = g.language_id
             LEFT JOIN `player_games` pg ON pg.game_id = g.id AND pg.player_id = :player_id
             ORDER BY g.title ASC
         ";

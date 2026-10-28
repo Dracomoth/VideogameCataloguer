@@ -10,6 +10,7 @@
  * @var array<int, array<string, mixed>>|null $consoles
  * @var array<int, array<string, mixed>>|null $categories
  * @var array<int, array<string, mixed>>|null $subcategories
+ * @var array<int, array<string, mixed>>|null $languages
  * @var int|null $initialGameId
  * @var array<string, mixed>|null $initialDetail
  * @var string|null $initialLetter
@@ -20,6 +21,7 @@ declare(strict_types=1);
 use Vault\Repositories\CategoryRepository;
 use Vault\Repositories\ConsoleRepository;
 use Vault\Repositories\GameRepository;
+use Vault\Repositories\LanguageRepository;
 use Vault\Repositories\SubcategoryRepository;
 use Vault\Services\View;
 
@@ -54,6 +56,11 @@ if (!isset($categories) || !is_array($categories)) {
 if (!isset($subcategories) || !is_array($subcategories)) {
     $subcatRepo = new SubcategoryRepository();
     $subcategories = $subcatRepo->getAll();
+}
+
+if (!isset($languages) || !is_array($languages)) {
+    $langRepo = new LanguageRepository();
+    $languages = $langRepo->getAll();
 }
 
 // Initial detail resolution if deep-linked
@@ -97,6 +104,23 @@ if (!empty($_GET['subcategory_id']) && is_numeric($_GET['subcategory_id'])) {
     $initialSub = (int)$_GET['subcategory'];
 }
 
+$initialLan = 0;
+if (!empty($_GET['language_id']) && is_numeric($_GET['language_id'])) {
+    $initialLan = (int)$_GET['language_id'];
+} elseif (!empty($_GET['language'])) {
+    if (is_numeric($_GET['language'])) {
+        $initialLan = (int)$_GET['language'];
+    } else {
+        $lanName = trim((string)$_GET['language']);
+        foreach ($languages as $l) {
+            if (strcasecmp((string)($l['name'] ?? ''), $lanName) === 0) {
+                $initialLan = (int)$l['id'];
+                break;
+            }
+        }
+    }
+}
+
 $initialQ = trim((string)($_GET['q'] ?? ($_GET['publisher'] ?? '')));
 if ($initialQ === '' && !empty($_GET['publisher_id'])) {
     $targetPubId = (int)$_GET['publisher_id'];
@@ -121,6 +145,7 @@ $safeGamesJson         = json_encode($games, JSON_HEX_TAG | JSON_HEX_APOS | JSON
 $safeConsolesJson      = json_encode($consoles, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 $safeCategoriesJson    = json_encode($categories, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 $safeSubcategoriesJson = json_encode($subcategories, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+$safeLanguagesJson     = json_encode($languages, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 ?>
 
@@ -1701,6 +1726,16 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         <?php endforeach; ?>
       </select>
 
+      <!-- Language Filter -->
+      <select id="gameLanguageFilter" class="game-select-filter" aria-label="Filter by Language">
+        <option value="0">All Languages</option>
+        <?php foreach ($languages as $lang): ?>
+          <option value="<?= (int)$lang['id'] ?>" <?= $initialLan === (int)$lang['id'] ? 'selected' : '' ?>>
+            <?= View::e($lang['name']) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+
       <!-- Reset Filters Button -->
       <button type="button" id="btnResetFilters" class="btn-reset-filters" title="Reset all filters">
         <span>✕</span>
@@ -1831,6 +1866,16 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
           <div class="game-detail-spec-row">
             <span class="spec-label">Category</span>
             <span class="spec-value" id="detailCategoryValue">—</span>
+          </div>
+
+          <!-- Language -->
+          <div class="game-detail-spec-row">
+            <span class="spec-label">Language</span>
+            <span class="spec-value">
+              <a href="#" class="game-portal-link" id="detailLanguageLink" title="Filter catalog by this language">
+                <span id="detailLanguageValue">—</span>
+              </a>
+            </span>
           </div>
 
           <!-- Downloads: Global download count -->
@@ -1983,6 +2028,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const ALL_CONSOLES      = <?= $safeConsolesJson ?: '[]' ?>;
   const ALL_CATEGORIES    = <?= $safeCategoriesJson ?: '[]' ?>;
   const ALL_SUBCATEGORIES = <?= $safeSubcategoriesJson ?: '[]' ?>;
+  const ALL_LANGUAGES     = <?= $safeLanguagesJson ?: '[]' ?>;
   const INITIAL_DETAIL    = <?= $safeInitialDetailJson ?: 'null' ?>;
   const CAN_ACCESS_PUBLISHERS = <?= json_encode($canAccessPublishers) ?>;
   const CAN_ACCESS_CONSOLES   = <?= json_encode($canAccessConsoles) ?>;
@@ -1995,6 +2041,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   let currentConsoleFilter      = <?= $initialCon ?>;
   let currentCategoryFilter     = <?= $initialCat ?>;
   let currentSubcategoryFilter  = <?= $initialSub ?>;
+  let currentLanguageFilter     = <?= $initialLan ?>;
   let currentSortAsc            = <?= $initialOrd === 'desc' ? 'false' : 'true' ?>;
   let activeGame                = null;
   let activeDetailData          = null;
@@ -2005,6 +2052,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const gameConsoleFilter       = document.getElementById('gameConsoleFilter');
   const gameCategoryFilter      = document.getElementById('gameCategoryFilter');
   const gameSubcategoryFilter   = document.getElementById('gameSubcategoryFilter');
+  const gameLanguageFilter      = document.getElementById('gameLanguageFilter');
   const btnResetFilters         = document.getElementById('btnResetFilters');
   const gameFilterStatsText     = document.getElementById('gameFilterStatsText');
 
@@ -2043,6 +2091,8 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const detailConsoleValue      = document.getElementById('detailConsoleValue');
   const detailYearValue         = document.getElementById('detailYearValue');
   const detailCategoryValue     = document.getElementById('detailCategoryValue');
+  const detailLanguageLink      = document.getElementById('detailLanguageLink');
+  const detailLanguageValue     = document.getElementById('detailLanguageValue');
   const detailDownloadsCount    = document.getElementById('detailDownloadsCount');
   const detailDownloadsText     = document.getElementById('detailDownloadsText');
   const detailPlayerCollectionStatus = document.getElementById('detailPlayerCollectionStatus');
@@ -2299,12 +2349,27 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       }
     });
 
+    // 5b. Language Filter Dropdown
+    if (gameLanguageFilter) {
+      gameLanguageFilter.addEventListener('change', (e) => {
+        currentLanguageFilter = Number(e.target.value);
+        updateActiveFilterStyles();
+        if (currentMode === 'detail') {
+          setMode('list');
+        } else {
+          renderGamesList();
+          updateUrlState();
+        }
+      });
+    }
+
     // 6. Reset Filters Button
     btnResetFilters.addEventListener('click', () => {
       currentSearchQuery = '';
       currentConsoleFilter = 0;
       currentCategoryFilter = 0;
       currentSubcategoryFilter = 0;
+      currentLanguageFilter = 0;
       currentLetter = 'ALL';
 
       gameSearchInput.value = '';
@@ -2313,6 +2378,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       gameCategoryFilter.value = '0';
       setupSubcategoryCascade();
       gameSubcategoryFilter.value = '0';
+      if (gameLanguageFilter) gameLanguageFilter.value = '0';
 
       const pills = gameAlphabetPillRay.querySelectorAll('.game-alphabet-pill');
       pills.forEach(p => p.classList.toggle('active', p.dataset.letter === 'ALL'));
@@ -2346,6 +2412,31 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       setMode('list');
     });
 
+    // 9b. Language Link in Detail Mode
+    if (detailLanguageLink) {
+      detailLanguageLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (activeGame && activeGame.language_id && Number(activeGame.language_id) > 0) {
+          currentLanguageFilter = Number(activeGame.language_id);
+          if (gameLanguageFilter) {
+            gameLanguageFilter.value = String(currentLanguageFilter);
+          }
+          currentLetter = 'ALL';
+          currentSearchQuery = '';
+          if (gameSearchInput) gameSearchInput.value = '';
+          if (gameClearSearchBtn) gameClearSearchBtn.style.display = 'none';
+
+          const pills = gameAlphabetPillRay.querySelectorAll('.game-alphabet-pill');
+          pills.forEach(p => p.classList.toggle('active', p.dataset.letter === 'ALL'));
+
+          updateActiveFilterStyles();
+          setMode('list');
+          updateUrlState();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+    }
+
     // 10. Lightbox Triggers on Detail Boxart and Screenshot
     detailBoxartBox.addEventListener('click', () => {
       if (detailBoxartImg.src) {
@@ -2376,6 +2467,8 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       if (activeGame && activeGame.console_id) {
         currentConsoleFilter = Number(activeGame.console_id);
         gameConsoleFilter.value = String(currentConsoleFilter);
+        currentLanguageFilter = 0;
+        if (gameLanguageFilter) gameLanguageFilter.value = '0';
         currentLetter = 'ALL';
         currentSearchQuery = '';
         gameSearchInput.value = '';
@@ -2405,6 +2498,8 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
           gameSubcategoryFilter.value = '0';
         }
 
+        currentLanguageFilter = 0;
+        if (gameLanguageFilter) gameLanguageFilter.value = '0';
         currentLetter = 'ALL';
         currentSearchQuery = '';
         gameSearchInput.value = '';
@@ -2440,13 +2535,15 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     const hasConsole = currentConsoleFilter > 0;
     const hasCategory = currentCategoryFilter > 0;
     const hasSubcategory = currentSubcategoryFilter > 0;
+    const hasLanguage = currentLanguageFilter > 0;
     const hasQuery = currentSearchQuery !== '';
 
     gameConsoleFilter.classList.toggle('active-filter', hasConsole);
     gameCategoryFilter.classList.toggle('active-filter', hasCategory);
     gameSubcategoryFilter.classList.toggle('active-filter', hasSubcategory);
+    if (gameLanguageFilter) gameLanguageFilter.classList.toggle('active-filter', hasLanguage);
 
-    const hasAnyFilter = hasConsole || hasCategory || hasSubcategory || hasQuery;
+    const hasAnyFilter = hasConsole || hasCategory || hasSubcategory || hasLanguage || hasQuery;
     btnResetFilters.style.display = hasAnyFilter ? 'inline-flex' : 'none';
   }
 
@@ -2506,12 +2603,19 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         }
       }
 
+      if (currentLanguageFilter > 0) {
+        if (Number(g.language_id) !== currentLanguageFilter) {
+          return false;
+        }
+      }
+
       if (currentSearchQuery !== '') {
         const q = currentSearchQuery.toLowerCase();
         const title = (g.title || '').toLowerCase();
         const pub = (g.publisher_name || '').toLowerCase();
         const con = (g.console_name || '').toLowerCase();
-        if (!title.includes(q) && !pub.includes(q) && !con.includes(q)) {
+        const lang = (g.language_name || '').toLowerCase();
+        if (!title.includes(q) && !pub.includes(q) && !con.includes(q) && !lang.includes(q)) {
           return false;
         }
       }
@@ -3116,6 +3220,29 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       detailCategoryValue.textContent = 'Uncategorized';
     }
 
+    // 8b. Language
+    const languageName = game.language_name || '';
+    if (detailLanguageValue) {
+      detailLanguageValue.textContent = languageName !== '' ? languageName : '—';
+    }
+    if (detailLanguageLink) {
+      if (game.language_id && Number(game.language_id) > 0 && languageName !== '') {
+        detailLanguageLink.classList.remove('no-link');
+        detailLanguageLink.removeAttribute('tabindex');
+        detailLanguageLink.style.pointerEvents = 'auto';
+        detailLanguageLink.style.cursor = 'pointer';
+        detailLanguageLink.style.opacity = '1';
+        detailLanguageLink.title = `Filter catalog by ${languageName}`;
+      } else {
+        detailLanguageLink.classList.add('no-link');
+        detailLanguageLink.setAttribute('tabindex', '-1');
+        detailLanguageLink.style.pointerEvents = 'none';
+        detailLanguageLink.style.cursor = 'default';
+        detailLanguageLink.style.opacity = '1';
+        detailLanguageLink.removeAttribute('title');
+      }
+    }
+
     // 9. Tags (in badge form)
     detailTagsContainer.innerHTML = '';
     const rawTags = (game.tags || '').toString().trim();
@@ -3383,6 +3510,9 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       if (currentSubcategoryFilter > 0) {
         params.set('subcategory', currentSubcategoryFilter);
       }
+      if (currentLanguageFilter > 0) {
+        params.set('language', currentLanguageFilter);
+      }
       if (!currentSortAsc) {
         params.set('order', 'desc');
       }
@@ -3398,6 +3528,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       console: currentConsoleFilter,
       category: currentCategoryFilter,
       subcategory: currentSubcategoryFilter,
+      language: currentLanguageFilter,
       sortAsc: currentSortAsc
     }, '', newUrl);
   }
@@ -3413,6 +3544,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       currentConsoleFilter = state.console || 0;
       currentCategoryFilter = state.category || 0;
       currentSubcategoryFilter = state.subcategory || 0;
+      currentLanguageFilter = state.language || 0;
       currentSortAsc = state.sortAsc !== false;
 
       gameSearchInput.value = currentSearchQuery;
@@ -3421,6 +3553,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       gameCategoryFilter.value = String(currentCategoryFilter);
       setupSubcategoryCascade();
       gameSubcategoryFilter.value = String(currentSubcategoryFilter);
+      if (gameLanguageFilter) gameLanguageFilter.value = String(currentLanguageFilter);
 
       const pills = gameAlphabetPillRay.querySelectorAll('.game-alphabet-pill');
       pills.forEach(p => p.classList.toggle('active', p.dataset.letter === currentLetter));
@@ -3438,8 +3571,23 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     } else {
       const urlParams = new URLSearchParams(window.location.search);
       currentSearchQuery = urlParams.get('q') || urlParams.get('publisher') || '';
+      const urlCon = urlParams.get('console') || urlParams.get('console_id');
+      currentConsoleFilter = urlCon ? (Number(urlCon) || 0) : 0;
+      const urlCat = urlParams.get('category') || urlParams.get('category_id');
+      currentCategoryFilter = urlCat ? (Number(urlCat) || 0) : 0;
+      const urlSub = urlParams.get('subcategory') || urlParams.get('subcategory_id');
+      currentSubcategoryFilter = urlSub ? (Number(urlSub) || 0) : 0;
+      const urlLan = urlParams.get('language') || urlParams.get('language_id');
+      currentLanguageFilter = urlLan ? (Number(urlLan) || 0) : 0;
+
       gameSearchInput.value = currentSearchQuery;
       gameClearSearchBtn.style.display = currentSearchQuery ? 'block' : 'none';
+      gameConsoleFilter.value = String(currentConsoleFilter);
+      gameCategoryFilter.value = String(currentCategoryFilter);
+      setupSubcategoryCascade();
+      gameSubcategoryFilter.value = String(currentSubcategoryFilter);
+      if (gameLanguageFilter) gameLanguageFilter.value = String(currentLanguageFilter);
+
       updateActiveFilterStyles();
       setMode('list');
       renderGamesList();
