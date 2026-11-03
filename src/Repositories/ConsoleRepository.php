@@ -62,6 +62,7 @@ final class ConsoleRepository
                 c.created,
                 c.updated,
                 (SELECT COUNT(*) FROM `consoles` sub_ref WHERE sub_ref.master_reference_id = c.id) AS reference_consoles_count,
+                (SELECT COUNT(*) FROM `games` mg WHERE mg.console_id = c.master_reference_id) AS master_games_count,
                 c.image_path,
                 c.logo_path,
                 c.mapping_gamepad_path,
@@ -127,6 +128,7 @@ final class ConsoleRepository
                 c.created,
                 c.updated,
                 (SELECT COUNT(*) FROM `consoles` sub_ref WHERE sub_ref.master_reference_id = c.id) AS reference_consoles_count,
+                (SELECT COUNT(*) FROM `games` mg WHERE mg.console_id = c.master_reference_id) AS master_games_count,
                 c.image_path,
                 c.logo_path,
                 c.mapping_gamepad_path,
@@ -904,6 +906,7 @@ final class ConsoleRepository
         $row['master_console_id']        = $row['master_reference_id'];
         $row['master_console_name']      = (string)($row['master_console_name'] ?? '');
         $row['reference_consoles_count'] = (int)($row['reference_consoles_count'] ?? 0);
+        $row['master_games_count']       = (int)($row['master_games_count'] ?? 0);
         $row['games_count']              = (int)($row['games_count'] ?? 0);
         $row['game_count']               = (int)($row['game_count'] ?? 0);
         $row['created']                  = !empty($row['created']) ? (string)$row['created'] : '';
@@ -1011,7 +1014,11 @@ final class ConsoleRepository
             return null;
         }
 
-        $randomGames = $this->getRandomGamesByConsole($consoleId, 15);
+        $targetConsoleId = (!empty($console['is_for_reference']) && !empty($console['master_reference_id']))
+            ? (int)$console['master_reference_id']
+            : $consoleId;
+
+        $randomGames = $this->getRandomGamesByConsole($targetConsoleId, 15);
 
         return [
             'console'      => $console,

@@ -49,6 +49,9 @@ if ($initialConId > 0 && $initialDet === null) {
 }
 
 $initialLet = strtoupper(trim((string)($_GET['letter'] ?? ($initialLetter ?? ''))));
+$initialGen = trim((string)($_GET['generation'] ?? ($_GET['gen'] ?? '')));
+$initialType = trim((string)($_GET['type'] ?? 'all'));
+$initialQ = trim((string)($_GET['q'] ?? ''));
 
 $safeConsolesJson = json_encode($consoles, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 $safeConsoleTypesJson = json_encode($consoleTypes, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
@@ -217,6 +220,43 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   color: #fff;
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+}
+
+/* Generation Select Filter */
+.con-select-filter {
+  height: 38px;
+  background: var(--surface-alt, #0c121e);
+  border: 1px solid var(--border, #243049);
+  border-radius: var(--radius-md, 6px);
+  color: var(--text-muted, #94a3b8);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 0 28px 0 12px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px 16px;
+  transition: all var(--transition-fast);
+  max-width: 200px;
+}
+.con-select-filter:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #fff;
+}
+.con-select-filter:focus {
+  border-color: var(--border-focus, #38bdf8);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+  color: #fff;
+}
+.con-select-filter.active-filter {
+  border-color: #38bdf8;
+  color: #38bdf8;
+  background-color: rgba(56, 189, 248, 0.08);
+  font-weight: 600;
 }
 
 .btn-reset-filters {
@@ -1357,6 +1397,14 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     font-size: 11px;
     padding: 6px 8px;
   }
+  .con-select-filter {
+    min-width: 100%;
+    max-width: 100%;
+    width: 100%;
+    flex: 1 1 auto;
+    height: 40px;
+    font-size: 13px;
+  }
   .btn-reset-filters {
     width: 100%;
     justify-content: center;
@@ -1493,6 +1541,12 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       <div class="con-filter-types" id="conFilterTypesContainer" role="radiogroup" aria-label="Hardware type classification">
         <!-- Rendered dynamically -->
       </div>
+
+      <!-- Generation Filter Dropdown -->
+      <select id="conGenerationFilter" class="con-select-filter" aria-label="Filter by Console Generation">
+        <option value="all">All Generations</option>
+        <!-- Populated dynamically -->
+      </select>
 
       <!-- Clear / Reset Filters Button (visible only when filters active) -->
       <button type="button" id="conBtnResetFilters" class="btn-reset-filters" title="Reset all filters">
@@ -1689,7 +1743,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     </section>
 
     <!-- 4. Games Showcase (15 Random Titles) -->
-    <section class="con-section-panel con-games-panel" id="conGamesSectionCard">
+    <section class="con-section-panel con-games-panel" id="conGamesSectionCard" style="display: none;">
       <div class="con-panel-header">
         <div class="con-panel-title-group">
           <svg class="con-panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
@@ -1729,6 +1783,9 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const INITIAL_DETAIL = <?= $safeInitialDetailJson ?: 'null' ?>;
   const INITIAL_CON_ID = <?= (int)($initialConId ?? 0) ?>;
   const INITIAL_LETTER = <?= json_encode($initialLet ?? '') ?>;
+  const INITIAL_GEN    = <?= json_encode($initialGen ?? '') ?>;
+  const INITIAL_TYPE   = <?= json_encode($initialType ?? 'all') ?>;
+  const INITIAL_QUERY  = <?= json_encode($initialQ ?? '') ?>;
   const CAN_ACCESS_GAMES      = <?= json_encode($canAccessGames) ?>;
   const CAN_ACCESS_PUBLISHERS = <?= json_encode($canAccessPublishers) ?>;
   const CAN_WRITE_CONSOLES    = <?= json_encode($canWriteConsoles) ?>;
@@ -1739,6 +1796,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   let currentSortAsc = true; // true: A-Z, false: Z-A
   let currentSearchQuery = '';
   let currentTypeFilter = 'all'; // 'all' | type_id as string
+  let currentGenFilter = 'all'; // 'all' | normalized generation string
   let activeConsole = null; // object when in detail mode
   let activeDetailData = null; // { console, files, random_games }
 
@@ -1746,6 +1804,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const searchInput = document.getElementById('conSearchInput');
   const clearSearchBtn = document.getElementById('conClearSearchBtn');
   const filterTypesContainer = document.getElementById('conFilterTypesContainer');
+  const generationFilter = document.getElementById('conGenerationFilter');
   const btnResetFilters = document.getElementById('conBtnResetFilters');
   const filterStatsText = document.getElementById('conFilterStatsText');
   const alphabetPillRay = document.getElementById('conAlphabetPillRay');
@@ -1793,6 +1852,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const detailEmuGrid = document.getElementById('detailEmuGrid');
 
   // Games Showcase Grid
+  const conGamesSectionCard = document.getElementById('conGamesSectionCard');
   const conGamesSubgrid = document.getElementById('conGamesSubgrid');
   const conViewAllGamesBtn = document.getElementById('conViewAllGamesBtn');
   const conViewAllCountLabel = document.getElementById('conViewAllCountLabel');
@@ -1915,6 +1975,71 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   }
 
   /**
+   * Helper: Formats a generation value into a readable label
+   */
+  function formatGenerationLabel(gen) {
+    if (gen === null || gen === undefined) return '';
+    const g = String(gen).trim();
+    if (g === '') return '';
+    if (/^\d+$/.test(g)) {
+      const n = parseInt(g, 10);
+      const suffix = (n % 10 === 1 && n % 100 !== 11) ? 'st'
+                   : (n % 10 === 2 && n % 100 !== 12) ? 'nd'
+                   : (n % 10 === 3 && n % 100 !== 13) ? 'rd'
+                   : 'th';
+      return `${n}${suffix} Generation`;
+    }
+    return g;
+  }
+
+  /**
+   * Builds the Console Generation Filter dropdown options
+   */
+  function renderGenerationFilterOptions() {
+    if (!generationFilter) return;
+
+    const genSet = new Set();
+    ALL_CONSOLES.forEach(con => {
+      if (con.generation !== null && con.generation !== undefined) {
+        const g = String(con.generation).trim();
+        if (g !== '') {
+          genSet.add(g);
+        }
+      }
+    });
+
+    const sortedGens = Array.from(genSet).sort((a, b) => {
+      const numA = parseInt(a, 10);
+      const numB = parseInt(b, 10);
+      if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+        return numA - numB;
+      }
+      return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+    });
+
+    generationFilter.innerHTML = '';
+
+    const allOpt = document.createElement('option');
+    allOpt.value = 'all';
+    allOpt.textContent = 'All Generations';
+    generationFilter.appendChild(allOpt);
+
+    sortedGens.forEach(gen => {
+      const opt = document.createElement('option');
+      opt.value = gen;
+      opt.textContent = formatGenerationLabel(gen);
+      generationFilter.appendChild(opt);
+    });
+
+    if (currentGenFilter !== 'all' && genSet.has(currentGenFilter)) {
+      generationFilter.value = currentGenFilter;
+    } else {
+      currentGenFilter = 'all';
+      generationFilter.value = 'all';
+    }
+  }
+
+  /**
    * Builds the Console Type Filter buttons
    */
   function renderTypeFilterButtons() {
@@ -1922,19 +2047,20 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 
     const allBtn = document.createElement('button');
     allBtn.type = 'button';
-    allBtn.className = 'filter-type-btn active';
+    allBtn.className = 'filter-type-btn' + (currentTypeFilter === 'all' ? ' active' : '');
     allBtn.dataset.type = 'all';
     allBtn.textContent = 'All Types';
     allBtn.addEventListener('click', () => onTypeSelected('all', allBtn));
     filterTypesContainer.appendChild(allBtn);
 
     CONSOLE_TYPES.forEach(type => {
+      const typeIdStr = String(type.id);
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'filter-type-btn';
-      btn.dataset.type = String(type.id);
+      btn.className = 'filter-type-btn' + (currentTypeFilter === typeIdStr ? ' active' : '');
+      btn.dataset.type = typeIdStr;
       btn.textContent = type.name;
-      btn.addEventListener('click', () => onTypeSelected(String(type.id), btn));
+      btn.addEventListener('click', () => onTypeSelected(typeIdStr, btn));
       filterTypesContainer.appendChild(btn);
     });
   }
@@ -2058,6 +2184,13 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         }
       }
 
+      if (currentGenFilter !== 'all') {
+        const conGen = con.generation !== null && con.generation !== undefined ? String(con.generation).trim() : '';
+        if (conGen !== currentGenFilter) {
+          return false;
+        }
+      }
+
       if (currentSearchQuery !== '') {
         const q = currentSearchQuery.toLowerCase();
         const name = (con.name || '').toLowerCase();
@@ -2098,7 +2231,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         <div class="con-empty-state">
           <span class="empty-icon">🔍</span>
           <strong>No platforms found</strong>
-          <p style="font-size: 13px; margin: 0;">Try adjusting your search criteria, platform type filter, or alphabetical selection.</p>
+          <p style="font-size: 13px; margin: 0;">Try adjusting your search criteria, console generation, platform type filter, or alphabetical selection.</p>
         </div>
       `;
       return;
@@ -2113,7 +2246,17 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       card.role = 'button';
       card.setAttribute('aria-label', `View details for console ${con.name}`);
 
-      const gamesCount = Number(con.games_count ?? con.game_count ?? 0);
+      let gamesCount = Number(con.games_count ?? con.game_count ?? 0);
+      if (Number(con.is_for_reference) === 1 && Number(con.master_reference_id) > 0) {
+        if (con.master_games_count !== undefined && con.master_games_count !== null) {
+          gamesCount = Number(con.master_games_count);
+        } else {
+          const masterCon = ALL_CONSOLES.find(c => Number(c.id) === Number(con.master_reference_id));
+          if (masterCon) {
+            gamesCount = Number(masterCon.games_count ?? masterCon.game_count ?? 0);
+          }
+        }
+      }
       const fallbackUrl = getConsoleFallbackSvg(con.name);
       const imgUrl = formatImageUrl(con.image_path, fallbackUrl, con.updated);
 
@@ -2221,6 +2364,11 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       return;
     }
 
+    if (detailDownloadsSubsection) detailDownloadsSubsection.style.display = 'none';
+    if (detailButtonMappingsSection) detailButtonMappingsSection.style.display = 'none';
+    if (detailEmulationSection) detailEmulationSection.style.display = 'none';
+    if (conGamesSectionCard) conGamesSectionCard.style.display = 'none';
+
     showLoading(true);
     try {
       const res = await fetch(`/api/consoles-portal/console/${consoleItem.id}`, {
@@ -2326,7 +2474,17 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     detailGenValue.textContent = genDisplay;
 
     // Games count & Distinct Interactive Pill / Link
-    const gamesCount = Number(con.games_count ?? con.game_count ?? 0);
+    let gamesCount = Number(con.games_count ?? con.game_count ?? 0);
+    if (Number(con.is_for_reference) === 1 && Number(con.master_reference_id) > 0) {
+      if (con.master_games_count !== undefined && con.master_games_count !== null) {
+        gamesCount = Number(con.master_games_count);
+      } else {
+        const masterCon = ALL_CONSOLES.find(c => Number(c.id) === Number(con.master_reference_id));
+        if (masterCon) {
+          gamesCount = Number(masterCon.games_count ?? masterCon.game_count ?? 0);
+        }
+      }
+    }
     detailGamesCountValue.textContent = `${gamesCount} ${gamesCount === 1 ? 'Game' : 'Games'}`;
 
     const gamesCatalogUrl = `/games-portal?console_id=${con.id}&console=${encodeURIComponent(con.name)}&mode=list`;
@@ -2551,11 +2709,11 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   window.reportBrokenLink = reportBrokenLink;
 
     // 2.5. Button Mappings Section
-    const gUrl = con.mapping_gamepad_url   || con.mapping_gamepad_path   || '';
-    const cUrl = con.mapping_cellphone_url || con.mapping_cellphone_path || '';
-    const rUrl = con.mapping_rog_ally_url  || con.mapping_rog_ally_path  || '';
+    const gUrl = (con.mapping_gamepad_url   || con.mapping_gamepad_path   || '').trim();
+    const cUrl = (con.mapping_cellphone_url || con.mapping_cellphone_path || '').trim();
+    const rUrl = (con.mapping_rog_ally_url  || con.mapping_rog_ally_path  || '').trim();
 
-    const hasAnyMapping = Boolean((gUrl && gUrl.trim()) || (cUrl && cUrl.trim()) || (rUrl && rUrl.trim()));
+    const hasAnyMapping = Boolean(gUrl || cUrl || rUrl);
 
     if (detailButtonMappingsSection) {
       if (hasAnyMapping) {
@@ -2563,6 +2721,14 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 
         let currentSel = detailMappingSelect ? detailMappingSelect.value : 'gamepad';
         const urls = { gamepad: gUrl, cellphone: cUrl, rog_ally: rUrl };
+
+        if (detailMappingSelect) {
+          Array.from(detailMappingSelect.options).forEach(opt => {
+            const hasImg = Boolean(urls[opt.value]);
+            opt.hidden = !hasImg;
+            opt.disabled = !hasImg;
+          });
+        }
 
         if (!urls[currentSel]) {
           if (gUrl) currentSel = 'gamepad';
@@ -2586,103 +2752,66 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     // 3. Emulation Info (Single Box: RetroArch core, PC emulator, Android emulator)
     const emuItems = [];
 
-    // Known RetroArch core fallbacks if missing or unconfigured in DB
-    const coreFallbacks = {
-      83: { name: 'FreeIntv', link: 'https://docs.libretro.com/library/freeintv/' },
-      79: { name: 'Gearcoleco', link: 'https://docs.libretro.com/library/gearcoleco/' },
-      7:  { name: 'Atari800', link: 'https://docs.libretro.com/library/atari800/' },
-      1:  { name: 'Stella 2023', link: 'https://docs.libretro.com/library/stella_2023/' },
-      2:  { name: 'Mesen', link: 'https://docs.libretro.com/library/mesen/' },
-      3:  { name: 'Snes9x', link: 'https://docs.libretro.com/library/snes9x/' },
-      4:  { name: 'Gambatte', link: 'https://docs.libretro.com/library/gambatte/' },
-      13: { name: 'ProSystem', link: 'https://docs.libretro.com/library/prosystem/' },
-      16: { name: 'Genesis Plus GX', link: 'https://docs.libretro.com/library/genesis_plus_gx/' },
-      17: { name: 'Beetle PCE Fast', link: 'https://docs.libretro.com/library/beetle_pce_fast/' },
-      19: { name: 'Genesis Plus GX', link: 'https://docs.libretro.com/library/genesis_plus_gx/' },
-      21: { name: 'FinalBurn Neo', link: 'https://docs.libretro.com/library/fbneo/' },
-      25: { name: 'Beetle Handy', link: 'https://docs.libretro.com/library/beetle_handy/' },
-      27: { name: 'Genesis Plus GX', link: 'https://docs.libretro.com/library/genesis_plus_gx/' },
-      28: { name: 'Beetle Saturn', link: 'https://docs.libretro.com/library/beetle_saturn/' },
-      29: { name: 'Mupen64Plus-Next', link: 'https://docs.libretro.com/library/mupen64plus/' },
-      31: { name: 'DuckStation', link: 'https://docs.libretro.com/library/duckstation/' },
-      37: { name: 'Gambatte', link: 'https://docs.libretro.com/library/gambatte/' },
-      46: { name: 'Flycast', link: 'https://docs.libretro.com/library/flycast/' },
-      48: { name: 'Dolphin', link: 'https://docs.libretro.com/library/dolphin/' },
-      51: { name: 'mGBA', link: 'https://docs.libretro.com/library/mgba/' },
-      56: { name: 'melonDS', link: 'https://docs.libretro.com/library/melonds/' },
-      57: { name: 'PPSSPP', link: 'https://docs.libretro.com/library/ppsspp/' },
-      89: { name: 'O2EM', link: 'https://docs.libretro.com/library/o2em/' }
-    };
+    // 1. RetroArch Core (Only shown if configured)
+    const coreName = (con.retroarch_core && con.retroarch_core.trim() !== '') ? con.retroarch_core.trim() : '';
+    const coreLink = (con.core_link && con.core_link.trim() !== '') ? con.core_link.trim() : '';
 
-    // 1. RetroArch Core (Always shown with link button)
-    let coreName = (con.retroarch_core && con.retroarch_core.trim() !== '') ? con.retroarch_core.trim() : null;
-    let coreLink = (con.core_link && con.core_link.trim() !== '') ? con.core_link.trim() : null;
-
-    if (!coreName && coreFallbacks[con.id]) {
-      coreName = coreFallbacks[con.id].name;
-      coreLink = coreLink || coreFallbacks[con.id].link;
-    }
-    if (!coreName) {
-      coreName = (con.name ? con.name + ' Core' : 'RetroArch Core');
-    }
-    if (!coreLink) {
-      coreLink = 'https://docs.libretro.com';
+    if (coreName || coreLink) {
+      emuItems.push({
+        platformLabel: 'RetroArch Core',
+        iconSvg: `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+            <line x1="6" y1="12" x2="10" y2="12"></line>
+            <line x1="8" y1="10" x2="8" y2="14"></line>
+            <line x1="15" y1="13" x2="15.01" y2="13"></line>
+            <line x1="18" y1="11" x2="18.01" y2="11"></line>
+            <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+          </svg>
+        `.trim(),
+        name: coreName || 'RetroArch Core',
+        link: coreLink,
+        linkText: 'Link'
+      });
     }
 
-    emuItems.push({
-      platformLabel: 'RetroArch Core',
-      iconSvg: `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-          <line x1="6" y1="12" x2="10" y2="12"></line>
-          <line x1="8" y1="10" x2="8" y2="14"></line>
-          <line x1="15" y1="13" x2="15.01" y2="13"></line>
-          <line x1="18" y1="11" x2="18.01" y2="11"></line>
-          <rect x="2" y="6" width="20" height="12" rx="2"></rect>
-        </svg>
-      `.trim(),
-      name: coreName,
-      link: coreLink,
-      linkText: 'Link'
-    });
+    // 2. PC / Standalone Emulator (Only shown if configured)
+    const pcName = (con.emulator && con.emulator.trim() !== '') ? con.emulator.trim() : '';
+    const pcLink = (con.emulator_link && con.emulator_link.trim() !== '') ? con.emulator_link.trim() : '';
 
-    // 2. PC / Standalone Emulator (Always shown with link button)
-    let pcName = (con.emulator && con.emulator.trim() !== '') ? con.emulator.trim() : 'RetroArch / Standalone';
-    let pcLink = (con.emulator_link && con.emulator_link.trim() !== '') 
-      ? con.emulator_link.trim() 
-      : `https://www.google.com/search?q=${encodeURIComponent((con.name || '') + ' PC emulator')}`;
+    if (pcName || pcLink) {
+      emuItems.push({
+        platformLabel: 'PC Emulator',
+        iconSvg: `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+            <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+        `.trim(),
+        name: pcName || 'PC Emulator',
+        link: pcLink,
+        linkText: 'Link'
+      });
+    }
 
-    emuItems.push({
-      platformLabel: 'PC Emulator',
-      iconSvg: `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-          <rect x="2" y="3" width="20" height="14" rx="2"></rect>
-          <line x1="8" y1="21" x2="16" y2="21"></line>
-          <line x1="12" y1="17" x2="12" y2="21"></line>
-        </svg>
-      `.trim(),
-      name: pcName,
-      link: pcLink,
-      linkText: 'Link'
-    });
+    // 3. Android Emulator (Only shown if configured)
+    const androidName = (con.emulator_android && con.emulator_android.trim() !== '') ? con.emulator_android.trim() : '';
+    const androidLink = (con.emulator_android_link && con.emulator_android_link.trim() !== '') ? con.emulator_android_link.trim() : '';
 
-    // 3. Android Emulator (Always shown with link button)
-    let androidName = (con.emulator_android && con.emulator_android.trim() !== '') ? con.emulator_android.trim() : 'RetroArch (Android)';
-    let androidLink = (con.emulator_android_link && con.emulator_android_link.trim() !== '') 
-      ? con.emulator_android_link.trim() 
-      : 'https://play.google.com/store/apps/details?id=com.retroarch.aarch64';
-
-    emuItems.push({
-      platformLabel: 'Android Emulator',
-      iconSvg: `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-          <line x1="12" y1="18" x2="12.01" y2="18"></line>
-        </svg>
-      `.trim(),
-      name: androidName,
-      link: androidLink,
-      linkText: 'Link'
-    });
+    if (androidName || androidLink) {
+      emuItems.push({
+        platformLabel: 'Android Emulator',
+        iconSvg: `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+          </svg>
+        `.trim(),
+        name: androidName || 'Android Emulator',
+        link: androidLink,
+        linkText: 'Link'
+      });
+    }
 
     // Master Platform Variant info (if applicable)
     if (con.master_reference_id && con.master_console_name) {
@@ -2727,9 +2856,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
                   <path fill-rule="evenodd" d="M5.22 14.78a.75.75 0 001.06 0l7.22-7.22v5.69a.75.75 0 001.5 0v-7.5a.75.75 0 00-.75-.75h-7.5a.75.75 0 000 1.5h5.69l-7.22 7.22a.75.75 0 000 1.06z" clip-rule="evenodd"/>
                 </svg>
               </a>
-            ` : `
-              <span style="font-size: 12px; color: var(--text-muted, #94a3b8); font-style: italic;">No link available</span>
-            `}
+            ` : ''}
           </div>
         </div>
       `).join('');
@@ -2741,17 +2868,17 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     // 4. Random Games Showcase Grid (15 Titles)
     conGamesSubgrid.innerHTML = '';
     if (games.length === 0) {
-      conGamesSubgrid.innerHTML = `
-        <div style="grid-column: 1 / -1; padding: 28px; text-align: center; color: var(--text-dim); font-size: 13px;">
-          No catalogued games for this platform yet.
-        </div>
-      `;
+      if (conGamesSectionCard) {
+        conGamesSectionCard.style.display = 'none';
+      }
     } else {
+      if (conGamesSectionCard) {
+        conGamesSectionCard.style.display = 'flex';
+      }
+      const fallback = '/images/support/no_cover.jpg';
       const gFragment = document.createDocumentFragment();
       games.forEach(game => {
-        const fallback = getGameFallbackSvg(game.title);
-        const artPath = game.boxart_path || game.screenshot_path;
-        const imgUrl = formatImageUrl(artPath, fallback, game.updated);
+        const imgUrl = formatImageUrl(game.boxart_path, fallback, game.updated);
 
         const card = document.createElement(CAN_ACCESS_GAMES ? 'a' : 'div');
         card.className = 'con-game-card' + (CAN_ACCESS_GAMES ? '' : ' no-link');
@@ -2807,6 +2934,9 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       if (currentTypeFilter !== 'all') {
         params.set('type', currentTypeFilter);
       }
+      if (currentGenFilter !== 'all') {
+        params.set('generation', currentGenFilter);
+      }
     }
     const newRelativePathQuery = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
     history.replaceState({ mode: currentMode, id: activeConsole?.id, letter: currentLetter }, '', newRelativePathQuery);
@@ -2819,10 +2949,27 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   function updateActiveFilterStyles() {
     const hasQuery = currentSearchQuery !== '';
     const hasType = currentTypeFilter !== 'all';
-    const hasAnyFilter = hasQuery || hasType;
+    const hasGen = currentGenFilter !== 'all';
+    if (generationFilter) {
+      generationFilter.classList.toggle('active-filter', hasGen);
+    }
+    const hasAnyFilter = hasQuery || hasType || hasGen;
     if (btnResetFilters) {
       btnResetFilters.style.display = hasAnyFilter ? 'inline-flex' : 'none';
     }
+  }
+
+  // Console Generation filter dropdown change
+  if (generationFilter) {
+    generationFilter.addEventListener('change', (e) => {
+      currentGenFilter = e.target.value;
+      updateActiveFilterStyles();
+      if (currentMode === 'detail') {
+        setMode('list');
+      }
+      renderConsolesList();
+      updateUrlState();
+    });
   }
 
   // Search input typing
@@ -2853,13 +3000,17 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     updateUrlState();
   });
 
-  // Clear / Reset Filters button (resets search and type filter, preserves or shows list)
+  // Clear / Reset Filters button (resets search, generation, and type filter, preserves or shows list)
   if (btnResetFilters) {
     btnResetFilters.addEventListener('click', () => {
       currentSearchQuery = '';
       currentTypeFilter = 'all';
+      currentGenFilter = 'all';
       searchInput.value = '';
       clearSearchBtn.style.display = 'none';
+      if (generationFilter) {
+        generationFilter.value = 'all';
+      }
 
       const typeBtns = filterTypesContainer.querySelectorAll('.filter-type-btn, .filter-type-pill');
       typeBtns.forEach(b => b.classList.toggle('active', b.dataset.type === 'all'));
@@ -2913,10 +3064,33 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     const urlParams = new URLSearchParams(window.location.search);
     const conId = parseInt(urlParams.get('id') || '0', 10);
     const letter = urlParams.get('letter') || 'ALL';
+    const q = (urlParams.get('q') || '').trim();
+    const type = (urlParams.get('type') || 'all').trim();
+    const gen = (urlParams.get('generation') || urlParams.get('gen') || 'all').trim();
 
     currentLetter = letter;
+    currentSearchQuery = q;
+    currentTypeFilter = type || 'all';
+    currentGenFilter = gen || 'all';
+
+    searchInput.value = currentSearchQuery;
+    clearSearchBtn.style.display = currentSearchQuery ? 'block' : 'none';
+    if (generationFilter) {
+      const hasOption = Array.from(generationFilter.options).some(opt => opt.value === currentGenFilter);
+      if (hasOption) {
+        generationFilter.value = currentGenFilter;
+      } else {
+        currentGenFilter = 'all';
+        generationFilter.value = 'all';
+      }
+    }
+    const typeBtns = filterTypesContainer.querySelectorAll('.filter-type-btn, .filter-type-pill');
+    typeBtns.forEach(b => b.classList.toggle('active', b.dataset.type === currentTypeFilter));
+
     const pills = alphabetPillRay.querySelectorAll('.con-alphabet-pill');
     pills.forEach(p => p.classList.toggle('active', p.dataset.letter === currentLetter));
+
+    updateActiveFilterStyles();
 
     if (conId > 0) {
       const con = ALL_CONSOLES.find(c => Number(c.id) === conId);
@@ -2934,6 +3108,19 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   // Initialization
   // --------------------------------------------------------------------------
   function init() {
+    if (INITIAL_QUERY) {
+      currentSearchQuery = INITIAL_QUERY;
+      searchInput.value = currentSearchQuery;
+      clearSearchBtn.style.display = 'block';
+    }
+    if (INITIAL_TYPE && INITIAL_TYPE !== 'all') {
+      currentTypeFilter = String(INITIAL_TYPE);
+    }
+    if (INITIAL_GEN && INITIAL_GEN !== 'all') {
+      currentGenFilter = String(INITIAL_GEN);
+    }
+
+    renderGenerationFilterOptions();
     renderTypeFilterButtons();
     renderAlphabetPillRay();
 

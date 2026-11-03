@@ -2577,6 +2577,14 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
    * Filters and sorts games based on active state
    */
   function getFilteredGames() {
+    let effectiveConsoleFilter = currentConsoleFilter;
+    if (currentConsoleFilter > 0) {
+      const selectedCon = ALL_CONSOLES.find(c => Number(c.id) === currentConsoleFilter);
+      if (selectedCon && Number(selectedCon.is_for_reference) === 1 && Number(selectedCon.master_reference_id) > 0) {
+        effectiveConsoleFilter = Number(selectedCon.master_reference_id);
+      }
+    }
+
     return ALL_GAMES.filter(g => {
       if (currentLetter !== 'ALL') {
         const lead = getLeadingKey(g.title);
@@ -2585,8 +2593,8 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         }
       }
 
-      if (currentConsoleFilter > 0) {
-        if (Number(g.console_id) !== currentConsoleFilter) {
+      if (effectiveConsoleFilter > 0) {
+        if (Number(g.console_id) !== effectiveConsoleFilter) {
           return false;
         }
       }
