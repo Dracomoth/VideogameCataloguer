@@ -140,6 +140,10 @@ if ($initialQ === '' && !empty($_GET['publisher_id'])) {
 }
 
 $initialOrd = strtolower(trim((string)($_GET['order'] ?? 'asc')));
+$initialStatus = strtolower(trim((string)($_GET['status'] ?? ($_GET['collection'] ?? 'all'))));
+if (!in_array($initialStatus, ['all', 'backlog', 'downloaded'], true)) {
+    $initialStatus = 'all';
+}
 
 $safeGamesJson         = json_encode($games, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 $safeConsolesJson      = json_encode($consoles, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
@@ -1736,6 +1740,13 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         <?php endforeach; ?>
       </select>
 
+      <!-- Collection / Status Filter -->
+      <select id="gameStatusFilter" class="game-select-filter" aria-label="Filter by Collection Status">
+        <option value="all" <?= $initialStatus === 'all' ? 'selected' : '' ?>>All Games</option>
+        <option value="backlog" <?= $initialStatus === 'backlog' ? 'selected' : '' ?>>In Backlog</option>
+        <option value="downloaded" <?= $initialStatus === 'downloaded' ? 'selected' : '' ?>>Downloaded</option>
+      </select>
+
       <!-- Reset Filters Button -->
       <button type="button" id="btnResetFilters" class="btn-reset-filters" title="Reset all filters">
         <span>✕</span>
@@ -2042,6 +2053,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   let currentCategoryFilter     = <?= $initialCat ?>;
   let currentSubcategoryFilter  = <?= $initialSub ?>;
   let currentLanguageFilter     = <?= $initialLan ?>;
+  let currentStatusFilter       = '<?= View::e($initialStatus) ?>';
   let currentSortAsc            = <?= $initialOrd === 'desc' ? 'false' : 'true' ?>;
   let activeGame                = null;
   let activeDetailData          = null;
@@ -2053,6 +2065,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const gameCategoryFilter      = document.getElementById('gameCategoryFilter');
   const gameSubcategoryFilter   = document.getElementById('gameSubcategoryFilter');
   const gameLanguageFilter      = document.getElementById('gameLanguageFilter');
+  const gameStatusFilter        = document.getElementById('gameStatusFilter');
   const btnResetFilters         = document.getElementById('btnResetFilters');
   const gameFilterStatsText     = document.getElementById('gameFilterStatsText');
 
@@ -2363,6 +2376,20 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       });
     }
 
+    // 5c. Status Filter Dropdown (All Games / In Backlog / Downloaded)
+    if (gameStatusFilter) {
+      gameStatusFilter.addEventListener('change', (e) => {
+        currentStatusFilter = e.target.value || 'all';
+        updateActiveFilterStyles();
+        if (currentMode === 'detail') {
+          setMode('list');
+        } else {
+          renderGamesList();
+          updateUrlState();
+        }
+      });
+    }
+
     // 6. Reset Filters Button
     btnResetFilters.addEventListener('click', () => {
       currentSearchQuery = '';
@@ -2370,6 +2397,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       currentCategoryFilter = 0;
       currentSubcategoryFilter = 0;
       currentLanguageFilter = 0;
+      currentStatusFilter = 'all';
       currentLetter = 'ALL';
 
       gameSearchInput.value = '';
@@ -2379,6 +2407,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       setupSubcategoryCascade();
       gameSubcategoryFilter.value = '0';
       if (gameLanguageFilter) gameLanguageFilter.value = '0';
+      if (gameStatusFilter) gameStatusFilter.value = 'all';
 
       const pills = gameAlphabetPillRay.querySelectorAll('.game-alphabet-pill');
       pills.forEach(p => p.classList.toggle('active', p.dataset.letter === 'ALL'));
@@ -2469,6 +2498,8 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         gameConsoleFilter.value = String(currentConsoleFilter);
         currentLanguageFilter = 0;
         if (gameLanguageFilter) gameLanguageFilter.value = '0';
+        currentStatusFilter = 'all';
+        if (gameStatusFilter) gameStatusFilter.value = 'all';
         currentLetter = 'ALL';
         currentSearchQuery = '';
         gameSearchInput.value = '';
@@ -2500,6 +2531,8 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 
         currentLanguageFilter = 0;
         if (gameLanguageFilter) gameLanguageFilter.value = '0';
+        currentStatusFilter = 'all';
+        if (gameStatusFilter) gameStatusFilter.value = 'all';
         currentLetter = 'ALL';
         currentSearchQuery = '';
         gameSearchInput.value = '';
@@ -2536,14 +2569,16 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     const hasCategory = currentCategoryFilter > 0;
     const hasSubcategory = currentSubcategoryFilter > 0;
     const hasLanguage = currentLanguageFilter > 0;
+    const hasStatus = currentStatusFilter !== 'all';
     const hasQuery = currentSearchQuery !== '';
 
     gameConsoleFilter.classList.toggle('active-filter', hasConsole);
     gameCategoryFilter.classList.toggle('active-filter', hasCategory);
     gameSubcategoryFilter.classList.toggle('active-filter', hasSubcategory);
     if (gameLanguageFilter) gameLanguageFilter.classList.toggle('active-filter', hasLanguage);
+    if (gameStatusFilter) gameStatusFilter.classList.toggle('active-filter', hasStatus);
 
-    const hasAnyFilter = hasConsole || hasCategory || hasSubcategory || hasLanguage || hasQuery;
+    const hasAnyFilter = hasConsole || hasCategory || hasSubcategory || hasLanguage || hasStatus || hasQuery;
     btnResetFilters.style.display = hasAnyFilter ? 'inline-flex' : 'none';
   }
 
@@ -2613,6 +2648,16 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 
       if (currentLanguageFilter > 0) {
         if (Number(g.language_id) !== currentLanguageFilter) {
+          return false;
+        }
+      }
+
+      if (currentStatusFilter === 'backlog') {
+        if (Number(g.in_collection) !== 1) {
+          return false;
+        }
+      } else if (currentStatusFilter === 'downloaded') {
+        if (Number(g.is_downloaded) !== 1 && Number(g.download_count) <= 0) {
           return false;
         }
       }
@@ -3521,6 +3566,9 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       if (currentLanguageFilter > 0) {
         params.set('language', currentLanguageFilter);
       }
+      if (currentStatusFilter && currentStatusFilter !== 'all') {
+        params.set('status', currentStatusFilter);
+      }
       if (!currentSortAsc) {
         params.set('order', 'desc');
       }
@@ -3537,6 +3585,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       category: currentCategoryFilter,
       subcategory: currentSubcategoryFilter,
       language: currentLanguageFilter,
+      status: currentStatusFilter,
       sortAsc: currentSortAsc
     }, '', newUrl);
   }
@@ -3553,6 +3602,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       currentCategoryFilter = state.category || 0;
       currentSubcategoryFilter = state.subcategory || 0;
       currentLanguageFilter = state.language || 0;
+      currentStatusFilter = state.status || 'all';
       currentSortAsc = state.sortAsc !== false;
 
       gameSearchInput.value = currentSearchQuery;
@@ -3562,6 +3612,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       setupSubcategoryCascade();
       gameSubcategoryFilter.value = String(currentSubcategoryFilter);
       if (gameLanguageFilter) gameLanguageFilter.value = String(currentLanguageFilter);
+      if (gameStatusFilter) gameStatusFilter.value = currentStatusFilter;
 
       const pills = gameAlphabetPillRay.querySelectorAll('.game-alphabet-pill');
       pills.forEach(p => p.classList.toggle('active', p.dataset.letter === currentLetter));
@@ -3587,6 +3638,8 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       currentSubcategoryFilter = urlSub ? (Number(urlSub) || 0) : 0;
       const urlLan = urlParams.get('language') || urlParams.get('language_id');
       currentLanguageFilter = urlLan ? (Number(urlLan) || 0) : 0;
+      const urlStatus = (urlParams.get('status') || urlParams.get('collection') || 'all').toLowerCase();
+      currentStatusFilter = ['all', 'backlog', 'downloaded'].includes(urlStatus) ? urlStatus : 'all';
 
       gameSearchInput.value = currentSearchQuery;
       gameClearSearchBtn.style.display = currentSearchQuery ? 'block' : 'none';
@@ -3595,6 +3648,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       setupSubcategoryCascade();
       gameSubcategoryFilter.value = String(currentSubcategoryFilter);
       if (gameLanguageFilter) gameLanguageFilter.value = String(currentLanguageFilter);
+      if (gameStatusFilter) gameStatusFilter.value = currentStatusFilter;
 
       updateActiveFilterStyles();
       setMode('list');
