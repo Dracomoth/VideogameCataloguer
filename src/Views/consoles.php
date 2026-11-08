@@ -1073,13 +1073,23 @@ document.addEventListener('DOMContentLoaded', () => {
         render: (val) => `<span style="color: var(--text-dim); font-size: 12px;">${escapeHtml(val || '—')}</span>`
       },
       {
-        key: 'games_count',
+        key: 'library_count',
         label: 'Library',
         sortable: true,
         align: 'right',
         width: '140px',
         render: (val, row) => {
-          const count = Number(val ?? (row && row.game_count) ?? 0);
+          let count = Number(val ?? (row && (row.library_count ?? row.games_count ?? row.game_count)) ?? 0);
+          if (row && Number(row.is_for_reference) === 1 && Number(row.master_reference_id || row.master_console_id) > 0) {
+            if (row.master_games_count !== undefined && row.master_games_count !== null) {
+              count = Number(row.master_games_count);
+            } else {
+              const masterCon = consolesList.find(c => Number(c.id) === Number(row.master_reference_id || row.master_console_id));
+              if (masterCon) {
+                count = Number(masterCon.games_count ?? masterCon.game_count ?? 0);
+              }
+            }
+          }
           const isActive = count > 0;
           const text = `${count} ${count === 1 ? 'title' : 'titles'}`;
           return `<span class="usage-badge ${isActive ? 'active-use' : ''}">${text}</span>`;
@@ -1138,6 +1148,19 @@ document.addEventListener('DOMContentLoaded', () => {
 function mapConsolesDataset(list) {
   list.forEach(row => {
     row.console_type_id = String(row.console_type_id || '1');
+    let libCount = Number(row.games_count ?? row.game_count ?? 0);
+    if (Number(row.is_for_reference) === 1 && Number(row.master_reference_id || row.master_console_id) > 0) {
+      if (row.master_games_count !== undefined && row.master_games_count !== null) {
+        libCount = Number(row.master_games_count);
+      } else {
+        const masterId = Number(row.master_reference_id || row.master_console_id);
+        const masterRow = list.find(c => Number(c.id) === masterId);
+        if (masterRow) {
+          libCount = Number(masterRow.games_count ?? masterRow.game_count ?? 0);
+        }
+      }
+    }
+    row.library_count = libCount;
   });
 }
 
@@ -1155,6 +1178,11 @@ function selectConsole(id) {
   document.getElementById('deleteMappingGamepad').value = '0';
   document.getElementById('deleteMappingCellphone').value = '0';
   document.getElementById('deleteMappingRogAlly').value = '0';
+
+  ['imageFileInput', 'logoFileInput', 'mappingGamepadFileInput', 'mappingCellphoneFileInput', 'mappingRogAllyFileInput'].forEach(fid => {
+    const fileEl = document.getElementById(fid);
+    if (fileEl) fileEl.value = '';
+  });
 
   document.getElementById('consoleName').value = record.name || '';
   document.getElementById('publisherId').value = String(record.publisher_id || '');
@@ -1876,6 +1904,17 @@ async function handleSave(e) {
     const payload = result.data || result;
     showToast(payload.message || 'Console saved successfully.', 'success');
 
+    // Reset file input controls and deletion flags after successful save so uploaded files never carry over to another console
+    ['imageFileInput', 'logoFileInput', 'mappingGamepadFileInput', 'mappingCellphoneFileInput', 'mappingRogAllyFileInput'].forEach(fid => {
+      const fileEl = document.getElementById(fid);
+      if (fileEl) fileEl.value = '';
+    });
+    document.getElementById('deleteImage').value = '0';
+    document.getElementById('deleteLogo').value = '0';
+    document.getElementById('deleteMappingGamepad').value = '0';
+    document.getElementById('deleteMappingCellphone').value = '0';
+    document.getElementById('deleteMappingRogAlly').value = '0';
+
     const targetId = isUpdate ? parseInt(id, 10) : parseInt(payload.id || (payload.data && payload.data.id), 10);
     // Reload latest dataset from API and re-select record
     await reloadGridData(targetId);
@@ -1995,13 +2034,13 @@ async function reloadGridData(selectIdAfter = null) {
       }
     }
 
-    // Refresh master candidates dropdown
-    const masterSelect = document.getElementById('masterReferenceId');
-    const curMasterVal = masterSelect ? masterSelect.value : null;
-    populateMasterDropdown(selectedId, curMasterVal);
-
     if (selectIdAfter) {
       selectConsole(selectIdAfter);
+    } else {
+      // Refresh master candidates dropdown
+      const masterSelect = document.getElementById('masterReferenceId');
+      const curMasterVal = masterSelect ? masterSelect.value : null;
+      populateMasterDropdown(selectedId, curMasterVal);
     }
 
     if (typeof window.refreshHeaderTelemetry === 'function') {

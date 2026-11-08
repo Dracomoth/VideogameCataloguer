@@ -1044,6 +1044,10 @@ function selectGame(id) {
   document.getElementById('gameId').value = String(record.id);
   document.getElementById('deleteBoxart').value = '0';
   document.getElementById('deleteScreenshot').value = '0';
+  const boxInput = document.getElementById('boxartFileInput');
+  if (boxInput) boxInput.value = '';
+  const screenInput = document.getElementById('screenshotFileInput');
+  if (screenInput) screenInput.value = '';
 
   document.getElementById('gameTitle').value = record.title || '';
   document.getElementById('consoleId').value = String(record.console_id || '');
