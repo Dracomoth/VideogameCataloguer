@@ -55,6 +55,15 @@ Videogame Vault serves as both an **archival management workbench** for collecti
 * **User Management & Self-Service Profiles (`/users`)**: Admin-only user provisioning, active status toggling, cryptographic password generator, and a self-service Profile Modal where any logged-in user can update their name, username, email, avatar image, and password.
 * **Zero-Dependency Footprint**: Built entirely with native PHP 8.2+ (PDO, cURL, finfo, Sessions) and vanilla ES6 Web Components (`<vault-grid>`). No Composer, Node.js, or external vendor frameworks required.
 
+### 7. Browser-Based RetroArch Emulation & Web Arcade
+- **Instant Online Play (`/player`)**: Directly run classic retro games (such as Atari 2600 via the integrated `tia` core) in any modern browser without installing desktop client software.
+- **Emscripten & WebAssembly Core Architecture**: Leverages high-performance WebAssembly (`.wasm`) cores paired with Emscripten wrapper scripts (`.js`) running inside an isolated in-memory virtual filesystem (MEMFS).
+- **Automated Virtual Filesystem (VFS) Mounting**:
+  - **Secure ROM Proxying**: Seamlessly streams ROMs and zipped game files from private cloud buckets (Backblaze B2) through local backend routes, bypassing browser CORS restrictions.
+  - **Dynamic Input Remap Injection (`.rmp`)**: Automatically scans and mounts core-specific button remap templates from `/assets/emscripten/remaps/{core}.rmp` directly into RetroArch's VFS (`/home/web_user/userdata/config/remaps/{core}/`) on boot.
+  - **Automated System BIOS Mapping**: Auto-discovers and mounts all required system boot files from local server storage (`/assets/emscripten/bios/`) into RetroArch's expected VFS system directory (`/home/web_user/userdata/system/`) prior to core execution.
+- **Zero-Persistence Session Isolation**: Player button adjustments made during gameplay remain volatile in memory and safely reset on page reload, preserving master default layouts across sessions.
+
 ---
 
 ## 📋 Prerequisites

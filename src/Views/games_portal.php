@@ -142,7 +142,7 @@ if ($initialQ === '' && !empty($_GET['publisher_id'])) {
 
 $initialOrd = strtolower(trim((string)($_GET['order'] ?? 'asc')));
 $initialStatus = strtolower(trim((string)($_GET['status'] ?? ($_GET['collection'] ?? 'all'))));
-if (!in_array($initialStatus, ['all', 'backlog', 'downloaded'], true)) {
+if (!in_array($initialStatus, ['all', 'backlog', 'downloaded', 'web_emulated'], true)) {
     $initialStatus = 'all';
 }
 
@@ -1785,6 +1785,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         <option value="all" <?= $initialStatus === 'all' ? 'selected' : '' ?>>All Games</option>
         <option value="backlog" <?= $initialStatus === 'backlog' ? 'selected' : '' ?>>In Backlog</option>
         <option value="downloaded" <?= $initialStatus === 'downloaded' ? 'selected' : '' ?>>Downloaded</option>
+        <option value="web_emulated" <?= $initialStatus === 'web_emulated' ? 'selected' : '' ?>>Web Emulated</option>
       </select>
 
       <!-- Reset Filters Button -->
@@ -2706,6 +2707,18 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         }
       } else if (currentStatusFilter === 'downloaded') {
         if (Number(g.is_downloaded) !== 1 && Number(g.download_count) <= 0) {
+          return false;
+        }
+      } else if (currentStatusFilter === 'web_emulated') {
+        const conId = Number(g.console_id || 0);
+        const conObj = ALL_CONSOLES.find(c => Number(c.id) === conId);
+        const isEmulable = (Number(g.console_is_browser_emulable) === 1) ||
+          (conObj && (Number(conObj.is_browser_emulable) === 1 || conObj.is_browser_emulable === true)) ||
+          (conObj && Number(conObj.is_for_reference) === 1 && Number(conObj.master_reference_id) > 0 && (function() {
+            const master = ALL_CONSOLES.find(m => Number(m.id) === Number(conObj.master_reference_id));
+            return master && (Number(master.is_browser_emulable) === 1 || master.is_browser_emulable === true);
+          })());
+        if (!isEmulable) {
           return false;
         }
       }
@@ -3726,7 +3739,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       const urlLan = urlParams.get('language') || urlParams.get('language_id');
       currentLanguageFilter = urlLan ? (Number(urlLan) || 0) : 0;
       const urlStatus = (urlParams.get('status') || urlParams.get('collection') || 'all').toLowerCase();
-      currentStatusFilter = ['all', 'backlog', 'downloaded'].includes(urlStatus) ? urlStatus : 'all';
+      currentStatusFilter = ['all', 'backlog', 'downloaded', 'web_emulated'].includes(urlStatus) ? urlStatus : 'all';
 
       gameSearchInput.value = currentSearchQuery;
       gameClearSearchBtn.style.display = currentSearchQuery ? 'block' : 'none';
