@@ -3181,7 +3181,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 
       if (CAN_ACCESS_PLAYER && isEmulable && webCore && mainFile && mainFile.id) {
         btnPlayGame.style.display = 'inline-flex';
-        btnPlayGame.href = `/player?core=${encodeURIComponent(webCore)}&file_id=${encodeURIComponent(mainFile.id)}`;
+        btnPlayGame.href = `/player?console_id=${encodeURIComponent(conId)}&game_id=${encodeURIComponent(game.id)}`;
         btnPlayGame.target = '_blank';
         btnPlayGame.rel = 'noopener noreferrer';
         btnPlayGame.title = `Play ${game.title || 'game'} in browser (${webCore})`;

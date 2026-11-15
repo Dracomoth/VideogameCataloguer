@@ -253,6 +253,92 @@ $router->get('/assets/emscripten/player', function () {
     Response::redirect('/games-portal');
 });
 
+// Emscripten BIOS Listing API Route
+$router->get('/api/emscripten/bios', function () {
+    \Vault\Auth\Auth::requireAccess('player', 'read');
+    $biosDir = __DIR__ . '/assets/emscripten/bios';
+    $files = [];
+    if (is_dir($biosDir)) {
+        $scanned = scandir($biosDir);
+        if ($scanned !== false) {
+            foreach ($scanned as $f) {
+                if ($f !== '.' && $f !== '..' && is_file($biosDir . '/' . $f)) {
+                    $files[] = $f;
+                }
+            }
+        }
+    }
+    Response::json(['files' => $files]);
+});
+
+// RetroArch Player Metadata Resolution Route (console_id & game_id -> web_core & main download file_id)
+$router->get('/api/player/meta', function (array $req) {
+    \Vault\Auth\Auth::requireAccess('player', 'read');
+    $consoleId = (int)($req['query']['console_id'] ?? 0);
+    $gameId = (int)($req['query']['game_id'] ?? 0);
+
+    // If gameId was provided but consoleId was not, resolve consoleId from game
+    $gameRepo = new \Vault\Repositories\GameRepository();
+    $game = null;
+    if ($gameId > 0) {
+        $game = $gameRepo->getById($gameId);
+        if ($game && $consoleId <= 0 && !empty($game['console_id'])) {
+            $consoleId = (int)$game['console_id'];
+        }
+    }
+
+    if ($consoleId <= 0 || $gameId <= 0) {
+        Response::error('Invalid or missing console_id and game_id parameters.', 400);
+    }
+
+    $consoleRepo = new \Vault\Repositories\ConsoleRepository();
+    $console = $consoleRepo->getById($consoleId);
+    if ($console === null) {
+        Response::error("Console #{$consoleId} not found.", 404);
+    }
+
+    $isEmulable = !empty($console['is_browser_emulable']);
+    $webCore = trim((string)($console['web_core'] ?? ''));
+    if (!$isEmulable || $webCore === '') {
+        Response::error("Console '{$console['name']}' does not support browser emulation or has no web core configured.", 400);
+    }
+
+    // Resolve main downloadable file for the game
+    $downloadRepo = new \Vault\Repositories\DownloadRepository();
+    $files = $downloadRepo->getByGameId($gameId);
+    if (empty($files)) {
+        Response::error("No downloadable game files found for game #{$gameId}.", 404);
+    }
+
+    // Pick main file (is_main = 1) or fallback to first file
+    $mainFile = null;
+    foreach ($files as $f) {
+        if (!empty($f['is_main'])) {
+            $mainFile = $f;
+            break;
+        }
+    }
+    if ($mainFile === null) {
+        $mainFile = $files[0];
+    }
+
+    Response::json([
+        'success'      => true,
+        'console_id'   => $consoleId,
+        'console_name' => $console['name'],
+        'game_id'      => $gameId,
+        'game_title'   => $game['title'] ?? ($mainFile['game_title'] ?? 'Game'),
+        'web_core'     => $webCore,
+        'file_id'      => (int)$mainFile['id'],
+        'display_name' => $mainFile['display_name'] ?? 'ROM',
+        'mappings'     => [
+            'gamepad'   => !empty($console['mapping_gamepad_path']) ? '/' . ltrim($console['mapping_gamepad_path'], '/') : null,
+            'cellphone' => !empty($console['mapping_cellphone_path']) ? '/' . ltrim($console['mapping_cellphone_path'], '/') : null,
+            'rog_ally'  => !empty($console['mapping_rog_ally_path']) ? '/' . ltrim($console['mapping_rog_ally_path'], '/') : null,
+        ],
+    ]);
+});
+
 // Consoles Portal API Routes
 $router->get('/api/consoles-portal/console/{id}', function (array $req) {
     \Vault\Auth\Auth::requireAccess('consoles_portal', 'read');

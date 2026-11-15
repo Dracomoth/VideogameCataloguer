@@ -14,28 +14,78 @@ if (!defined('APP_INIT')) {
 // Strict Server-Side Device & Role Permission Guard (Player Read or Write access required)
 \Vault\Auth\Auth::requireAccess('player', 'read');
 
-$fileId = (int)($_GET['file_id'] ?? ($_GET['id'] ?? 0));
-$gameId = (int)($_GET['game_id'] ?? 0);
-$core = trim((string)($_GET['core'] ?? ''));
+$consoleId = (int)($_GET['console_id'] ?? ($_GET['consoleId'] ?? 0));
+$gameId    = (int)($_GET['game_id'] ?? ($_GET['gameId'] ?? 0));
+$fileId    = (int)($_GET['file_id'] ?? ($_GET['fileId'] ?? ($_GET['id'] ?? 0)));
+$core      = trim((string)($_GET['core'] ?? ''));
 
-// Game title and game ID resolution
 $gameTitle = 'Web Arcade Player';
-if ($fileId > 0) {
-    $downloadRepo = new \Vault\Repositories\DownloadRepository();
-    $fileData = $downloadRepo->getById($fileId);
-    if ($fileData && !empty($fileData['game_title'])) {
-        $gameTitle = (string)$fileData['game_title'];
-    } elseif ($fileData && !empty($fileData['display_name'])) {
-        $gameTitle = (string)$fileData['display_name'];
-    }
-    if ($fileData && !empty($fileData['game_id']) && $gameId === 0) {
-        $gameId = (int)$fileData['game_id'];
-    }
-} elseif ($gameId > 0) {
+$resolvedWebCore = $core;
+$resolvedFileId = $fileId;
+
+// 1. Resolve game and console records if gameId provided
+if ($gameId > 0) {
     $gameRepo = new \Vault\Repositories\GameRepository();
     $gameData = $gameRepo->getById($gameId);
-    if ($gameData && !empty($gameData['title'])) {
-        $gameTitle = (string)$gameData['title'];
+    if ($gameData) {
+        if (!empty($gameData['title'])) {
+            $gameTitle = (string)$gameData['title'];
+        }
+        if ($consoleId <= 0 && !empty($gameData['console_id'])) {
+            $consoleId = (int)$gameData['console_id'];
+        }
+    }
+}
+
+// 2. Resolve console record, web_core and button mappings
+$consoleName = '';
+$consoleMappings = [
+    'gamepad'   => null,
+    'cellphone' => null,
+    'rog_ally'  => null,
+];
+if ($consoleId > 0) {
+    $consoleRepo = new \Vault\Repositories\ConsoleRepository();
+    $consoleData = $consoleRepo->getById($consoleId);
+    if ($consoleData) {
+        $consoleName = (string)($consoleData['name'] ?? '');
+        if ($resolvedWebCore === '' && !empty($consoleData['web_core'])) {
+            $resolvedWebCore = trim((string)$consoleData['web_core']);
+        }
+        $consoleMappings = [
+            'gamepad'   => !empty($consoleData['mapping_gamepad_path']) ? '/' . ltrim($consoleData['mapping_gamepad_path'], '/') : null,
+            'cellphone' => !empty($consoleData['mapping_cellphone_path']) ? '/' . ltrim($consoleData['mapping_cellphone_path'], '/') : null,
+            'rog_ally'  => !empty($consoleData['mapping_rog_ally_path']) ? '/' . ltrim($consoleData['mapping_rog_ally_path'], '/') : null,
+        ];
+    }
+}
+
+// 3. Resolve main downloadable file for the game if fileId not given
+if ($gameId > 0 && $resolvedFileId <= 0) {
+    $downloadRepo = new \Vault\Repositories\DownloadRepository();
+    $gameFiles = $downloadRepo->getByGameId($gameId);
+    if (!empty($gameFiles)) {
+        $mainFile = null;
+        foreach ($gameFiles as $gf) {
+            if (!empty($gf['is_main'])) {
+                $mainFile = $gf;
+                break;
+            }
+        }
+        $mainFile = $mainFile ?? $gameFiles[0];
+        $resolvedFileId = (int)$mainFile['id'];
+        if ($gameTitle === 'Web Arcade Player' && !empty($mainFile['display_name'])) {
+            $gameTitle = (string)$mainFile['display_name'];
+        }
+    }
+} elseif ($resolvedFileId > 0 && $gameTitle === 'Web Arcade Player') {
+    $downloadRepo = new \Vault\Repositories\DownloadRepository();
+    $fileData = $downloadRepo->getById($resolvedFileId);
+    if ($fileData) {
+        $gameTitle = (string)($fileData['game_title'] ?? ($fileData['display_name'] ?? 'Web Arcade Player'));
+        if ($gameId <= 0 && !empty($fileData['game_id'])) {
+            $gameId = (int)$fileData['game_id'];
+        }
     }
 }
 
@@ -44,6 +94,20 @@ $playerId = \Vault\Auth\Auth::id();
 if ($playerId !== null && $playerId > 0 && $gameId > 0) {
     $playerGameRepo = new \Vault\Repositories\PlayerGameRepository();
     $playerGameRepo->recordBrowserPlay($playerId, $gameId);
+}
+
+// Automatically scan server BIOS files in /assets/emscripten/bios/
+$biosDir = dirname(__DIR__, 2) . '/assets/emscripten/bios';
+$serverBiosFiles = [];
+if (is_dir($biosDir)) {
+    $scanned = scandir($biosDir);
+    if ($scanned !== false) {
+        foreach ($scanned as $f) {
+            if ($f !== '.' && $f !== '..' && is_file($biosDir . '/' . $f)) {
+                $serverBiosFiles[] = $f;
+            }
+        }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -69,31 +133,41 @@ if ($playerId !== null && $playerId > 0 && $gameId > 0) {
       padding: 0;
     }
 
-    body, html {
-      width: 100%;
-      height: 100%;
-      background-color: var(--player-bg);
+    html, body {
+      width: 100% !important;
+      height: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background-color: var(--player-bg) !important;
       color: var(--text-main, #f8fafc);
       font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
-      overflow: hidden;
+      overflow: hidden !important;
     }
 
     .player-layout {
-      display: flex;
-      flex-direction: column;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       width: 100vw;
       height: 100vh;
+      margin: 0 !important;
+      padding: 0 !important;
+      display: flex;
+      flex-direction: column;
       background: radial-gradient(circle at 50% 20%, #172554 0%, #070a12 75%);
     }
 
     /* Top Application Bar */
     .player-header {
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      height: 52px;
-      padding: 0 16px;
-      background: rgba(15, 23, 42, 0.85);
+      height: 44px;
+      padding: 0 12px;
+      background: rgba(15, 23, 42, 0.9);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--player-border);
       z-index: 20;
@@ -103,14 +177,16 @@ if ($playerId !== null && $playerId > 0 && $gameId > 0) {
     .header-left {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
 
     .back-btn {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
+      justify-content: center;
+      gap: 5px;
+      height: 28px;
+      padding: 0 10px;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: var(--radius-md, 6px);
@@ -118,6 +194,7 @@ if ($playerId !== null && $playerId > 0 && $gameId > 0) {
       text-decoration: none;
       font-size: 12px;
       font-weight: 500;
+      line-height: 1;
       transition: all var(--transition-fast, 0.15s ease);
       cursor: pointer;
     }
@@ -131,50 +208,54 @@ if ($playerId !== null && $playerId > 0 && $gameId > 0) {
     .player-title-group {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .player-logo {
-      width: 22px;
-      height: 22px;
+      width: 18px;
+      height: 18px;
       object-fit: contain;
     }
 
     .player-title {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
-      letter-spacing: 0.3px;
       color: #fff;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      line-height: 1;
     }
 
     .badge-core {
       display: inline-flex;
       align-items: center;
-      padding: 3px 8px;
+      height: 22px;
+      padding: 0 7px;
       border-radius: 9999px;
-      font-size: 11px;
+      font-size: 10.5px;
       font-family: var(--font-mono, monospace);
       font-weight: 600;
       background: rgba(2, 132, 199, 0.2);
       color: var(--player-accent-light);
       border: 1px solid rgba(56, 189, 248, 0.3);
       text-transform: uppercase;
+      line-height: 1;
     }
 
     .badge-status {
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      padding: 3px 8px;
+      height: 22px;
+      padding: 0 7px;
       border-radius: 9999px;
-      font-size: 11px;
+      font-size: 10.5px;
       background: rgba(16, 185, 129, 0.15);
       color: #34d399;
       border: 1px solid rgba(52, 211, 153, 0.3);
       font-weight: 500;
+      line-height: 1;
     }
 
     .status-dot {
@@ -194,22 +275,23 @@ if ($playerId !== null && $playerId > 0 && $gameId > 0) {
     .header-right {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .action-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      height: 32px;
-      padding: 0 10px;
+      gap: 5px;
+      height: 28px;
+      padding: 0 9px;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: var(--radius-md, 6px);
       color: var(--text-muted, #94a3b8);
       font-size: 12px;
       font-weight: 500;
+      line-height: 1;
       cursor: pointer;
       transition: all var(--transition-fast, 0.15s ease);
     }
@@ -363,44 +445,193 @@ if ($playerId !== null && $playerId > 0 && $gameId > 0) {
       gap: 10px;
     }
 
-    /* Bottom Status & Controls Bar */
-    .player-footer {
+    /* Centered Header Title Group */
+    .header-center {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      max-width: 48vw;
+      text-align: center;
+      pointer-events: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .header-game-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #fff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin: 0;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .header-console-divider {
+      color: rgba(255, 255, 255, 0.3);
+      font-size: 12px;
+      user-select: none;
+      line-height: 1;
+      padding: 0 2px;
+    }
+
+    .header-console-name {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--player-accent-light, #38bdf8);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin: 0;
+      padding: 0;
+      line-height: 1;
+    }
+
+    /* Button Mapping Modal */
+    .mapping-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .mapping-modal-backdrop.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .mapping-modal-dialog {
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      width: 100%;
+      max-width: 820px;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transform: scale(0.96);
+      transition: transform 0.2s ease;
+    }
+
+    .mapping-modal-backdrop.active .mapping-modal-dialog {
+      transform: scale(1);
+    }
+
+    .mapping-modal-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      height: 38px;
-      padding: 0 16px;
-      background: rgba(15, 23, 42, 0.75);
-      border-top: 1px solid var(--player-border);
-      font-size: 11px;
-      color: var(--text-dim, #64748b);
-      flex-shrink: 0;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--player-border, #1e293b);
+      background: rgba(15, 23, 42, 0.98);
+      gap: 12px;
     }
 
-    .controls-hint {
+    .mapping-modal-header-left {
       display: flex;
       align-items: center;
       gap: 14px;
-      overflow-x: auto;
-      white-space: nowrap;
+      flex-wrap: wrap;
     }
 
-    .key-badge {
-      display: inline-flex;
+    .mapping-modal-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
       align-items: center;
-      padding: 1px 5px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 3px;
-      font-family: var(--font-mono, monospace);
-      font-size: 10px;
-      color: var(--text-main, #f8fafc);
-      margin-right: 4px;
+      gap: 6px;
+      margin: 0;
+    }
+
+    .mapping-device-select {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .mapping-device-select:focus {
+      border-color: var(--player-accent-light, #38bdf8);
+    }
+
+    .mapping-modal-close {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: color 0.15s ease, background 0.15s ease;
+    }
+
+    .mapping-modal-close:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .mapping-modal-body {
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 360px;
+      max-height: 70vh;
+      overflow-y: auto;
+      background: #070a12;
+    }
+
+    .mapping-img {
+      max-width: 100%;
+      max-height: 65vh;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .mapping-empty-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: #94a3b8;
+      padding: 40px 20px;
+      text-align: center;
+    }
+
+    .mapping-empty-placeholder .icon {
+      font-size: 42px;
+      opacity: 0.85;
     }
 
     /* Fullscreen Mode Overrides */
-    :fullscreen .player-header,
-    :fullscreen .player-footer {
+    :fullscreen .player-header {
       display: none;
     }
 
@@ -415,8 +646,7 @@ if ($playerId !== null && $playerId > 0 && $gameId > 0) {
       border-radius: 0;
     }
 
-    :-webkit-full-screen .player-header,
-    :-webkit-full-screen .player-footer {
+    :-webkit-full-screen .player-header {
       display: none;
     }
 
@@ -437,7 +667,7 @@ if ($playerId !== null && $playerId > 0 && $gameId > 0) {
     <!-- Header -->
     <header class="player-header">
       <div class="header-left">
-        <button type="button" class="back-btn" onclick="handleExit()">
+        <button type="button" class="back-btn" onclick="handleExit()" title="Close Player">
           <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
             <path fill-rule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clip-rule="evenodd"/>
           </svg>
@@ -446,7 +676,6 @@ if ($playerId !== null && $playerId > 0 && $gameId > 0) {
 
         <div class="player-title-group">
           <img src="/assets/favicon.svg" alt="Vault Icon" class="player-logo">
-          <span class="player-title">Videogame Vault Web Arcade</span>
           <span class="badge-core" id="coreBadge">CORE: —</span>
           <span class="badge-status" id="statusBadge" style="display: none;">
             <span class="status-dot"></span>
@@ -455,7 +684,20 @@ if ($playerId !== null && $playerId > 0 && $gameId > 0) {
         </div>
       </div>
 
+      <!-- Centered Game and Console Name -->
+      <div class="header-center" id="headerCenter">
+        <h1 class="header-game-title" id="headerGameTitle"><?= htmlspecialchars($gameTitle, ENT_QUOTES, 'UTF-8') ?></h1>
+        <span class="header-console-divider" id="headerConsoleDivider" <?= empty($consoleName) ? 'style="display: none;"' : '' ?>>•</span>
+        <span class="header-console-name" id="headerConsoleName"><?= htmlspecialchars($consoleName, ENT_QUOTES, 'UTF-8') ?></span>
+      </div>
+
       <div class="header-right">
+        <button type="button" class="action-btn" id="btnShowMapping" onclick="openMappingModal()" title="View Console Button Mapping">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
+            <path d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4-3c-.83 0-1.5-.67-1.5-1.5S18.67 9 19.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+          </svg>
+          Controls
+        </button>
         <button type="button" class="action-btn" title="Restart Game" onclick="location.reload()">
           <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
             <path fill-rule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.75a.75.75 0 00-.75.75v4.482a.75.75 0 001.5 0v-2.433l.312.311a7 7 0 1010.5-5.265.75.75 0 00-.75.75 1.5 1.5 0 01-1.5 1.5z" clip-rule="evenodd"/>
@@ -500,22 +742,26 @@ if ($playerId !== null && $playerId > 0 && $gameId > 0) {
         </div>
       </div>
     </main>
+  </div>
 
-    <!-- Footer Controls Bar -->
-    <footer class="player-footer">
-      <div class="controls-hint">
-        <span>🎮 <strong>Controls:</strong></span>
-        <span><span class="key-badge">Arrows</span> D-Pad</span>
-        <span><span class="key-badge">Z</span> / <span class="key-badge">X</span> A/B</span>
-        <span><span class="key-badge">A</span> / <span class="key-badge">S</span> X/Y</span>
-        <span><span class="key-badge">Enter</span> Start</span>
-        <span><span class="key-badge">R-Shift</span> Select</span>
-        <span><span class="key-badge">Q</span> / <span class="key-badge">W</span> L/R</span>
+  <!-- Button Mapping Modal Popup -->
+  <div class="mapping-modal-backdrop" id="mappingModal" onclick="handleMappingBackdropClick(event)">
+    <div class="mapping-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="mappingModalTitle">
+      <div class="mapping-modal-header">
+        <div class="mapping-modal-header-left">
+          <h2 class="mapping-modal-title" id="mappingModalTitle">Button Mapping — <?= htmlspecialchars($consoleName ?: 'Console', ENT_QUOTES, 'UTF-8') ?></h2>
+          <select class="mapping-device-select" id="mappingDeviceSelect" onchange="renderMappingImage(this.value)" aria-label="Select Device Layout">
+            <option value="gamepad" selected>Gamepad</option>
+            <option value="cellphone">Cellphone Adapter</option>
+            <option value="rog_ally">ROG Ally</option>
+          </select>
+        </div>
+        <button type="button" class="mapping-modal-close" onclick="closeMappingModal()" aria-label="Close button mapping modal">&times;</button>
       </div>
-      <div>
-        <span>RetroArch Web (Emscripten / WASM)</span>
+      <div class="mapping-modal-body" id="mappingModalBody">
+        <!-- Dynamically rendered -->
       </div>
-    </footer>
+    </div>
   </div>
 
   <!-- Optional Core Metadata Lookup -->
@@ -529,8 +775,113 @@ if ($playerId !== null && $playerId > 0 && $gameId > 0) {
 
     // 1. Parse URL Query Parameters
     const urlParams = new URLSearchParams(window.location.search);
-    const coreParam = (urlParams.get('core') || '').trim().toLowerCase();
-    const fileIdParam = (urlParams.get('file_id') || urlParams.get('fileId') || urlParams.get('game_id') || urlParams.get('gameId') || urlParams.get('id') || '').trim();
+    let consoleIdParam = (urlParams.get('console_id') || urlParams.get('consoleId') || '<?= $consoleId > 0 ? (int)$consoleId : '' ?>').trim();
+    let gameIdParam = (urlParams.get('game_id') || urlParams.get('gameId') || '<?= $gameId > 0 ? (int)$gameId : '' ?>').trim();
+    let coreParam = (urlParams.get('core') || '<?= addslashes($resolvedWebCore) ?>').trim().toLowerCase();
+    let fileIdParam = (urlParams.get('file_id') || urlParams.get('fileId') || '<?= $resolvedFileId > 0 ? (int)$resolvedFileId : '' ?>').trim();
+
+    // Server-scanned BIOS files from /assets/emscripten/bios/
+    window.serverBiosFiles = <?= json_encode($serverBiosFiles, JSON_UNESCAPED_SLASHES) ?>;
+
+    // Server-preloaded console metadata & mappings
+    window.consoleName = <?= json_encode($consoleName, JSON_UNESCAPED_SLASHES) ?>;
+    window.consoleMappings = <?= json_encode($consoleMappings, JSON_UNESCAPED_SLASHES) ?>;
+
+    let currentMappings = window.consoleMappings || {};
+    let currentConsoleName = window.consoleName || 'Console';
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    /**
+     * Updates the generic footer status indicator
+     * status: 'loading' | 'running' | 'error'
+     */
+    function updateFooterStatus(status, text) {
+      // Footer status removed per UX design
+    }
+
+    /**
+     * Opens the console button mapping popup
+     */
+    function openMappingModal() {
+      const modal = document.getElementById('mappingModal');
+      const select = document.getElementById('mappingDeviceSelect');
+      const title = document.getElementById('mappingModalTitle');
+      if (title) {
+        title.textContent = `Button Mapping — ${currentConsoleName || 'Console'}`;
+      }
+      if (select) {
+        select.value = 'gamepad';
+      }
+      renderMappingImage('gamepad');
+      if (modal) {
+        modal.classList.add('active');
+      }
+    }
+
+    /**
+     * Closes the console button mapping popup
+     */
+    function closeMappingModal() {
+      const modal = document.getElementById('mappingModal');
+      if (modal) {
+        modal.classList.remove('active');
+      }
+      if (canvas) {
+        canvas.focus();
+      }
+    }
+
+    function handleMappingBackdropClick(event) {
+      if (event.target === document.getElementById('mappingModal')) {
+        closeMappingModal();
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('mappingModal');
+        if (modal && modal.classList.contains('active')) {
+          closeMappingModal();
+        }
+      }
+    });
+
+    /**
+     * Renders mapping image for the selected device layout
+     */
+    function renderMappingImage(deviceType) {
+      const body = document.getElementById('mappingModalBody');
+      if (!body) return;
+
+      const deviceLabels = {
+        gamepad: 'Gamepad',
+        cellphone: 'Cellphone Adapter',
+        rog_ally: 'ROG Ally'
+      };
+
+      const path = currentMappings[deviceType];
+      if (path) {
+        body.innerHTML = `
+          <img src="${escapeHtml(path)}" alt="${escapeHtml(currentConsoleName)} - ${escapeHtml(deviceLabels[deviceType] || deviceType)}" class="mapping-img" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'mapping-empty-placeholder\\'><span class=\\'icon\\'>⚠️</span><span>Failed to load mapping image.</span></div>';">
+        `;
+      } else {
+        body.innerHTML = `
+          <div class="mapping-empty-placeholder">
+            <span class="icon">🎮</span>
+            <span>No button mapping image registered for <strong>${escapeHtml(deviceLabels[deviceType] || deviceType)}</strong>.</span>
+          </div>
+        `;
+      }
+    }
 
     // DOM Elements
     const canvas = document.getElementById('canvas');
@@ -563,18 +914,33 @@ if ($playerId !== null && $playerId > 0 && $gameId > 0) {
       if (errorCard) errorCard.style.display = 'flex';
       if (errorTitle) errorTitle.textContent = title;
       if (errorMessage) errorMessage.textContent = message;
+      updateFooterStatus('error', '(error)');
       console.error('[WebPlayer Error]', title, message);
     }
 
     /**
-     * Handles exit / return navigation
+     * Handles exit / closes the player tab
      */
     function handleExit() {
-      if (window.history.length > 1) {
-        window.history.back();
-      } else {
-        window.location.href = '/games-portal';
-      }
+      // 1. Attempt to close the current tab directly
+      window.close();
+
+      // 2. Browser fallback trick for tabs that require self-reference before closing
+      setTimeout(() => {
+        try {
+          window.open('', '_self', '');
+          window.close();
+        } catch (_) {}
+
+        // 3. Fallback navigation if the browser security policy strictly forbids closing the tab
+        if (!window.closed) {
+          if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            window.location.href = '/games-portal';
+          }
+        }
+      }, 100);
     }
 
     /**
@@ -706,29 +1072,272 @@ if ($playerId !== null && $playerId > 0 && $gameId > 0) {
     }
 
     /**
+     * Loads and mounts the active core's button remap (.rmp) into the Emscripten virtual filesystem.
+     * Target path: /home/web_user/userdata/config/remaps/${coreName}/${coreName}.rmp
+     */
+    async function loadCoreRemap(coreName, fs) {
+      if (!coreName || !fs) return;
+
+      const remapUrl = `/assets/emscripten/remaps/${encodeURIComponent(coreName)}.rmp`;
+
+      try {
+        const response = await fetch(remapUrl);
+
+        if (response.status === 404) {
+          console.warn(`[WebPlayer Remap] No custom button remap found for core '${coreName}' at ${remapUrl} (HTTP 404). Booting with core defaults.`);
+          return;
+        }
+
+        if (!response.ok) {
+          console.warn(`[WebPlayer Remap] Remap fetch returned HTTP ${response.status} for core '${coreName}'. Booting with core defaults.`);
+          return;
+        }
+
+        const remapBuffer = await response.arrayBuffer();
+        if (!remapBuffer || remapBuffer.byteLength === 0) {
+          console.warn(`[WebPlayer Remap] Remap file at ${remapUrl} is empty. Booting with core defaults.`);
+          return;
+        }
+
+        const remapData = new Uint8Array(remapBuffer);
+        const remapFilename = `${coreName}.rmp`;
+
+        // Standard RetroArch remap locations in Emscripten VFS
+        const targetPaths = [
+          `/home/web_user/userdata/config/remaps/${coreName}/${remapFilename}`,
+          `/home/web_user/retroarch/userdata/config/remaps/${coreName}/${remapFilename}`,
+          `/home/web_user/retroarch/config/remaps/${coreName}/${remapFilename}`,
+          `/home/web/retroarch/config/remaps/${coreName}/${remapFilename}`
+        ];
+
+        targetPaths.forEach((fullPath) => {
+          const dirPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
+
+          // 1. Ensure directory hierarchy exists using FS.mkdirTree
+          if (typeof fs.mkdirTree === 'function') {
+            try {
+              fs.mkdirTree(dirPath);
+            } catch (dirErr) {
+              if (dirErr.code !== 'EEXIST') {
+                console.warn('[FS.mkdirTree Notice]', dirErr);
+              }
+            }
+          } else {
+            const segments = dirPath.split('/').filter(Boolean);
+            let current = '';
+            for (const seg of segments) {
+              current += '/' + seg;
+              try { fs.mkdir(current); } catch (_) {}
+            }
+          }
+
+          // 2. Write binary buffer into Emscripten VFS
+          try {
+            try { fs.unlink(fullPath); } catch (_) {}
+            if (typeof fs.createDataFile === 'function') {
+              fs.createDataFile(dirPath, remapFilename, remapData, true, true, false);
+            } else if (typeof fs.writeFile === 'function') {
+              fs.writeFile(fullPath, remapData);
+            }
+          } catch (writeErr) {
+            console.warn(`[FS Remap Mount Notice] Could not write ${fullPath}:`, writeErr);
+          }
+        });
+
+        console.info(`[WebPlayer Remap] Successfully mounted remap for '${coreName}' (${remapBuffer.byteLength} bytes) at /home/web_user/userdata/config/remaps/${coreName}/${remapFilename}`);
+      } catch (err) {
+        console.warn(`[WebPlayer Remap] Failed to load remap for core '${coreName}':`, err);
+      }
+    }
+
+    /**
+     * Loads and mounts server BIOS files from /assets/emscripten/bios/ into Emscripten virtual filesystem.
+     * Target path: /home/web_user/userdata/system/{filename}
+     */
+    async function loadBiosFiles(fs) {
+      if (!fs) return;
+
+      const primarySystemDir = '/home/web_user/userdata/system';
+      const fallbackSystemDirs = [
+        primarySystemDir,
+        '/home/web_user/retroarch/userdata/system',
+        '/home/web_user/retroarch/system',
+        '/home/web/retroarch/system'
+      ];
+
+      // 1. Ensure target system directory hierarchy exists using FS.mkdirTree
+      fallbackSystemDirs.forEach((dir) => {
+        try {
+          if (typeof fs.mkdirTree === 'function') {
+            fs.mkdirTree(dir);
+          } else {
+            const segments = dir.split('/').filter(Boolean);
+            let current = '';
+            for (const seg of segments) {
+              current += '/' + seg;
+              try { fs.mkdir(current); } catch (_) {}
+            }
+          }
+        } catch (dirErr) {
+          if (dirErr.code !== 'EEXIST') {
+            console.warn(`[FS.mkdirTree Notice] Could not create system directory '${dir}':`, dirErr);
+          }
+        }
+      });
+
+      // 2. Discover BIOS files from server
+      let biosList = Array.isArray(window.serverBiosFiles) ? [...window.serverBiosFiles] : [];
+
+      if (biosList.length === 0) {
+        try {
+          const apiRes = await fetch('/api/emscripten/bios');
+          if (apiRes.ok) {
+            const data = await apiRes.json();
+            if (Array.isArray(data.files) && data.files.length > 0) {
+              biosList = data.files;
+            }
+          }
+        } catch (_) {
+          // Graceful fallback if API fails
+        }
+      }
+
+      if (biosList.length === 0) {
+        console.info('[WebPlayer BIOS] No BIOS files discovered in /assets/emscripten/bios/.');
+        return;
+      }
+
+      console.info(`[WebPlayer BIOS] Found ${biosList.length} BIOS file(s) on server:`, biosList);
+      updateLoadingStatus(`Loading system BIOS (0/${biosList.length})...`);
+
+      let loadedCount = 0;
+      for (let i = 0; i < biosList.length; i++) {
+        const biosFilename = biosList[i];
+        const biosUrl = `/assets/emscripten/bios/${encodeURIComponent(biosFilename)}`;
+
+        try {
+          updateLoadingStatus(`Loading BIOS (${i + 1}/${biosList.length}): ${biosFilename}...`);
+          const response = await fetch(biosUrl);
+
+          if (!response.ok) {
+            console.warn(`[WebPlayer BIOS] Could not fetch BIOS '${biosFilename}' from ${biosUrl} (HTTP ${response.status}). Skipping optional BIOS.`);
+            continue;
+          }
+
+          const biosBuffer = await response.arrayBuffer();
+          if (!biosBuffer || biosBuffer.byteLength === 0) {
+            console.warn(`[WebPlayer BIOS] BIOS file '${biosFilename}' is empty (0 bytes). Skipping.`);
+            continue;
+          }
+
+          const biosData = new Uint8Array(biosBuffer);
+
+          // Write each fetched BIOS binary file into the target VFS path
+          fallbackSystemDirs.forEach((systemDir) => {
+            const targetPath = `${systemDir}/${biosFilename}`;
+            try {
+              try { fs.unlink(targetPath); } catch (_) {}
+              if (typeof fs.writeFile === 'function') {
+                fs.writeFile(targetPath, biosData);
+              } else if (typeof fs.createDataFile === 'function') {
+                fs.createDataFile(systemDir, biosFilename, biosData, true, true, false);
+              }
+            } catch (writeErr) {
+              console.warn(`[WebPlayer BIOS] Could not write ${targetPath}:`, writeErr);
+            }
+          });
+
+          loadedCount++;
+          console.info(`[WebPlayer BIOS] Mounted '${biosFilename}' (${biosBuffer.byteLength} bytes) to ${primarySystemDir}/${biosFilename}`);
+        } catch (err) {
+          console.warn(`[WebPlayer BIOS] Error fetching or mounting BIOS '${biosFilename}':`, err);
+        }
+      }
+
+      console.info(`[WebPlayer BIOS] Successfully mounted ${loadedCount}/${biosList.length} BIOS file(s) into VFS.`);
+    }
+
+    /**
      * Main Asynchronous Game Boot Sequence
      */
     async function bootGame() {
-      // Step A: Parameter validation
-      if (!coreParam) {
-        showError('Missing Core Parameter', 'The "core" query parameter was not specified in the URL. (e.g. ?core=snes9x&file_id=12)');
-        return;
-      }
-      if (!fileIdParam) {
-        showError('Missing File ID Parameter', 'The "file_id" query parameter was not specified in the URL. (e.g. ?core=snes9x&file_id=12)');
-        return;
-      }
-
-      // Update UI badges
-      if (coreBadge) {
-        const friendlyName = (window.libretroCores && window.libretroCores[coreParam]) 
-          ? window.libretroCores[coreParam] 
-          : coreParam.toUpperCase();
-        coreBadge.textContent = `CORE: ${friendlyName}`;
-        coreBadge.title = `Libretro core: ${coreParam}`;
-      }
-
       try {
+        updateFooterStatus('loading', '(loading...)');
+
+        // Step A: Dynamically resolve Web Core and Main Download File ID from backend if needed
+        if (!coreParam || !fileIdParam) {
+          if (!consoleIdParam && !gameIdParam) {
+            showError('Missing Parameters', 'Please provide console_id and game_id in the URL. (e.g. ?console_id=1&game_id=470)');
+            return;
+          }
+
+          updateLoadingStatus('Retrieving console web core and game download file...');
+
+          const metaUrl = `/api/player/meta?console_id=${encodeURIComponent(consoleIdParam)}&game_id=${encodeURIComponent(gameIdParam)}`;
+          const metaRes = await fetch(metaUrl);
+
+          if (!metaRes.ok) {
+            let metaErrMsg = '';
+            try {
+              const metaErrJson = await metaRes.json();
+              if (metaErrJson && (metaErrJson.error || metaErrJson.message)) {
+                metaErrMsg = metaErrJson.error || metaErrJson.message;
+              }
+            } catch (_) {}
+
+            throw new Error(metaErrMsg || `Failed to retrieve game configuration from server (HTTP ${metaRes.status}).`);
+          }
+
+          const metaData = await metaRes.json();
+          if (!metaData.web_core) {
+            throw new Error('This console does not have a web emulation core configured.');
+          }
+          if (!metaData.file_id) {
+            throw new Error('No downloadable game file found for this game.');
+          }
+
+          coreParam = (metaData.web_core || '').trim().toLowerCase();
+          fileIdParam = String(metaData.file_id);
+
+          if (metaData.console_name) {
+            currentConsoleName = metaData.console_name;
+            const consoleEl = document.getElementById('headerConsoleName');
+            const dividerEl = document.getElementById('headerConsoleDivider');
+            const modalTitle = document.getElementById('mappingModalTitle');
+            if (consoleEl) {
+              consoleEl.textContent = metaData.console_name;
+              consoleEl.style.display = 'inline';
+            }
+            if (dividerEl) {
+              dividerEl.style.display = 'inline';
+            }
+            if (modalTitle) {
+              modalTitle.textContent = `Button Mapping — ${metaData.console_name}`;
+            }
+          }
+
+          if (metaData.game_title) {
+            const gameEl = document.getElementById('headerGameTitle');
+            if (gameEl) {
+              gameEl.textContent = metaData.game_title;
+            }
+            document.title = `${metaData.game_title} — Videogame Vault Web Arcade`;
+          }
+
+          if (metaData.mappings) {
+            currentMappings = metaData.mappings;
+          }
+        }
+
+        // Update UI badges
+        if (coreBadge) {
+          const friendlyName = (window.libretroCores && window.libretroCores[coreParam]) 
+            ? window.libretroCores[coreParam] 
+            : coreParam.toUpperCase();
+          coreBadge.textContent = `CORE: ${friendlyName}`;
+          coreBadge.title = `Libretro core: ${coreParam}`;
+        }
+
         // Step B: Fetch Secure ROM binary directly from Backend (stream=1 bypasses cloud CORS restrictions)
         updateLoadingStatus('Fetching secure ROM stream...');
         const response = await fetch(`/download/${encodeURIComponent(fileIdParam)}?stream=1`);
@@ -808,7 +1417,15 @@ if ($playerId !== null && $playerId > 0 && $gameId > 0) {
           console.warn('[FS Notice]', fsErr);
         }
 
-        // Step F: Execute Core via Module.callMain
+        // Step F: Mount Core Button Remap (.rmp) if available
+        updateLoadingStatus('Loading core button remap...');
+        await loadCoreRemap(coreParam, fs);
+
+        // Step G: Mount Server BIOS files (/assets/emscripten/bios/) into VFS (/home/web_user/userdata/system)
+        updateLoadingStatus('Loading system BIOS...');
+        await loadBiosFiles(fs);
+
+        // Step H: Execute Core via Module.callMain
         updateLoadingStatus('Booting core...');
         if (!window.Module || typeof window.Module.callMain !== 'function') {
           throw new Error('Module.callMain is not defined on this Libretro Emscripten build.');
@@ -816,13 +1433,14 @@ if ($playerId !== null && $playerId > 0 && $gameId > 0) {
 
         window.Module.callMain([virtualRomPath]);
 
-        // Step G: Success - Hide Loading Overlay & Focus Canvas
+        // Step I: Success - Hide Loading Overlay & Focus Canvas
         if (loadingOverlay) {
           loadingOverlay.classList.add('hidden');
         }
         if (statusBadge) {
           statusBadge.style.display = 'inline-flex';
         }
+        updateFooterStatus('running', '(running)');
         if (canvas) {
           canvas.focus();
         }

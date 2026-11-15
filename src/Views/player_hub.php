@@ -1362,7 +1362,7 @@ $canAccessPlayer = \Vault\Auth\Auth::canRead('player') || \Vault\Auth\Auth::canW
                 $playFileId = $initialGame['main_file_id'] ?? $downloadFileId;
               ?>
               <?php if ($canAccessPlayer && $isEmulable && $webCore !== '' && $playFileId): ?>
-                <a href="/player?core=<?= urlencode($webCore) ?>&file_id=<?= (int)$playFileId ?>" target="_blank" rel="noopener noreferrer" class="btn-hub-play" id="cardPlayBtn" title="Play <?= View::e($initialGame['title'] ?? 'Game') ?> on Browser">
+                <a href="/player?console_id=<?= (int)$initialGame['console_id'] ?>&game_id=<?= (int)$initialGame['id'] ?>" target="_blank" rel="noopener noreferrer" class="btn-hub-play" id="cardPlayBtn" title="Play <?= View::e($initialGame['title'] ?? 'Game') ?> on Browser">
                   <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
                     <path d="M8 5v14l11-7z"/>
                   </svg>
@@ -1753,7 +1753,7 @@ function renderGameCard(game) {
 
   if (CAN_ACCESS_PLAYER && isEmulable && webCore && playFileId) {
     playBtnHtml = `
-      <a href="/player?core=${encodeURIComponent(webCore)}&file_id=${encodeURIComponent(playFileId)}" target="_blank" rel="noopener noreferrer" class="btn-hub-play" id="cardPlayBtn" title="Play ${escapeHtml(game.title || 'game')} on browser">
+      <a href="/player?console_id=${encodeURIComponent(game.console_id)}&game_id=${encodeURIComponent(game.id)}" target="_blank" rel="noopener noreferrer" class="btn-hub-play" id="cardPlayBtn" title="Play ${escapeHtml(game.title || 'game')} on browser">
         <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
           <path d="M8 5v14l11-7z"/>
         </svg>
