@@ -149,6 +149,8 @@ final class PlayerHubRepository
                 c.name AS console_name,
                 c.retroarch_core,
                 c.emulator,
+                c.is_browser_emulable,
+                c.web_core,
                 ct.name AS console_type_name,
                 ct.badge_bg_color,
                 ct.badge_font_color,
@@ -194,6 +196,8 @@ final class PlayerHubRepository
                 c.name AS console_name,
                 c.retroarch_core,
                 c.emulator,
+                c.is_browser_emulable,
+                c.web_core,
                 ct.name AS console_type_name,
                 ct.badge_bg_color,
                 ct.badge_font_color,
@@ -287,6 +291,15 @@ final class PlayerHubRepository
 
         $gameId = (int)$game['id'];
 
+        // Main downloadable file for this game (or first available file)
+        $mainFile = Database::fetchOne("
+            SELECT id, display_name, storage_provider, is_main
+            FROM `downloadable_files`
+            WHERE game_id = :game_id
+            ORDER BY is_main DESC, id ASC
+            LIMIT 1
+        ", [':game_id' => $gameId]);
+
         // Latest downloadable file for this game marked as blackblaze (by creation date)
         $latestBlackblaze = Database::fetchOne("
             SELECT id, display_name, storage_provider, created
@@ -302,25 +315,28 @@ final class PlayerHubRepository
         ", [':game_id' => $gameId]);
 
         return [
-            'id'                 => $gameId,
-            'title'              => (string)$game['title'],
-            'year'               => $year,
-            'meta_string'        => $metaString,
-            'boxart_path'        => $this->normalizeImagePath($game['boxart_path'], 'no_cover.jpg'),
-            'screenshot_path'    => $this->normalizeImagePath($game['screenshot_path'], 'no_screen.jpg'),
-            'in_collection'      => (int)($game['in_collection'] ?? 0),
-            'console_name'       => $console,
-            'console_type_name'  => (string)($game['console_type_name'] ?? ''),
-            'badge_bg_color'     => (string)($game['badge_bg_color'] ?? '#1e293b'),
-            'badge_font_color'   => (string)($game['badge_font_color'] ?? '#38bdf8'),
-            'language_name'      => (string)($game['language_name'] ?? ''),
-            'retroarch_core'     => (string)($game['retroarch_core'] ?? ''),
-            'emulator'           => (string)($game['emulator'] ?? ''),
-            'comments'           => (string)($game['comments'] ?? ''),
-            'tags'               => (string)($game['tags'] ?? ''),
-            'updated'            => (string)($game['updated'] ?? ''),
-            'download_file_id'   => $latestBlackblaze ? (int)$latestBlackblaze['id'] : null,
-            'has_download_files' => $hasAnyFiles,
+            'id'                  => $gameId,
+            'title'               => (string)$game['title'],
+            'year'                => $year,
+            'meta_string'         => $metaString,
+            'boxart_path'         => $this->normalizeImagePath($game['boxart_path'], 'no_cover.jpg'),
+            'screenshot_path'     => $this->normalizeImagePath($game['screenshot_path'], 'no_screen.jpg'),
+            'in_collection'       => (int)($game['in_collection'] ?? 0),
+            'console_name'        => $console,
+            'console_type_name'   => (string)($game['console_type_name'] ?? ''),
+            'badge_bg_color'      => (string)($game['badge_bg_color'] ?? '#1e293b'),
+            'badge_font_color'    => (string)($game['badge_font_color'] ?? '#38bdf8'),
+            'language_name'       => (string)($game['language_name'] ?? ''),
+            'retroarch_core'      => (string)($game['retroarch_core'] ?? ''),
+            'emulator'            => (string)($game['emulator'] ?? ''),
+            'is_browser_emulable' => (int)($game['is_browser_emulable'] ?? 0),
+            'web_core'            => trim((string)($game['web_core'] ?? '')),
+            'comments'            => (string)($game['comments'] ?? ''),
+            'tags'                => (string)($game['tags'] ?? ''),
+            'updated'             => (string)($game['updated'] ?? ''),
+            'download_file_id'    => $mainFile ? (int)$mainFile['id'] : ($latestBlackblaze ? (int)$latestBlackblaze['id'] : null),
+            'main_file_id'        => $mainFile ? (int)$mainFile['id'] : null,
+            'has_download_files'  => $hasAnyFiles,
         ];
     }
 

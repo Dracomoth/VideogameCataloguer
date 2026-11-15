@@ -18,7 +18,7 @@ $fileId = (int)($_GET['file_id'] ?? ($_GET['id'] ?? 0));
 $gameId = (int)($_GET['game_id'] ?? 0);
 $core = trim((string)($_GET['core'] ?? ''));
 
-// Game title resolution
+// Game title and game ID resolution
 $gameTitle = 'Web Arcade Player';
 if ($fileId > 0) {
     $downloadRepo = new \Vault\Repositories\DownloadRepository();
@@ -28,12 +28,22 @@ if ($fileId > 0) {
     } elseif ($fileData && !empty($fileData['display_name'])) {
         $gameTitle = (string)$fileData['display_name'];
     }
+    if ($fileData && !empty($fileData['game_id']) && $gameId === 0) {
+        $gameId = (int)$fileData['game_id'];
+    }
 } elseif ($gameId > 0) {
     $gameRepo = new \Vault\Repositories\GameRepository();
     $gameData = $gameRepo->getById($gameId);
     if ($gameData && !empty($gameData['title'])) {
         $gameTitle = (string)$gameData['title'];
     }
+}
+
+// Record browser play in user personal records (counts as downloaded and played)
+$playerId = \Vault\Auth\Auth::id();
+if ($playerId !== null && $playerId > 0 && $gameId > 0) {
+    $playerGameRepo = new \Vault\Repositories\PlayerGameRepository();
+    $playerGameRepo->recordBrowserPlay($playerId, $gameId);
 }
 ?>
 <!DOCTYPE html>

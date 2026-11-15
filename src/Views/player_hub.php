@@ -30,6 +30,7 @@ $platforms = $taxonomies['platforms'] ?? [];
 $categories = $taxonomies['categories'] ?? [];
 $subcategories = $taxonomies['subcategories'] ?? [];
 $canWriteCollection = \Vault\Auth\Auth::canWrite('collection');
+$canAccessPlayer = \Vault\Auth\Auth::canRead('player') || \Vault\Auth\Auth::canWrite('player');
 ?>
 
 <style>
@@ -582,6 +583,37 @@ $canWriteCollection = \Vault\Auth\Auth::canWrite('collection');
   transform: translateY(-1px);
   color: #ffffff;
 }
+.btn-hub-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  color: #ffffff !important;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 7px 16px;
+  border-radius: 5px;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 3px 12px rgba(2, 132, 199, 0.35);
+  transition: all var(--transition-fast);
+  align-self: flex-start;
+}
+.btn-hub-play:hover {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  box-shadow: 0 5px 18px rgba(14, 165, 233, 0.5);
+  transform: translateY(-1px);
+  color: #ffffff !important;
+  border-color: rgba(56, 189, 248, 0.8);
+}
+.btn-hub-play svg {
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+.btn-hub-play:hover svg {
+  transform: scale(1.15);
+}
 .hub-not-in-collection-label {
   display: inline-flex;
   align-items: center;
@@ -1024,7 +1056,8 @@ $canWriteCollection = \Vault\Auth\Auth::canWrite('collection');
     box-sizing: border-box !important;
   }
 
-  .btn-hub-download {
+  .btn-hub-download,
+  .btn-hub-play {
     font-size: 12px !important;
     padding: 6px 14px !important;
     max-width: 100% !important;
@@ -1321,7 +1354,23 @@ $canWriteCollection = \Vault\Auth\Auth::canWrite('collection');
                   </svg>
                   <span>Download</span>
                 </a>
-              <?php elseif (!$hasDownloadFiles && !$inCollection): ?>
+              <?php endif; ?>
+
+              <?php 
+                $isEmulable = !empty($initialGame['is_browser_emulable']);
+                $webCore = trim((string)($initialGame['web_core'] ?? ''));
+                $playFileId = $initialGame['main_file_id'] ?? $downloadFileId;
+              ?>
+              <?php if ($canAccessPlayer && $isEmulable && $webCore !== '' && $playFileId): ?>
+                <a href="/player?core=<?= urlencode($webCore) ?>&file_id=<?= (int)$playFileId ?>" target="_blank" rel="noopener noreferrer" class="btn-hub-play" id="cardPlayBtn" title="Play <?= View::e($initialGame['title'] ?? 'Game') ?> on Browser">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                  <span>Play on browser</span>
+                </a>
+              <?php endif; ?>
+
+              <?php if (!$downloadFileId && (!$canAccessPlayer || !$isEmulable || $webCore === '' || !$playFileId) && !$hasDownloadFiles && !$inCollection): ?>
                 <span class="hub-not-in-collection-label" id="cardNotInCollection">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -1381,6 +1430,7 @@ $canWriteCollection = \Vault\Auth\Auth::canWrite('collection');
  */
 const ALL_SUBCATEGORIES = <?= json_encode($subcategories, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
 const CAN_WRITE_COLLECTION = <?= json_encode($canWriteCollection) ?>;
+const CAN_ACCESS_PLAYER = <?= json_encode($canAccessPlayer) ?>;
 
 // State management
 let searchDebounceTimer = null;
@@ -1681,19 +1731,43 @@ function renderGameCard(game) {
     }
   }
 
-  // Download Action Row
-  let downloadActionHtml = '';
+  // Download & Play on Browser Action Row
+  let downloadBtnHtml = '';
   if (CAN_WRITE_COLLECTION && game.download_file_id) {
+    downloadBtnHtml = `
+      <a href="/download/${game.download_file_id}" target="_blank" class="btn-hub-download" id="cardDownloadBtn" title="Download ROM">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Download</span>
+      </a>
+    `;
+  }
+
+  let playBtnHtml = '';
+  const isEmulable = Number(game.is_browser_emulable) === 1;
+  const webCore = (game.web_core || '').trim();
+  const playFileId = game.main_file_id || game.download_file_id;
+
+  if (CAN_ACCESS_PLAYER && isEmulable && webCore && playFileId) {
+    playBtnHtml = `
+      <a href="/player?core=${encodeURIComponent(webCore)}&file_id=${encodeURIComponent(playFileId)}" target="_blank" rel="noopener noreferrer" class="btn-hub-play" id="cardPlayBtn" title="Play ${escapeHtml(game.title || 'game')} on browser">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        <span>Play on browser</span>
+      </a>
+    `;
+  }
+
+  let downloadActionHtml = '';
+  if (downloadBtnHtml || playBtnHtml) {
     downloadActionHtml = `
       <div class="picked-download-row" id="cardDownloadRow">
-        <a href="/download/${game.download_file_id}" target="_blank" class="btn-hub-download" id="cardDownloadBtn" title="Download ROM">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          <span>Download</span>
-        </a>
+        ${downloadBtnHtml}
+        ${playBtnHtml}
       </div>
     `;
   } else if (!game.has_download_files && !game.in_collection) {

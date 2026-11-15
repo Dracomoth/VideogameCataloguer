@@ -52,14 +52,15 @@ final class DownloadController
         }
 
         $playerId = Auth::id();
+        $isStream = !empty($request['query']['stream']);
 
         try {
-            $result = $this->helper->processDownload($id, $playerId);
+            $result = $this->helper->processDownload($id, $playerId, $isStream);
             $record = $result['record'];
             $url    = $result['url'];
 
             // Check if client requested direct binary stream (e.g. web arcade player to avoid browser CORS)
-            if (!empty($request['query']['stream'])) {
+            if ($isStream) {
                 $this->helper->streamFile($url, $record['display_name']);
                 return;
             }
@@ -107,14 +108,15 @@ final class DownloadController
         }
 
         $playerId = Auth::id();
+        $isStream = !empty($request['query']['stream']);
 
         try {
-            $result = $this->helper->processDownload($id, $playerId);
+            $result = $this->helper->processDownload($id, $playerId, $isStream);
             $record = $result['record'];
             $url    = $result['url'];
 
             // Check if client requested direct binary stream (e.g. web arcade player to avoid browser CORS)
-            if (!empty($request['query']['stream'])) {
+            if ($isStream) {
                 $this->helper->streamFile($url, $record['display_name']);
                 return;
             }

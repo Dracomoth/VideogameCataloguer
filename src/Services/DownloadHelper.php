@@ -118,12 +118,14 @@ final class DownloadHelper
      * 3. Increments download_count and updates last_download timestamp on the file.
      * 4. If the file is linked to a game and a player is authenticated/provided,
      *    updates player_games user statistics table according to business rules.
+     *    If isStream is true (browser player), records as both downloaded and played.
      *
      * @param int $id
      * @param int|null $playerId Optional explicit player ID; defaults to Auth::id() if available.
+     * @param bool $isStream Whether the download is a direct stream for browser emulation.
      * @return array{record: array<string, mixed>, url: string}
      */
-    public function processDownload(int $id, ?int $playerId = null): array
+    public function processDownload(int $id, ?int $playerId = null, bool $isStream = false): array
     {
         $record = $this->repo->getById($id);
         if ($record === null) {
@@ -148,7 +150,11 @@ final class DownloadHelper
         if (!empty($record['game_id'])) {
             $effectivePlayerId = $playerId ?? Auth::id();
             if ($effectivePlayerId !== null && $effectivePlayerId > 0) {
-                $this->playerGameRepo->recordGameDownload($effectivePlayerId, (int)$record['game_id']);
+                if ($isStream) {
+                    $this->playerGameRepo->recordBrowserPlay($effectivePlayerId, (int)$record['game_id']);
+                } else {
+                    $this->playerGameRepo->recordGameDownload($effectivePlayerId, (int)$record['game_id']);
+                }
             }
         }
 

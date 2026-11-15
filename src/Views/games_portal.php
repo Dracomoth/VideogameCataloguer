@@ -1863,7 +1863,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
           <span class="badge-status badge-player-played" id="detailPlayedBadge" style="display: none;">Played</span>
           <span class="badge-status badge-player-won" id="detailWonBadge" style="display: none;">★ Won</span>
         </div>
-        <a href="#" class="btn-arcade-play" id="btnPlayGame" style="display: none;" title="Play Game in Browser (RetroArch Arcade)">
+        <a href="#" target="_blank" rel="noopener noreferrer" class="btn-arcade-play" id="btnPlayGame" style="display: none;" title="Play Game in Browser (RetroArch Arcade)">
           <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
             <path d="M8 5v14l11-7z"/>
           </svg>
@@ -3182,10 +3182,24 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       if (CAN_ACCESS_PLAYER && isEmulable && webCore && mainFile && mainFile.id) {
         btnPlayGame.style.display = 'inline-flex';
         btnPlayGame.href = `/player?core=${encodeURIComponent(webCore)}&file_id=${encodeURIComponent(mainFile.id)}`;
+        btnPlayGame.target = '_blank';
+        btnPlayGame.rel = 'noopener noreferrer';
         btnPlayGame.title = `Play ${game.title || 'game'} in browser (${webCore})`;
+        btnPlayGame.onclick = () => {
+          if (detailDownloadedBadge) detailDownloadedBadge.style.display = 'inline-flex';
+          if (detailPlayedBadge) detailPlayedBadge.style.display = 'inline-flex';
+          if (detailDownloadsCount) {
+            const cur = parseInt(detailDownloadsCount.textContent.replace(/,/g, ''), 10) || 0;
+            detailDownloadsCount.textContent = (cur + 1).toLocaleString();
+          }
+          if (activeGame && activeGame.id) {
+            detailCache.delete(Number(activeGame.id));
+          }
+        };
       } else {
         btnPlayGame.style.display = 'none';
         btnPlayGame.removeAttribute('href');
+        btnPlayGame.onclick = null;
       }
     }
 

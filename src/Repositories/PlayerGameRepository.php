@@ -144,6 +144,99 @@ final class PlayerGameRepository
     }
 
     /**
+     * Records a game browser play event for a player:
+     * - Counts as both downloaded and played in player personal records.
+     * - If no entry exists for this game and player:
+     *     - creates a new entry
+     *     - is_downloaded = 1
+     *     - first_download_date = CURRENT_TIMESTAMP
+     *     - last_download_date = CURRENT_TIMESTAMP
+     *     - download_count = 1
+     *     - is_played = 1
+     *     - played_date = CURRENT_TIMESTAMP
+     *     - is_won = 0, win_date = NULL
+     * - If an entry already exists:
+     *     - is_downloaded = 1
+     *     - download_count = download_count + 1
+     *     - first_download_date = COALESCE(first_download_date, CURRENT_TIMESTAMP)
+     *     - last_download_date = CURRENT_TIMESTAMP
+     *     - is_played = 1
+     *     - played_date = COALESCE(played_date, CURRENT_TIMESTAMP)
+     *     - updated = CURRENT_TIMESTAMP
+     *
+     * @param int $playerId
+     * @param int $gameId
+     * @return array<string, mixed> The inserted or updated record.
+     */
+    public function recordBrowserPlay(int $playerId, int $gameId): array
+    {
+        $existing = $this->findByPlayerAndGame($playerId, $gameId);
+
+        if ($existing === null) {
+            $sql = "
+                INSERT INTO `player_games` (
+                    `player_id`,
+                    `game_id`,
+                    `is_downloaded`,
+                    `first_download_date`,
+                    `last_download_date`,
+                    `download_count`,
+                    `is_played`,
+                    `played_date`,
+                    `is_won`,
+                    `win_date`,
+                    `created`,
+                    `updated`
+                ) VALUES (
+                    :player_id,
+                    :game_id,
+                    1,
+                    CURRENT_TIMESTAMP,
+                    CURRENT_TIMESTAMP,
+                    1,
+                    1,
+                    CURRENT_TIMESTAMP,
+                    0,
+                    NULL,
+                    CURRENT_TIMESTAMP,
+                    CURRENT_TIMESTAMP
+                )
+            ";
+
+            Database::execute($sql, [
+                ':player_id' => $playerId,
+                ':game_id'   => $gameId,
+            ]);
+
+            $newId = (int)Database::lastInsertId();
+            return $this->getById($newId) ?? [];
+        }
+
+        // If last_download_date was within the last 10 seconds for this player and game, avoid double-incrementing download_count
+        $isVeryRecent = !empty($existing['last_download_date']) && (time() - strtotime((string)$existing['last_download_date'])) < 10;
+        $incDownload = $isVeryRecent ? 0 : 1;
+
+        $sql = "
+            UPDATE `player_games`
+            SET `is_downloaded`       = 1,
+                `download_count`      = `download_count` + :inc_download,
+                `first_download_date` = COALESCE(`first_download_date`, CURRENT_TIMESTAMP),
+                `last_download_date`  = CURRENT_TIMESTAMP,
+                `is_played`           = 1,
+                `played_date`         = COALESCE(`played_date`, CURRENT_TIMESTAMP),
+                `updated`             = CURRENT_TIMESTAMP
+            WHERE `id` = :id
+        ";
+
+        Database::execute($sql, [
+            ':id'           => (int)$existing['id'],
+            ':inc_download' => $incDownload,
+        ]);
+
+        return $this->getById((int)$existing['id']) ?? [];
+    }
+
+    /**
      * Retrieve all game statistics for a specific player.
      *
      * @param int $playerId
