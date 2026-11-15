@@ -1656,6 +1656,10 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
               </a>
             </span>
           </div>
+          <div class="con-detail-spec-row">
+            <span class="spec-label">Web Emulated</span>
+            <span class="spec-value" id="detailWebEmulatedValue">No</span>
+          </div>
 
           <!-- Description / Comments: Under base info, justified, arranged around images if needed -->
           <div class="con-detail-comments-block" id="detailNotesSection" style="display: none;">
@@ -1837,6 +1841,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const detailGenValue = document.getElementById('detailGenValue');
   const detailGamesCountValue = document.getElementById('detailGamesCountValue');
   const detailGamesBadgeLink = document.getElementById('detailGamesBadgeLink');
+  const detailWebEmulatedValue = document.getElementById('detailWebEmulatedValue');
 
   // Detail View Subsections
   const detailNotesSeparator = document.getElementById('detailNotesSeparator');
@@ -2486,6 +2491,25 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       }
     }
     detailGamesCountValue.textContent = `${gamesCount} ${gamesCount === 1 ? 'Game' : 'Games'}`;
+
+    // Web Emulated flag
+    if (detailWebEmulatedValue) {
+      let isWeb = Number(con.is_browser_emulable) === 1;
+      if (!isWeb && Number(con.is_for_reference) === 1 && Number(con.master_reference_id) > 0) {
+        const masterCon = ALL_CONSOLES.find(c => Number(c.id) === Number(con.master_reference_id));
+        if (masterCon && Number(masterCon.is_browser_emulable) === 1) {
+          isWeb = true;
+        }
+      }
+      let coreName = con.web_core || '';
+      if (!coreName && Number(con.is_for_reference) === 1 && Number(con.master_reference_id) > 0) {
+        const masterCon = ALL_CONSOLES.find(c => Number(c.id) === Number(con.master_reference_id));
+        if (masterCon && masterCon.web_core) {
+          coreName = masterCon.web_core;
+        }
+      }
+      detailWebEmulatedValue.textContent = isWeb ? (coreName ? 'Yes (' + coreName + ')' : 'Yes') : 'No';
+    }
 
     const gamesCatalogUrl = `/games-portal?console_id=${con.id}&console=${encodeURIComponent(con.name)}&mode=list`;
     if (detailGamesBadgeLink) {

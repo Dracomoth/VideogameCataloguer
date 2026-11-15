@@ -52,7 +52,7 @@ final class DownloadRepository
             SELECT *
             FROM `downloadable_files`
             WHERE console_id = :console_id
-            ORDER BY display_name ASC
+            ORDER BY is_main DESC, display_name ASC
         ";
         return Database::fetchAll($sql, [':console_id' => $consoleId]);
     }
@@ -69,7 +69,7 @@ final class DownloadRepository
             SELECT *
             FROM `downloadable_files`
             WHERE game_id = :game_id
-            ORDER BY display_name ASC
+            ORDER BY is_main DESC, display_name ASC
         ";
         return Database::fetchAll($sql, [':game_id' => $gameId]);
     }
@@ -126,6 +126,7 @@ final class DownloadRepository
                 display_name,
                 storage_provider,
                 file_key_or_url,
+                is_main,
                 download_count
             ) VALUES (
                 :console_id,
@@ -133,6 +134,7 @@ final class DownloadRepository
                 :display_name,
                 :storage_provider,
                 :file_key_or_url,
+                :is_main,
                 :download_count
             )
         ";
@@ -143,6 +145,7 @@ final class DownloadRepository
             ':display_name'      => trim((string)($data['display_name'] ?? '')),
             ':storage_provider'  => ($data['storage_provider'] ?? '') === 'blackblaze' ? 'blackblaze' : 'external',
             ':file_key_or_url'   => trim((string)($data['file_key_or_url'] ?? '')),
+            ':is_main'           => !empty($data['is_main']) ? 1 : 0,
             ':download_count'    => (int)($data['download_count'] ?? 0),
         ]);
 
@@ -164,7 +167,8 @@ final class DownloadRepository
                 game_id = :game_id,
                 display_name = :display_name,
                 storage_provider = :storage_provider,
-                file_key_or_url = :file_key_or_url
+                file_key_or_url = :file_key_or_url,
+                is_main = :is_main
             WHERE id = :id
         ";
 
@@ -175,6 +179,7 @@ final class DownloadRepository
             ':display_name'      => trim((string)($data['display_name'] ?? '')),
             ':storage_provider'  => ($data['storage_provider'] ?? '') === 'blackblaze' ? 'blackblaze' : 'external',
             ':file_key_or_url'   => trim((string)($data['file_key_or_url'] ?? '')),
+            ':is_main'           => !empty($data['is_main']) ? 1 : 0,
         ]) >= 0;
     }
 

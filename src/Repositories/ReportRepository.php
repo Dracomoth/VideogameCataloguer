@@ -66,6 +66,8 @@ final class ReportRepository
         'emulator_android_link' => 'Android Emulator URL',
         'retroarch_core'        => 'RetroArch Core',
         'core_link'             => 'Core Link',
+        'is_browser_emulable'   => 'Web Emulated',
+        'web_core'              => 'Web Core',
         'comments'              => 'Comments & Notes',
         'first_name'            => 'First Name',
         'last_name'             => 'Last Name',

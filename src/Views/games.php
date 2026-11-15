@@ -442,6 +442,14 @@ if (!defined('APP_INIT')) {
   border-color: var(--border-focus);
   outline: none;
 }
+.rom-edit-table input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
+  accent-color: var(--primary, #0284c7);
+  transform: scale(1.15);
+  margin: 0 auto;
+  display: block;
+}
 </style>
 
 <div class="workspace-games">
@@ -757,9 +765,10 @@ if (!defined('APP_INIT')) {
               <table class="rom-edit-table">
                 <thead>
                   <tr>
-                    <th style="width: 32%;">Display Name</th>
-                    <th style="width: 25%;">Storage</th>
-                    <th style="width: 35%;">Path or URL</th>
+                    <th style="width: 10%; text-align: center;">Main</th>
+                    <th style="width: 30%;">Display Name</th>
+                    <th style="width: 22%;">Storage</th>
+                    <th style="width: 30%;">Path or URL</th>
                     <th style="width: 8%; text-align: center;"></th>
                   </tr>
                 </thead>
@@ -1352,7 +1361,7 @@ function renderRomEditGrid() {
   tbody.innerHTML = '';
 
   if (workingGameFiles.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 12px; font-style: italic;">No files in list. Click "+ Add File" above.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 12px; font-style: italic;">No files in list. Click "+ Add File" above.</td></tr>';
     return;
   }
 
@@ -1363,8 +1372,12 @@ function renderRomEditGrid() {
     const displayName = file.display_name || '';
     const storage = file.storage_provider === 'blackblaze' ? 'blackblaze' : 'external';
     const pathOrUrl = file.file_key_or_url || '';
+    const isMain = Number(file.is_main) === 1;
 
     tr.innerHTML = `
+      <td style="text-align: center;">
+        <input type="checkbox" class="rom-input-main" ${isMain ? 'checked' : ''} onchange="setRomMainFile(${index}, this.checked)" title="Set as main download">
+      </td>
       <td>
         <input type="text" class="rom-input-name" placeholder="Display name" value="${escapeHtml(displayName)}" onchange="updateWorkingGameFile(${index}, 'display_name', this.value)">
       </td>
@@ -1386,6 +1399,23 @@ function renderRomEditGrid() {
 }
 
 /**
+ * Sets a specific file as main, unchecking any other file (mutually exclusive)
+ */
+function setRomMainFile(index, checked) {
+  syncWorkingGameFilesFromDom();
+  if (checked) {
+    workingGameFiles.forEach((f, i) => {
+      f.is_main = (i === index) ? 1 : 0;
+    });
+  } else {
+    if (workingGameFiles[index]) {
+      workingGameFiles[index].is_main = 0;
+    }
+  }
+  renderRomEditGrid();
+}
+
+/**
  * Updates a field on a working game file item
  */
 function updateWorkingGameFile(index, field, value) {
@@ -1398,11 +1428,13 @@ function updateWorkingGameFile(index, field, value) {
  * Appends a new blank row to the edit grid
  */
 function addRomGridRow() {
+  const isFirst = workingGameFiles.length === 0;
   workingGameFiles.push({
     id: null,
     display_name: '',
     storage_provider: 'blackblaze',
-    file_key_or_url: ''
+    file_key_or_url: '',
+    is_main: isFirst ? 1 : 0
   });
   renderRomEditGrid();
   setTimeout(() => {
@@ -1417,7 +1449,11 @@ function addRomGridRow() {
  * Deletes a row from the edit grid
  */
 function deleteRomGridRow(index) {
+  const wasMain = Number(workingGameFiles[index]?.is_main) === 1;
   workingGameFiles.splice(index, 1);
+  if (wasMain && workingGameFiles.length > 0) {
+    workingGameFiles[0].is_main = 1;
+  }
   renderRomEditGrid();
 }
 
@@ -1443,6 +1479,15 @@ function acceptRomEditMode() {
     (f.file_key_or_url && f.file_key_or_url.trim() !== '')
   );
 
+  // If there are files, exactly one must be selected as main
+  if (cleanWorking.length > 0) {
+    const hasMain = cleanWorking.some(f => Number(f.is_main) === 1);
+    if (!hasMain) {
+      showToast('Game cannot be saved if there is at least one download file and no file has been selected as main.', 'error');
+      return false;
+    }
+  }
+
   const hasChanges = detectGameFilesChanged(currentGameFiles, cleanWorking);
 
   if (!hasChanges) {
@@ -1458,6 +1503,7 @@ function acceptRomEditMode() {
   document.getElementById('romFilesEditMode').style.display = 'none';
   document.getElementById('romFilesViewMode').style.display = 'block';
   renderRomViewMode();
+  return true;
 }
 
 /**
@@ -1468,9 +1514,11 @@ function syncWorkingGameFilesFromDom() {
   rows.forEach((tr, i) => {
     const idx = tr.dataset.index !== undefined ? parseInt(tr.dataset.index, 10) : i;
     if (!isNaN(idx) && workingGameFiles[idx]) {
+      const mainCheckbox = tr.querySelector('.rom-input-main');
       const nameInput = tr.querySelector('.rom-input-name');
       const storageSelect = tr.querySelector('.rom-select-storage');
       const pathInput = tr.querySelector('.rom-input-path');
+      if (mainCheckbox) workingGameFiles[idx].is_main = mainCheckbox.checked ? 1 : 0;
       if (nameInput) workingGameFiles[idx].display_name = nameInput.value.trim();
       if (storageSelect) workingGameFiles[idx].storage_provider = storageSelect.value;
       if (pathInput) workingGameFiles[idx].file_key_or_url = pathInput.value.trim();
@@ -1489,6 +1537,7 @@ function detectGameFilesChanged(original, modified) {
     if ((o.display_name || '').trim() !== (m.display_name || '').trim()) return true;
     if ((o.storage_provider || 'external') !== (m.storage_provider || 'external')) return true;
     if ((o.file_key_or_url || '').trim() !== (m.file_key_or_url || '').trim()) return true;
+    if (Number(o.is_main || 0) !== Number(m.is_main || 0)) return true;
   }
   return false;
 }
@@ -1572,7 +1621,23 @@ async function handleSave(e) {
     // If user is currently editing files in the grid, auto-accept before submit
     const editMode = document.getElementById('romFilesEditMode');
     if (editMode && editMode.style.display !== 'none') {
-      acceptRomEditMode();
+      if (!acceptRomEditMode()) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '💾 Save Game';
+        return;
+      }
+    }
+
+    // Validation: Game cannot be saved if there is at least one download file and no file has been selected as main.
+    const activeFiles = hasPendingFileChanges ? pendingGameFiles : currentGameFiles;
+    if (activeFiles && activeFiles.length > 0) {
+      const hasMain = activeFiles.some(f => Number(f.is_main) === 1);
+      if (!hasMain) {
+        showToast('Game cannot be saved if there is at least one download file and no file has been selected as main.', 'error');
+        saveBtn.disabled = false;
+        saveBtn.textContent = '💾 Save Game';
+        return;
+      }
     }
 
     const formElement = document.getElementById('gameForm');

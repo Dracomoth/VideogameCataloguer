@@ -34,6 +34,7 @@ $portalPlayerId = (int)(\Vault\Auth\Auth::id() ?? 1);
 $canAccessPublishers = \Vault\Auth\Auth::canRead('publishers_portal');
 $canAccessConsoles   = \Vault\Auth\Auth::canRead('consoles_portal');
 $canWriteGames       = \Vault\Auth\Auth::canWrite('games_portal');
+$canAccessPlayer     = \Vault\Auth\Auth::canRead('player');
 
 // 1. Ensure repository data is available self-contained
 if (!isset($games) || !is_array($games)) {
@@ -759,6 +760,45 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   color: #facc15;
   border: 1.5px solid #eab308;
   box-shadow: 0 0 8px rgba(234, 179, 8, 0.3);
+}
+
+/* Play in Browser (RetroArch Arcade Button) */
+.btn-arcade-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff !important;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: var(--radius-md, 8px);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none !important;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-left: auto;
+}
+.btn-arcade-play:hover {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  box-shadow: 0 6px 22px rgba(14, 165, 233, 0.5);
+  transform: translateY(-1px);
+  border-color: rgba(56, 189, 248, 0.7);
+}
+.btn-arcade-play svg {
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+.btn-arcade-play:hover svg {
+  transform: scale(1.18);
+}
+@media (max-width: 640px) {
+  .btn-arcade-play {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* Player Collection Status & Downloads Indicators */
@@ -1814,7 +1854,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   <section id="gameDetailContainer" class="game-detail-view" style="display: none;" aria-label="Game Details">
     <!-- 1. Header Card (Title Row with Badge, Left Images Box, Right Specs & Wrapping Description) -->
     <div class="game-detail-header-card">
-      <!-- Title Row: Title Above Everything, Aligned to the Left + Badges (Status, Downloaded, Played, Won) -->
+      <!-- Title Row: Title Above Everything, Aligned to the Left + Badges (Status, Downloaded, Played, Won) + Play Button -->
       <div class="game-detail-title-row">
         <h1 class="game-detail-name" id="detailGameTitle">Game Title</h1>
         <div class="game-detail-badges-group" id="detailBadgesGroup">
@@ -1823,6 +1863,12 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
           <span class="badge-status badge-player-played" id="detailPlayedBadge" style="display: none;">Played</span>
           <span class="badge-status badge-player-won" id="detailWonBadge" style="display: none;">★ Won</span>
         </div>
+        <a href="#" class="btn-arcade-play" id="btnPlayGame" style="display: none;" title="Play Game in Browser (RetroArch Arcade)">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+          <span>Play in Browser</span>
+        </a>
       </div>
 
       <!-- Main Content Flow: Left Floated Images Box + Right Specs + Description wrapping around images if needed -->
@@ -2044,6 +2090,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const CAN_ACCESS_PUBLISHERS = <?= json_encode($canAccessPublishers) ?>;
   const CAN_ACCESS_CONSOLES   = <?= json_encode($canAccessConsoles) ?>;
   const CAN_WRITE_GAMES       = <?= json_encode($canWriteGames) ?>;
+  const CAN_ACCESS_PLAYER     = <?= json_encode($canAccessPlayer) ?>;
 
   // Active Controller State
   let currentMode               = 'list'; // 'list' | 'detail'
@@ -2094,6 +2141,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const detailScreenshotBox     = document.getElementById('detailScreenshotBox');
   const detailScreenshotImg     = document.getElementById('detailScreenshotImg');
   const detailGameTitle         = document.getElementById('detailGameTitle');
+  const btnPlayGame             = document.getElementById('btnPlayGame');
   const detailGameStatusBadge   = document.getElementById('detailGameStatusBadge');
   const detailDownloadedBadge   = document.getElementById('detailDownloadedBadge');
   const detailPlayedBadge       = document.getElementById('detailPlayedBadge');
@@ -3058,7 +3106,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     if (cachedDetail && Number(cachedDetail.game?.id) === Number(gameItem.id)) {
       if (cachedDetail.game) {
         Object.assign(activeGame, cachedDetail.game);
-        populateGameHeader(cachedDetail.game);
+        populateGameHeader(cachedDetail.game, cachedDetail.files);
       }
       populateDetailSubsections(cachedDetail);
       return;
@@ -3078,7 +3126,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       populateDetailSubsections(payload);
       if (payload.game) {
         Object.assign(activeGame, payload.game);
-        populateGameHeader(payload.game);
+        populateGameHeader(payload.game, payload.files);
       }
     } catch (err) {
       console.warn('API detail fetch fallback:', err);
@@ -3096,7 +3144,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   /**
    * Populates the Top Game Detail Card: Images, Title, Status Badge, Maker, Console, Year, Categories, Tags
    */
-  function populateGameHeader(game) {
+  function populateGameHeader(game, files = null) {
     // 1. Title
     detailGameTitle.textContent = game.title || 'Untitled Game';
 
@@ -3119,6 +3167,26 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     }
     if (detailWonBadge) {
       detailWonBadge.style.display = (isDownloaded && isPlayed && isWon) ? 'inline-flex' : 'none';
+    }
+
+    // 2c. Arcade Web Player Button (Only if user has player read/write permission AND console is_browser_emulable with web_core AND main download exists)
+    if (btnPlayGame) {
+      const conId = Number(game.console_id || (activeGame && activeGame.console_id) || 0);
+      const conObj = ALL_CONSOLES.find(c => Number(c.id) === conId);
+      const isEmulable = (Number(game.console_is_browser_emulable) === 1) || (conObj && (Number(conObj.is_browser_emulable) === 1 || conObj.is_browser_emulable === true));
+      const webCore = ((game.console_web_core || (conObj && conObj.web_core)) || '').trim();
+
+      const candidateFiles = Array.isArray(files) && files.length > 0 ? files : (game.downloadable_files || (activeGame && activeGame.downloadable_files) || []);
+      const mainFile = (candidateFiles || []).find(f => Number(f.is_main) === 1) || ((candidateFiles && candidateFiles.length > 0) ? candidateFiles[0] : null);
+
+      if (CAN_ACCESS_PLAYER && isEmulable && webCore && mainFile && mainFile.id) {
+        btnPlayGame.style.display = 'inline-flex';
+        btnPlayGame.href = `/player?core=${encodeURIComponent(webCore)}&file_id=${encodeURIComponent(mainFile.id)}`;
+        btnPlayGame.title = `Play ${game.title || 'game'} in browser (${webCore})`;
+      } else {
+        btnPlayGame.style.display = 'none';
+        btnPlayGame.removeAttribute('href');
+      }
     }
 
     // 2c. Global Downloads Count
@@ -3343,7 +3411,12 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         detailFilesCountBadge.textContent = '0 files';
       }
     } else {
-      const files = Array.isArray(data.files) ? data.files : (game.downloadable_files || []);
+      const rawFiles = Array.isArray(data.files) ? data.files : (game.downloadable_files || []);
+      // Ensure main download is first on the list
+      const files = [...rawFiles].sort((a, b) => Number(b.is_main || 0) - Number(a.is_main || 0));
+
+      // Refresh play button with resolved files list
+      populateGameHeader(game, files);
 
       if (files.length > 0) {
         detailDownloadsSubsection.style.display = 'flex';

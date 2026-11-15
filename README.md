@@ -160,7 +160,7 @@ cd VideogameCataloguer
 
 ### Step 3: Initialize & Migrate the Database
 
-Execute the SQL scripts inside the `database/` directory **in numerical order** (`01` through `14`) against your MySQL/MariaDB database (note: `00_old_db_normalization.sql` is only used when migrating from the legacy Access/PHP schema and should be skipped on a fresh install).
+Execute the SQL scripts inside the `database/` directory **in numerical order** (`01` through `15`) against your MySQL/MariaDB database (note: `00_old_db_normalization.sql` is only used when migrating from the legacy Access/PHP schema and should be skipped on a fresh install).
 
 Using the MySQL CLI (or importing sequentially via **phpMyAdmin**):
 
@@ -179,6 +179,7 @@ mysql -u <db_user> -p <db_name> < database/11_broken_links.sql
 mysql -u <db_user> -p <db_name> < database/12_button_mappings.sql
 mysql -u <db_user> -p <db_name> < database/13_publisher_timestamps.sql
 mysql -u <db_user> -p <db_name> < database/14_user_username.sql
+mysql -u <db_user> -p <db_name> < database/15_browser_emulation.sql
 ```
 
 ---

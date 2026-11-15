@@ -75,6 +75,8 @@ final class ConsoleRepository
                 c.emulator_android_link,
                 c.retroarch_core,
                 c.core_link,
+                c.is_browser_emulable,
+                c.web_core,
                 p.name AS maker_name,
                 COUNT(DISTINCT g.id) AS games_count,
                 COUNT(DISTINCT g.id) AS game_count
@@ -141,6 +143,8 @@ final class ConsoleRepository
                 c.emulator_android_link,
                 c.retroarch_core,
                 c.core_link,
+                c.is_browser_emulable,
+                c.web_core,
                 p.name AS maker_name,
                 COUNT(DISTINCT g.id) AS games_count,
                 COUNT(DISTINCT g.id) AS game_count
@@ -523,6 +527,12 @@ final class ConsoleRepository
         $emulatorAndroid    = trim((string)($data['emulator_android'] ?? '')) ?: null;
         $emulatorAndroidLink= trim(trim((string)($data['emulator_android_link'] ?? '')), '#') ?: null;
         $retroarchCore      = trim((string)($data['retroarch_core'] ?? '')) ?: null;
+        $isBrowserEmulable  = !empty($data['is_browser_emulable']) ? 1 : 0;
+        $webCore            = $isBrowserEmulable ? (trim((string)($data['web_core'] ?? '')) ?: null) : null;
+
+        if ($isBrowserEmulable && empty($webCore)) {
+            throw new InvalidArgumentException("Please specify a Web Core name for web emulated consoles.");
+        }
         $coreLink           = trim(trim((string)($data['core_link'] ?? '')), '#') ?: null;
 
         $masterReferenceId  = null;
@@ -549,7 +559,7 @@ final class ConsoleRepository
                 `image_path`, `logo_path`, `comments`,
                 `emulator`, `emulator_link`,
                 `emulator_android`, `emulator_android_link`,
-                `retroarch_core`, `core_link`,
+                `retroarch_core`, `core_link`, `is_browser_emulable`, `web_core`,
                 `created`, `updated`
             ) VALUES (
                 :name, :publisher_id, :year, :generation,
@@ -557,7 +567,7 @@ final class ConsoleRepository
                 NULL, NULL, :comments,
                 :emulator, :emulator_link,
                 :emulator_android, :emulator_android_link,
-                :retroarch_core, :core_link,
+                :retroarch_core, :core_link, :is_browser_emulable, :web_core,
                 :created, :updated
             )
         ";
@@ -577,6 +587,8 @@ final class ConsoleRepository
             ':emulator_android_link'=> $emulatorAndroidLink,
             ':retroarch_core'       => $retroarchCore,
             ':core_link'            => $coreLink,
+            ':is_browser_emulable'  => $isBrowserEmulable,
+            ':web_core'             => $webCore,
             ':created'              => $now,
             ':updated'              => $now,
         ]);
@@ -679,6 +691,12 @@ final class ConsoleRepository
         $emulatorAndroid    = trim((string)($data['emulator_android'] ?? '')) ?: null;
         $emulatorAndroidLink= trim(trim((string)($data['emulator_android_link'] ?? '')), '#') ?: null;
         $retroarchCore      = trim((string)($data['retroarch_core'] ?? '')) ?: null;
+        $isBrowserEmulable  = !empty($data['is_browser_emulable']) ? 1 : 0;
+        $webCore            = $isBrowserEmulable ? (trim((string)($data['web_core'] ?? '')) ?: null) : null;
+
+        if ($isBrowserEmulable && empty($webCore)) {
+            throw new InvalidArgumentException("Please specify a Web Core name for web emulated consoles.");
+        }
         $coreLink           = trim(trim((string)($data['core_link'] ?? '')), '#') ?: null;
 
         $masterReferenceId  = null;
@@ -797,6 +815,8 @@ final class ConsoleRepository
                 `emulator_android_link` = :emulator_android_link,
                 `retroarch_core`        = :retroarch_core,
                 `core_link`             = :core_link,
+                `is_browser_emulable`   = :is_browser_emulable,
+                `web_core`              = :web_core,
                 `updated`               = :updated
             WHERE `id` = :id
         ";
@@ -821,6 +841,8 @@ final class ConsoleRepository
             ':emulator_android_link'=> $emulatorAndroidLink,
             ':retroarch_core'       => $retroarchCore,
             ':core_link'            => $coreLink,
+            ':is_browser_emulable'  => $isBrowserEmulable,
+            ':web_core'             => $webCore,
             ':updated'              => $now,
             ':id'                   => $id,
         ]);
@@ -902,6 +924,8 @@ final class ConsoleRepository
         $row['badge_bg_color']           = (string)($row['badge_bg_color'] ?? '#1E3A8A');
         $row['badge_font_color']         = (string)($row['badge_font_color'] ?? '#93C5FD');
         $row['is_for_reference']         = (int)($row['is_for_reference'] ?? 0);
+        $row['is_browser_emulable']       = (int)($row['is_browser_emulable'] ?? 0);
+        $row['web_core']                  = (string)($row['web_core'] ?? '');
         $row['master_reference_id']      = !empty($row['master_reference_id']) ? (int)$row['master_reference_id'] : null;
         $row['master_console_id']        = $row['master_reference_id'];
         $row['master_console_name']      = (string)($row['master_console_name'] ?? '');

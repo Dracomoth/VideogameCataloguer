@@ -160,7 +160,7 @@ final class BulkUploadRepository
                     'label' => 'Consoles (Hardware Platforms)',
                     'icon'  => '🕹️',
                     'primary_key' => 'id',
-                    'recognized_headers' => 'name, publisher_id, year, generation, console_type_id, image_path, logo_path, comments, emulator, emulator_link, emulator_android, emulator_android_link, retroarch_core, core_link, is_for_reference, master_reference_id',
+                    'recognized_headers' => 'name, publisher_id, year, generation, console_type_id, image_path, logo_path, comments, emulator, emulator_link, emulator_android, emulator_android_link, retroarch_core, core_link, is_browser_emulable, web_core, is_for_reference, master_reference_id',
                     'columns' => [
                         'name' => [
                             'name' => 'name',
@@ -256,6 +256,20 @@ final class BulkUploadRepository
                             'label' => 'Core Documentation URL',
                             'type' => 'text',
                             'required' => false,
+                        ],
+                        'is_browser_emulable' => [
+                            'name' => 'is_browser_emulable',
+                            'label' => 'Web Emulated',
+                            'type' => 'boolean',
+                            'required' => false,
+                            'default' => 0,
+                        ],
+                        'web_core' => [
+                            'name' => 'web_core',
+                            'label' => 'Web Core',
+                            'type' => 'string',
+                            'required' => false,
+                            'max_length' => 255,
                         ],
                         'is_for_reference' => [
                             'name' => 'is_for_reference',

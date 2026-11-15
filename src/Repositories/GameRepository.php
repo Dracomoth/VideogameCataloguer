@@ -58,6 +58,8 @@ final class GameRepository
                 g.created,
                 g.updated,
                 c.name AS console_name,
+                c.is_browser_emulable AS console_is_browser_emulable,
+                c.web_core AS console_web_core,
                 cat.name AS category_name,
                 sub.name AS subcategory_name,
                 pub.name AS publisher_name,
@@ -74,7 +76,7 @@ final class GameRepository
         $rows = Database::fetchAll($sql);
 
         // Fetch attached downloadable files for all games
-        $allFiles = Database::fetchAll("SELECT * FROM `downloadable_files` WHERE game_id IS NOT NULL ORDER BY display_name ASC");
+        $allFiles = Database::fetchAll("SELECT * FROM `downloadable_files` WHERE game_id IS NOT NULL ORDER BY is_main DESC, display_name ASC");
         $filesByGame = [];
         foreach ($allFiles as $f) {
             $filesByGame[(int)$f['game_id']][] = $f;
@@ -112,6 +114,8 @@ final class GameRepository
                 g.created,
                 g.updated,
                 c.name AS console_name,
+                c.is_browser_emulable AS console_is_browser_emulable,
+                c.web_core AS console_web_core,
                 cat.name AS category_name,
                 sub.name AS subcategory_name,
                 pub.name AS publisher_name,
@@ -133,7 +137,7 @@ final class GameRepository
 
         $record = $this->formatGameRecord($row);
         $record['downloadable_files'] = Database::fetchAll(
-            "SELECT * FROM `downloadable_files` WHERE game_id = :id ORDER BY display_name ASC",
+            "SELECT * FROM `downloadable_files` WHERE game_id = :id ORDER BY is_main DESC, display_name ASC",
             [':id' => $id]
         );
 
@@ -184,19 +188,53 @@ final class GameRepository
             $existingMap[(int)$ef['id']] = $ef;
         }
 
-        $retainedIds = [];
-
+        // Filter valid non-empty files
+        $validFiles = [];
         foreach ($files as $file) {
             if (!is_array($file)) continue;
+            $displayName  = trim((string)($file['display_name'] ?? ''));
+            $fileKeyOrUrl = trim((string)($file['file_key_or_url'] ?? ($file['path_or_url'] ?? '')));
+            if ($displayName === '' && $fileKeyOrUrl === '') {
+                continue;
+            }
+            $validFiles[] = $file;
+        }
 
+        // Validate: if there is at least one download file, exactly one must be selected as main
+        if (!empty($validFiles)) {
+            $hasMain = false;
+            foreach ($validFiles as $vf) {
+                if (!empty($vf['is_main'])) {
+                    $hasMain = true;
+                    break;
+                }
+            }
+            if (!$hasMain) {
+                throw new \InvalidArgumentException('Game cannot be saved if there is at least one download file and no file has been selected as main.');
+            }
+
+            // Ensure only one file is marked as main
+            $mainFound = false;
+            foreach ($validFiles as &$vf) {
+                if (!empty($vf['is_main'])) {
+                    if ($mainFound) {
+                        $vf['is_main'] = 0;
+                    } else {
+                        $mainFound = true;
+                    }
+                }
+            }
+            unset($vf);
+        }
+
+        $retainedIds = [];
+
+        foreach ($validFiles as $file) {
             $displayName     = trim((string)($file['display_name'] ?? ''));
             $storageProvider = ($file['storage_provider'] ?? '') === 'blackblaze' ? 'blackblaze' : 'external';
             $fileKeyOrUrl    = trim((string)($file['file_key_or_url'] ?? ($file['path_or_url'] ?? '')));
             $fileId          = !empty($file['id']) && is_numeric($file['id']) ? (int)$file['id'] : null;
-
-            if ($displayName === '' && $fileKeyOrUrl === '') {
-                continue;
-            }
+            $isMain          = !empty($file['is_main']) ? 1 : 0;
 
             if ($fileId !== null && isset($existingMap[$fileId])) {
                 // Update existing record
@@ -206,6 +244,7 @@ final class GameRepository
                     'display_name'     => $displayName,
                     'storage_provider' => $storageProvider,
                     'file_key_or_url'  => $fileKeyOrUrl,
+                    'is_main'          => $isMain,
                 ]);
                 $retainedIds[] = $fileId;
             } else {
@@ -216,6 +255,7 @@ final class GameRepository
                     'display_name'     => $displayName,
                     'storage_provider' => $storageProvider,
                     'file_key_or_url'  => $fileKeyOrUrl,
+                    'is_main'          => $isMain,
                     'download_count'   => 0,
                 ]);
                 $retainedIds[] = $newFileId;
@@ -610,6 +650,12 @@ final class GameRepository
         if (isset($row['is_won'])) {
             $row['is_won'] = (int)$row['is_won'];
         }
+        if (isset($row['console_is_browser_emulable'])) {
+            $row['console_is_browser_emulable'] = (int)$row['console_is_browser_emulable'];
+        }
+        if (isset($row['console_web_core'])) {
+            $row['console_web_core'] = $row['console_web_core'] !== null ? (string)$row['console_web_core'] : null;
+        }
 
         // Web accessible URLs for reading
         $row['screenshot_url'] = $screenshotPath !== '' ? ('/' . ltrim($screenshotPath, '/\\')) : '';
@@ -719,6 +765,8 @@ final class GameRepository
                 g.created,
                 g.updated,
                 c.name AS console_name,
+                c.is_browser_emulable AS console_is_browser_emulable,
+                c.web_core AS console_web_core,
                 cat.name AS category_name,
                 sub.name AS subcategory_name,
                 pub.name AS publisher_name,

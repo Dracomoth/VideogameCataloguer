@@ -684,6 +684,34 @@ if (!defined('APP_INIT')) {
             </div>
           </div>
 
+          <!-- Web Emulation Flag & Web Core -->
+          <div class="web-emulation-row" style="display: flex; align-items: center; gap: 12px; margin-top: 10px; margin-bottom: 6px; height: 36px; min-height: 36px;">
+            <label for="isBrowserEmulable" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text-main); margin: 0; user-select: none; height: 36px; flex-shrink: 0;">
+              <input 
+                type="checkbox" 
+                id="isBrowserEmulable" 
+                name="is_browser_emulable" 
+                value="1" 
+                onchange="handleBrowserEmulableChange(this.checked)"
+                style="cursor: pointer; width: 16px; height: 16px; margin: 0; accent-color: #0284c7;"
+                <?= !$canWrite ? 'disabled' : '' ?>
+              >
+              <span>🌐 Web Emulated</span>
+            </label>
+            <div id="webCoreContainer" style="display: none; align-items: center; gap: 8px; flex: 1; height: 36px; margin: 0;">
+              <label for="webCore" style="font-size: 12px; color: var(--text-muted); margin: 0; white-space: nowrap;">Web Core:</label>
+              <input 
+                type="text" 
+                id="webCore" 
+                name="web_core" 
+                class="form-control" 
+                placeholder="e.g. snes9x, mgba, nestopia" 
+                style="height: 36px; padding: 0 10px; font-size: 12.5px; flex: 1; box-sizing: border-box;"
+                <?= !$canWrite ? 'disabled' : '' ?>
+              >
+            </div>
+          </div>
+
           <!-- Button Mapping Images -->
           <div class="section-label" style="margin-top: 10px; margin-bottom: 4px;">Button Mapping Images</div>
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
@@ -1160,6 +1188,8 @@ function mapConsolesDataset(list) {
         }
       }
     }
+    row.is_browser_emulable = Number(row.is_browser_emulable || 0);
+    row.web_core = String(row.web_core || '');
     row.library_count = libCount;
   });
 }
@@ -1192,6 +1222,10 @@ function selectConsole(id) {
   
   const isRef = Number(record.is_for_reference) === 1;
   document.getElementById('isForReference').checked = isRef;
+  const isWeb = Number(record.is_browser_emulable) === 1;
+  document.getElementById('isBrowserEmulable').checked = isWeb;
+  document.getElementById('webCore').value = record.web_core || '';
+  handleBrowserEmulableChange(isWeb);
 
   const targetMasterId = (isRef && (record.master_reference_id || record.master_console_id))
     ? String(record.master_reference_id || record.master_console_id)
@@ -1292,6 +1326,9 @@ function resetForm() {
   document.getElementById('consoleId').value = '';
   document.getElementById('consoleTypeId').value = '';
   document.getElementById('isForReference').checked = false;
+  document.getElementById('isBrowserEmulable').checked = false;
+  document.getElementById('webCore').value = '';
+  handleBrowserEmulableChange(false);
 
   const masterGroup = document.getElementById('masterPlatformGroup');
   const masterSelect = document.getElementById('masterReferenceId');
@@ -1631,6 +1668,20 @@ function resetDropzonePreview(containerId, deleteBtnId, icon, label) {
  * When checked: validates eligibility, shows Master Platform dropdown, and ensures it appears clear.
  * When unchecked: hides Master Platform dropdown and clears selection.
  */
+function handleBrowserEmulableChange(isChecked) {
+  const container = document.getElementById('webCoreContainer');
+  const input = document.getElementById('webCore');
+  if (container) {
+    container.style.display = isChecked ? 'flex' : 'none';
+  }
+  if (input) {
+    input.required = isChecked;
+    if (isChecked) {
+      setTimeout(() => input.focus(), 50);
+    }
+  }
+}
+
 function handleReferenceChange(isChecked) {
   const masterGroup = document.getElementById('masterPlatformGroup');
   const masterSelect = document.getElementById('masterReferenceId');
@@ -1869,6 +1920,18 @@ async function handleSave(e) {
   if (isRef && (!masterId || masterId === '')) {
     showToast('Please select a Master Platform for this reference-only console.', 'error');
     document.getElementById('masterReferenceId').focus();
+    return;
+  }
+
+  const isWebEmulable = document.getElementById('isBrowserEmulable').checked;
+  const webCore = document.getElementById('webCore').value.trim();
+  if (isWebEmulable && !webCore) {
+    showToast('Web Core is required when Web Emulated is enabled.', 'error');
+    const details = document.querySelector('.emulation-details');
+    if (details && !details.open) {
+      details.open = true;
+    }
+    document.getElementById('webCore').focus();
     return;
   }
 

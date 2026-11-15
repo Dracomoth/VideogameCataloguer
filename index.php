@@ -219,6 +219,40 @@ $router->get('/console_portal', function () {
     Response::redirect('/consoles-portal');
 });
 
+// RetroArch Web Arcade Player Route (Protected by 'player' role permission)
+$router->get('/player', function () {
+    \Vault\Auth\Auth::requireAccess('player', 'read');
+    if (file_exists(__DIR__ . '/src/Views/player.php')) {
+        Response::html(View::render('player', ['navActive' => 'player', 'activeNav' => 'player'], null));
+        return;
+    }
+    Response::redirect('/games-portal');
+});
+$router->get('/player.html', function () {
+    \Vault\Auth\Auth::requireAccess('player', 'read');
+    if (file_exists(__DIR__ . '/src/Views/player.php')) {
+        Response::html(View::render('player', ['navActive' => 'player', 'activeNav' => 'player'], null));
+        return;
+    }
+    Response::redirect('/games-portal');
+});
+$router->get('/assets/emscripten/player.html', function () {
+    \Vault\Auth\Auth::requireAccess('player', 'read');
+    if (file_exists(__DIR__ . '/src/Views/player.php')) {
+        Response::html(View::render('player', ['navActive' => 'player', 'activeNav' => 'player'], null));
+        return;
+    }
+    Response::redirect('/games-portal');
+});
+$router->get('/assets/emscripten/player', function () {
+    \Vault\Auth\Auth::requireAccess('player', 'read');
+    if (file_exists(__DIR__ . '/src/Views/player.php')) {
+        Response::html(View::render('player', ['navActive' => 'player', 'activeNav' => 'player'], null));
+        return;
+    }
+    Response::redirect('/games-portal');
+});
+
 // Consoles Portal API Routes
 $router->get('/api/consoles-portal/console/{id}', function (array $req) {
     \Vault\Auth\Auth::requireAccess('consoles_portal', 'read');

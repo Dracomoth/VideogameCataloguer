@@ -12,6 +12,7 @@ use Vault\Repositories\DownloadRepository;
 use Vault\Services\DownloadHelper;
 use Vault\Services\Response;
 use Vault\Auth\Auth;
+use InvalidArgumentException;
 use Throwable;
 
 if (!defined('APP_INIT')) {
@@ -57,6 +58,12 @@ final class DownloadController
             $record = $result['record'];
             $url    = $result['url'];
 
+            // Check if client requested direct binary stream (e.g. web arcade player to avoid browser CORS)
+            if (!empty($request['query']['stream'])) {
+                $this->helper->streamFile($url, $record['display_name']);
+                return;
+            }
+
             // Check if caller explicitly requested JSON response (e.g. AJAX / fetch)
             $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
             $wantsJson = (!empty($request['query']['json']) && $request['query']['json'] === '1')
@@ -74,6 +81,8 @@ final class DownloadController
 
             // Direct browser trigger: redirect to download URL
             Response::redirect($url, 302);
+        } catch (InvalidArgumentException $e) {
+            Response::error($e->getMessage(), 404);
         } catch (Throwable $e) {
             Response::error('Download error: ' . $e->getMessage(), 500);
         }
@@ -104,6 +113,12 @@ final class DownloadController
             $record = $result['record'];
             $url    = $result['url'];
 
+            // Check if client requested direct binary stream (e.g. web arcade player to avoid browser CORS)
+            if (!empty($request['query']['stream'])) {
+                $this->helper->streamFile($url, $record['display_name']);
+                return;
+            }
+
             Response::json([
                 'id'               => $record['id'],
                 'display_name'     => $record['display_name'],
@@ -111,6 +126,8 @@ final class DownloadController
                 'url'              => $url,
                 'download_count'   => (int)$record['download_count'] + 1,
             ]);
+        } catch (InvalidArgumentException $e) {
+            Response::error($e->getMessage(), 404);
         } catch (Throwable $e) {
             Response::error('Download error: ' . $e->getMessage(), 500);
         }
