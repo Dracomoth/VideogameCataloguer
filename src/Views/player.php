@@ -122,6 +122,20 @@ if (is_dir($biosDir)) {
         }
     }
 }
+
+// Automatically scan server button remap files in /assets/emscripten/remaps/
+$remapsDir = dirname(__DIR__, 2) . '/assets/emscripten/remaps';
+$serverRemapFiles = [];
+if (is_dir($remapsDir)) {
+    $scannedRemaps = scandir($remapsDir);
+    if ($scannedRemaps !== false) {
+        foreach ($scannedRemaps as $rf) {
+            if ($rf !== '.' && $rf !== '..' && str_ends_with(strtolower($rf), '.rmp') && is_file($remapsDir . '/' . $rf)) {
+                $serverRemapFiles[] = $rf;
+            }
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -989,6 +1003,9 @@ if (is_dir($biosDir)) {
     // Server-scanned BIOS files from /assets/emscripten/bios/
     window.serverBiosFiles = <?= json_encode($serverBiosFiles, JSON_UNESCAPED_SLASHES) ?>;
 
+    // Server-scanned button remap files from /assets/emscripten/remaps/
+    window.serverRemapFiles = <?= json_encode($serverRemapFiles, JSON_UNESCAPED_SLASHES) ?>;
+
     // Server-preloaded console metadata & mappings
     window.consoleName = <?= json_encode($consoleName, JSON_UNESCAPED_SLASHES) ?>;
     window.consoleMappings = <?= json_encode($consoleMappings, JSON_UNESCAPED_SLASHES) ?>;
@@ -998,7 +1015,6 @@ if (is_dir($biosDir)) {
 
     let currentMappings = window.consoleMappings || {};
     let currentConsoleName = window.consoleName || 'Console';
-    let currentRomBasename = '';
 
     function escapeHtml(str) {
       if (!str) return '';
@@ -1285,15 +1301,64 @@ if (is_dir($biosDir)) {
 
     /**
      * Loads and mounts the active core's button remap (.rmp) into the Emscripten virtual filesystem.
-     * Target path: /home/web_user/userdata/config/remaps/${coreName}/${coreName}.rmp
+     * RetroArch looks for remap files using the internal library_name (e.g. "FCEUmm", "tia", etc.),
+     * which in Emscripten's case-sensitive Unix VFS must match the exact case.
      */
     async function loadCoreRemap(coreName, fs) {
       if (!coreName || !fs) return;
 
-      const remapUrl = `/assets/emscripten/remaps/${encodeURIComponent(coreName)}.rmp`;
+      const lowerCore = coreName.trim().toLowerCase();
+
+      // 1. Discover matching remap file from server (case-insensitive)
+      let remapFilename = null;
+      const remapList = Array.isArray(window.serverRemapFiles) ? window.serverRemapFiles : [];
+      
+      // Look for case-insensitive match in scanned server files
+      for (const rf of remapList) {
+        const base = rf.replace(/\.rmp$/i, '');
+        if (base.toLowerCase() === lowerCore) {
+          remapFilename = rf;
+          break;
+        }
+      }
+
+      // If not in scanned list, also check if libretroCores has a known alias
+      if (!remapFilename && window.libretroCores && window.libretroCores[lowerCore]) {
+        const title = window.libretroCores[lowerCore];
+        const match = title.match(/\(([^)]+)\)/);
+        if (match && match[1]) {
+          const alias = match[1].trim();
+          for (const rf of remapList) {
+            const base = rf.replace(/\.rmp$/i, '');
+            if (base.toLowerCase() === alias.toLowerCase()) {
+              remapFilename = rf;
+              break;
+            }
+          }
+        }
+      }
+
+      // Fallback filename if not discovered in scanned list
+      if (!remapFilename) {
+        remapFilename = `${coreName}.rmp`;
+      }
+
+      const remapUrl = `/assets/emscripten/remaps/${encodeURIComponent(remapFilename)}`;
 
       try {
-        const response = await fetch(remapUrl);
+        let response = await fetch(remapUrl);
+
+        // If direct fetch returned 404, try alternative casings
+        if (!response.ok && remapFilename.toLowerCase() !== `${lowerCore}.rmp`) {
+          const altUrl = `/assets/emscripten/remaps/${encodeURIComponent(lowerCore)}.rmp`;
+          try {
+            const altRes = await fetch(altUrl);
+            if (altRes.ok) {
+              response = altRes;
+              remapFilename = `${lowerCore}.rmp`;
+            }
+          } catch (_) {}
+        }
 
         if (response.status === 404) {
           console.warn(`[WebPlayer Remap] No custom button remap found for core '${coreName}' at ${remapUrl} (HTTP 404). Booting with core defaults.`);
@@ -1312,51 +1377,72 @@ if (is_dir($biosDir)) {
         }
 
         const remapData = new Uint8Array(remapBuffer);
-        const remapFilename = `${coreName}.rmp`;
+        const fileBasename = remapFilename.replace(/\.rmp$/i, '');
 
-        // Standard RetroArch remap locations in Emscripten VFS
-        const targetPaths = [
-          `/home/web_user/userdata/config/remaps/${coreName}/${remapFilename}`,
-          `/home/web_user/retroarch/userdata/config/remaps/${coreName}/${remapFilename}`,
-          `/home/web_user/retroarch/config/remaps/${coreName}/${remapFilename}`,
-          `/home/web/retroarch/config/remaps/${coreName}/${remapFilename}`
+        // 2. Gather ALL possible core name casing aliases
+        // In RetroArch, system->info.library_name determines the remap folder name.
+        // For example:
+        // - "tia" has library_name = "tia" (lowercase)
+        // - "fceumm" has library_name = "FCEUmm" (mixed case)
+        // - "genesis_plus_gx" has library_name = "Genesis Plus GX"
+        const coreAliases = new Set([
+          lowerCore,
+          coreName,
+          fileBasename
+        ]);
+
+        if (window.libretroCores && window.libretroCores[lowerCore]) {
+          const title = window.libretroCores[lowerCore];
+          const match = title.match(/\(([^)]+)\)/);
+          if (match && match[1]) {
+            coreAliases.add(match[1].trim());
+          }
+        }
+
+        // 3. Mount remap into VFS for every alias to guarantee exact case match in RetroArch
+        const baseRemapDirs = [
+          '/home/web_user/userdata/config/remaps',
+          '/home/web_user/retroarch/userdata/config/remaps',
+          '/home/web_user/retroarch/config/remaps',
+          '/home/web/retroarch/config/remaps'
         ];
 
-        targetPaths.forEach((fullPath) => {
-          const dirPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
+        coreAliases.forEach((alias) => {
+          baseRemapDirs.forEach((baseDir) => {
+            const dirPath = `${baseDir}/${alias}`;
 
-          // 1. Ensure directory hierarchy exists using FS.mkdirTree
-          if (typeof fs.mkdirTree === 'function') {
-            try {
-              fs.mkdirTree(dirPath);
-            } catch (dirErr) {
-              if (dirErr.code !== 'EEXIST') {
-                console.warn('[FS.mkdirTree Notice]', dirErr);
+            // Ensure directory exists
+            if (typeof fs.mkdirTree === 'function') {
+              try { fs.mkdirTree(dirPath); } catch (_) {}
+            } else {
+              const segments = dirPath.split('/').filter(Boolean);
+              let current = '';
+              for (const seg of segments) {
+                current += '/' + seg;
+                try { fs.mkdir(current); } catch (_) {}
               }
             }
-          } else {
-            const segments = dirPath.split('/').filter(Boolean);
-            let current = '';
-            for (const seg of segments) {
-              current += '/' + seg;
-              try { fs.mkdir(current); } catch (_) {}
-            }
-          }
 
-          // 2. Write binary buffer into Emscripten VFS
-          try {
-            try { fs.unlink(fullPath); } catch (_) {}
-            if (typeof fs.createDataFile === 'function') {
-              fs.createDataFile(dirPath, remapFilename, remapData, true, true, false);
-            } else if (typeof fs.writeFile === 'function') {
-              fs.writeFile(fullPath, remapData);
-            }
-          } catch (writeErr) {
-            console.warn(`[FS Remap Mount Notice] Could not write ${fullPath}:`, writeErr);
-          }
+            // Write core remap file: alias.rmp and fileBasename.rmp
+            const filenamesToWrite = new Set([`${alias}.rmp`, `${fileBasename}.rmp`]);
+
+            filenamesToWrite.forEach((fname) => {
+              const fullPath = `${dirPath}/${fname}`;
+              try {
+                try { fs.unlink(fullPath); } catch (_) {}
+                if (typeof fs.createDataFile === 'function') {
+                  fs.createDataFile(dirPath, fname, remapData, true, true, false);
+                } else if (typeof fs.writeFile === 'function') {
+                  fs.writeFile(fullPath, remapData);
+                }
+              } catch (writeErr) {
+                console.warn(`[FS Remap Mount Notice] Could not write ${fullPath}:`, writeErr);
+              }
+            });
+          });
         });
 
-        console.info(`[WebPlayer Remap] Successfully mounted remap for '${coreName}' (${remapBuffer.byteLength} bytes) at /home/web_user/userdata/config/remaps/${coreName}/${remapFilename}`);
+        console.info(`[WebPlayer Remap] Successfully mounted remap '${remapFilename}' (${remapBuffer.byteLength} bytes) for core aliases:`, Array.from(coreAliases));
       } catch (err) {
         console.warn(`[WebPlayer Remap] Failed to load remap for core '${coreName}':`, err);
       }
@@ -1631,9 +1717,6 @@ if (is_dir($biosDir)) {
         // Clean filename to prevent filesystem path issues
         const cleanName = romFilename.replace(/[^a-zA-Z0-9._-]/g, '_');
         const virtualRomPath = '/' + cleanName;
-        currentRomBasename = cleanName.lastIndexOf('.') > 0 
-          ? cleanName.substring(0, cleanName.lastIndexOf('.')) 
-          : cleanName;
 
         try {
           try { fs.unlink(virtualRomPath); } catch (_) {}

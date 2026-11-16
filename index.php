@@ -271,6 +271,24 @@ $router->get('/api/emscripten/bios', function () {
     Response::json(['files' => $files]);
 });
 
+// Emscripten Remaps Listing API Route
+$router->get('/api/emscripten/remaps', function () {
+    \Vault\Auth\Auth::requireAccess('player', 'read');
+    $remapsDir = __DIR__ . '/assets/emscripten/remaps';
+    $files = [];
+    if (is_dir($remapsDir)) {
+        $scanned = scandir($remapsDir);
+        if ($scanned !== false) {
+            foreach ($scanned as $f) {
+                if ($f !== '.' && $f !== '..' && str_ends_with(strtolower($f), '.rmp') && is_file($remapsDir . '/' . $f)) {
+                    $files[] = $f;
+                }
+            }
+        }
+    }
+    Response::json(['files' => $files]);
+});
+
 // RetroArch Player Metadata Resolution Route (console_id & game_id -> web_core & main download file_id)
 $router->get('/api/player/meta', function (array $req) {
     \Vault\Auth\Auth::requireAccess('player', 'read');
