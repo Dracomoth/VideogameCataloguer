@@ -23,9 +23,22 @@ $gameTitle = 'Web Arcade Player';
 $resolvedWebCore = $core;
 $resolvedFileId = $fileId;
 
-// 1. Resolve game and console records if gameId provided
+// Resolve game and console records if gameId or id provided
+$gameRepo = new \Vault\Repositories\GameRepository();
+if ($gameId <= 0 && !empty($_GET['id'])) {
+    $potentialGame = $gameRepo->getById((int)$_GET['id']);
+    if ($potentialGame) {
+        $gameId = (int)$potentialGame['id'];
+        if ($consoleId <= 0 && !empty($potentialGame['console_id'])) {
+            $consoleId = (int)$potentialGame['console_id'];
+        }
+        if (!empty($potentialGame['title'])) {
+            $gameTitle = (string)$potentialGame['title'];
+        }
+    }
+}
+
 if ($gameId > 0) {
-    $gameRepo = new \Vault\Repositories\GameRepository();
     $gameData = $gameRepo->getById($gameId);
     if ($gameData) {
         if (!empty($gameData['title'])) {
@@ -309,8 +322,10 @@ if (is_dir($biosDir)) {
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 16px;
+      padding: 14px 20px;
       overflow: hidden;
+      width: 100vw;
+      height: calc(100vh - 44px);
     }
 
     .arcade-bezel {
@@ -320,13 +335,14 @@ if (is_dir($biosDir)) {
       justify-content: center;
       width: 100%;
       height: 100%;
-      max-width: 1000px;
-      max-height: calc(100vh - 120px);
+      max-width: min(1000px, calc(100vw - 640px));
+      max-height: calc(100vh - 68px);
       background: #000;
       border: 2px solid var(--player-border);
       border-radius: 8px;
       box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7), 0 0 24px rgba(2, 132, 199, 0.15);
       overflow: hidden;
+      margin: 0 auto;
     }
 
     /* HTML5 Canvas with Pixelated Rendering */
@@ -660,6 +676,146 @@ if (is_dir($biosDir)) {
       border: none;
       border-radius: 0;
     }
+
+    :fullscreen .player-info-box,
+    :-webkit-full-screen .player-info-box {
+      display: none !important;
+    }
+
+    /* Left Information Box / Controls & State Card */
+    .player-info-box {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 10;
+      width: 275px;
+      max-width: 275px;
+      max-height: calc(100vh - 72px);
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--player-border, #1e293b);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+      flex-shrink: 0;
+      color: var(--text-main, #f8fafc);
+      font-size: 11.5px;
+      line-height: 1.45;
+      user-select: text;
+    }
+
+    /* Sleek custom scrollbar for info box */
+    .player-info-box::-webkit-scrollbar {
+      width: 5px;
+    }
+    .player-info-box::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.5);
+    }
+    .player-info-box::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    .player-info-box::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    .info-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .info-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #38bdf8;
+      letter-spacing: 0.02em;
+    }
+
+    .info-header svg {
+      flex-shrink: 0;
+      color: #38bdf8;
+    }
+
+    .info-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .info-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 11.5px;
+      color: #cbd5e1;
+      padding: 2px 0;
+    }
+
+    .info-label {
+      color: #94a3b8;
+    }
+
+    .info-val kbd {
+      display: inline-block;
+      padding: 1px 6px;
+      font-family: var(--font-mono, monospace);
+      font-size: 11px;
+      font-weight: 700;
+      color: #38bdf8;
+      background: rgba(2, 132, 199, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+      white-space: nowrap;
+    }
+
+    .info-note {
+      margin: 2px 0 0;
+      font-size: 11px;
+      line-height: 1.45;
+      padding: 7px 9px;
+      border-radius: 6px;
+    }
+
+    .warning-note {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      color: #fcd34d;
+    }
+
+    .highlight-note {
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: #bae6fd;
+    }
+
+    .info-divider {
+      height: 1px;
+      background: var(--player-border, #1e293b);
+      margin: 2px 0;
+    }
+
+    @media (max-width: 1200px) {
+      .player-info-box {
+        display: none;
+      }
+      .arcade-bezel {
+        max-width: 960px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -715,6 +871,56 @@ if (is_dir($biosDir)) {
 
     <!-- Main Arcade Stage -->
     <main class="stage-container">
+      <!-- Information Box to the Left of Emulator Screen -->
+      <aside class="player-info-box" id="playerInfoBox" aria-label="Controls and Game State Information">
+        <div class="info-section">
+          <div class="info-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+              <path d="M6 8h.001M10 8h.001M14 8h.001M18 8h.001M6 12h.001M10 12h.001M14 12h.001M18 12h.001M6 16h12"></path>
+            </svg>
+            <span>Key Mappings (No Gamepad)</span>
+          </div>
+          <ul class="info-list">
+            <li><span class="info-label">Directional Pad (D-Pad)</span> <span class="info-val"><kbd>Arrow Keys</kbd></span></li>
+            <li><span class="info-label">B Button</span> <span class="info-val"><kbd>Z</kbd></span></li>
+            <li><span class="info-label">A Button</span> <span class="info-val"><kbd>X</kbd></span></li>
+            <li><span class="info-label">Y Button</span> <span class="info-val"><kbd>A</kbd></span></li>
+            <li><span class="info-label">X Button</span> <span class="info-val"><kbd>S</kbd></span></li>
+            <li><span class="info-label">L Button</span> <span class="info-val"><kbd>Q</kbd></span></li>
+            <li><span class="info-label">R Button</span> <span class="info-val"><kbd>W</kbd></span></li>
+            <li><span class="info-label">Select</span> <span class="info-val"><kbd>Right Shift</kbd></span></li>
+            <li><span class="info-label">Start</span> <span class="info-val"><kbd>Enter</kbd></span></li>
+          </ul>
+          <p class="info-note warning-note">
+            More complex gamepads will require additional buttons not supported on keyboard mapping. It is highly advised to use a gamepad.
+          </p>
+        </div>
+
+        <div class="info-divider"></div>
+
+        <div class="info-section">
+          <div class="info-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            <span>Game States</span>
+          </div>
+          <ul class="info-list">
+            <li><span class="info-label">Save State</span> <span class="info-val"><kbd>F2</kbd></span></li>
+            <li><span class="info-label">Load State</span> <span class="info-val"><kbd>F4</kbd></span></li>
+            <li><span class="info-label">Next Save State Slot</span> <span class="info-val"><kbd>F7</kbd></span></li>
+            <li><span class="info-label">Previous Save State Slot</span> <span class="info-val"><kbd>F6</kbd></span></li>
+          </ul>
+          <p class="info-note warning-note">
+            Game States persist only while the current player window is open. Be advise that if you close the current window, al save states will be deleted. If you want to be able to preserve save states across gaming sessions it is recommended that you use retroarch standalone, either mobile or desktop. Both versions can be obtained <a href="https://www.retroarch.com" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; text-decoration: underline; font-weight: 600;">here</a>.
+          </p>
+        </div>
+      </aside>
+
+      <!-- Emulator Screen Bezel -->
       <div class="arcade-bezel">
         <!-- Emscripten HTML5 Canvas -->
         <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="0"></canvas>
@@ -776,7 +982,7 @@ if (is_dir($biosDir)) {
     // 1. Parse URL Query Parameters
     const urlParams = new URLSearchParams(window.location.search);
     let consoleIdParam = (urlParams.get('console_id') || urlParams.get('consoleId') || '<?= $consoleId > 0 ? (int)$consoleId : '' ?>').trim();
-    let gameIdParam = (urlParams.get('game_id') || urlParams.get('gameId') || '<?= $gameId > 0 ? (int)$gameId : '' ?>').trim();
+    let gameIdParam = (urlParams.get('game_id') || urlParams.get('gameId') || urlParams.get('id') || '<?= $gameId > 0 ? (int)$gameId : '' ?>').trim();
     let coreParam = (urlParams.get('core') || '<?= addslashes($resolvedWebCore) ?>').trim().toLowerCase();
     let fileIdParam = (urlParams.get('file_id') || urlParams.get('fileId') || '<?= $resolvedFileId > 0 ? (int)$resolvedFileId : '' ?>').trim();
 
@@ -787,8 +993,12 @@ if (is_dir($biosDir)) {
     window.consoleName = <?= json_encode($consoleName, JSON_UNESCAPED_SLASHES) ?>;
     window.consoleMappings = <?= json_encode($consoleMappings, JSON_UNESCAPED_SLASHES) ?>;
 
+    // Server-preloaded core info
+    window.resolvedWebCore = <?= json_encode($resolvedWebCore, JSON_UNESCAPED_SLASHES) ?>;
+
     let currentMappings = window.consoleMappings || {};
     let currentConsoleName = window.consoleName || 'Console';
+    let currentRomBasename = '';
 
     function escapeHtml(str) {
       if (!str) return '';
@@ -918,21 +1128,23 @@ if (is_dir($biosDir)) {
       console.error('[WebPlayer Error]', title, message);
     }
 
+    let isExiting = false;
+
     /**
-     * Handles exit / closes the player tab
+     * Handles exit / closes the player tab and returns to the game library
      */
     function handleExit() {
-      // 1. Attempt to close the current tab directly
-      window.close();
-
-      // 2. Browser fallback trick for tabs that require self-reference before closing
+      if (isExiting) return;
+      isExiting = true;
+      try {
+        window.close();
+      } catch (_) {}
       setTimeout(() => {
         try {
           window.open('', '_self', '');
           window.close();
         } catch (_) {}
 
-        // 3. Fallback navigation if the browser security policy strictly forbids closing the tab
         if (!window.closed) {
           if (window.history.length > 1) {
             window.history.back();
@@ -940,7 +1152,7 @@ if (is_dir($biosDir)) {
             window.location.href = '/games-portal';
           }
         }
-      }, 100);
+      }, 50);
     }
 
     /**
@@ -1288,7 +1500,8 @@ if (is_dir($biosDir)) {
             throw new Error(metaErrMsg || `Failed to retrieve game configuration from server (HTTP ${metaRes.status}).`);
           }
 
-          const metaData = await metaRes.json();
+          const metaResJson = await metaRes.json();
+          const metaData = (metaResJson && metaResJson.data) ? metaResJson.data : metaResJson;
           if (!metaData.web_core) {
             throw new Error('This console does not have a web emulation core configured.');
           }
@@ -1298,6 +1511,15 @@ if (is_dir($biosDir)) {
 
           coreParam = (metaData.web_core || '').trim().toLowerCase();
           fileIdParam = String(metaData.file_id);
+          if (metaData.console_id) {
+            consoleIdParam = String(metaData.console_id);
+          }
+          if (metaData.game_id) {
+            gameIdParam = String(metaData.game_id);
+          }
+          if (metaData.user_id) {
+            userIdParam = String(metaData.user_id);
+          }
 
           if (metaData.console_name) {
             currentConsoleName = metaData.console_name;
@@ -1409,6 +1631,9 @@ if (is_dir($biosDir)) {
         // Clean filename to prevent filesystem path issues
         const cleanName = romFilename.replace(/[^a-zA-Z0-9._-]/g, '_');
         const virtualRomPath = '/' + cleanName;
+        currentRomBasename = cleanName.lastIndexOf('.') > 0 
+          ? cleanName.substring(0, cleanName.lastIndexOf('.')) 
+          : cleanName;
 
         try {
           try { fs.unlink(virtualRomPath); } catch (_) {}
@@ -1425,15 +1650,73 @@ if (is_dir($biosDir)) {
         updateLoadingStatus('Loading system BIOS...');
         await loadBiosFiles(fs);
 
-        // Step H: Execute Core via Module.callMain
+        // Step H: Setup Runtime Directory in Emscripten VFS
+        updateLoadingStatus('Preparing runtime storage...');
+        const primaryStatesDir = '/home/web_user/retroarch/userdata/states';
+
+        function ensureVfsDir(dirPath) {
+          if (!dirPath || dirPath === '/' || !fs) return;
+          const segments = dirPath.split('/').filter(Boolean);
+          let cur = '';
+          for (const s of segments) {
+            cur += '/' + s;
+            let exists = false;
+            try {
+              const st = fs.stat(cur);
+              if (st) exists = true;
+            } catch (_) {}
+            if (!exists) {
+              try {
+                fs.mkdir(cur);
+              } catch (_) {}
+            }
+          }
+        }
+
+        // Build standard VFS runtime directory trees for in-session states
+        ensureVfsDir(primaryStatesDir);
+        ensureVfsDir('/home/web_user/retroarch/userdata/system');
+        ensureVfsDir('/home/web_user/retroarch/userdata/content');
+        ensureVfsDir('/home/web_user/.config/retroarch');
+
+        // Write RetroArch configuration to enforce savestate_directory in VFS
+        const retroarchConfigContent = [
+          'savestate_directory = "' + primaryStatesDir + '"',
+          'savefile_directory = "' + primaryStatesDir + '"',
+          'sort_savestates_enable = "false"',
+          'state_slot = "0"'
+        ].join('\n');
+
+        const configPaths = [
+          '/home/web_user/retroarch/userdata/retroarch.cfg',
+          '/home/web_user/.config/retroarch/retroarch.cfg',
+          '/home/web_user/.retroarch.cfg',
+          '/etc/retroarch.cfg'
+        ];
+
+        configPaths.forEach(cfgPath => {
+          const dir = cfgPath.substring(0, cfgPath.lastIndexOf('/'));
+          ensureVfsDir(dir);
+          try {
+            try { fs.unlink(cfgPath); } catch (_) {}
+            if (typeof fs.writeFile === 'function') {
+              fs.writeFile(cfgPath, retroarchConfigContent);
+            } else if (typeof fs.createDataFile === 'function') {
+              fs.createDataFile(dir, 'retroarch.cfg', retroarchConfigContent, true, true, false);
+            }
+          } catch (_) {}
+        });
+
+        // Step I: Execute Core via Module.callMain
         updateLoadingStatus('Booting core...');
         if (!window.Module || typeof window.Module.callMain !== 'function') {
           throw new Error('Module.callMain is not defined on this Libretro Emscripten build.');
         }
 
+        window.Module.arguments = [virtualRomPath];
         window.Module.callMain([virtualRomPath]);
 
-        // Step I: Success - Hide Loading Overlay & Focus Canvas
+        // Step J: Success - Hide Loading Overlay & Focus Canvas
         if (loadingOverlay) {
           loadingOverlay.classList.add('hidden');
         }

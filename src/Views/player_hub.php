@@ -1306,13 +1306,6 @@ $canAccessPlayer = \Vault\Auth\Auth::canRead('player') || \Vault\Auth\Auth::canW
             <?php if (!empty($initialGame['language_name'])): ?>
               <span class="tag-pill"><?= strtoupper(View::e($initialGame['language_name'])) ?></span>
             <?php endif; ?>
-
-            <!-- RetroArch Core or Emulator Badge -->
-            <?php if (!empty($initialGame['retroarch_core'])): ?>
-              <span class="tag-pill tag-core">CORE: <?= strtoupper(View::e($initialGame['retroarch_core'])) ?></span>
-            <?php elseif (!empty($initialGame['emulator'])): ?>
-              <span class="tag-pill tag-core">EMULATOR: <?= strtoupper(View::e($initialGame['emulator'])) ?></span>
-            <?php endif; ?>
           </div>
 
           <!-- Centered Header Group: Title & Meta Info Line -->
@@ -1704,11 +1697,6 @@ function renderGameCard(game) {
   }
   if (game.language_name) {
     badgesHtml += `<span class="tag-pill">${escapeHtml(game.language_name.toUpperCase())}</span>`;
-  }
-  if (game.retroarch_core) {
-    badgesHtml += `<span class="tag-pill tag-core">CORE: ${escapeHtml(game.retroarch_core.toUpperCase())}</span>`;
-  } else if (game.emulator) {
-    badgesHtml += `<span class="tag-pill tag-core">EMULATOR: ${escapeHtml(game.emulator.toUpperCase())}</span>`;
   }
 
   // Comments / Notes (content only, justified)

@@ -324,6 +324,7 @@ $router->get('/api/player/meta', function (array $req) {
 
     Response::json([
         'success'      => true,
+        'user_id'      => \Vault\Auth\Auth::id() ?? 0,
         'console_id'   => $consoleId,
         'console_name' => $console['name'],
         'game_id'      => $gameId,
@@ -529,4 +530,4 @@ $router->get('/api/downloads/console/{id}', [DownloadController::class, 'byConso
 $router->get('/api/downloads/game/{id}', [DownloadController::class, 'byGame']);
 
 // 7. Dispatch the Request
-$router->dispatch($requestUri, $requestMethod);
+$router->dispatch($requestUri, $requestMethod);
