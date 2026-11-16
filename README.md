@@ -63,6 +63,11 @@ Videogame Vault serves as both an **archival management workbench** for collecti
   - **Dynamic Input Remap Injection (`.rmp`)**: Automatically scans and mounts core-specific button remap templates from `/assets/emscripten/remaps/{core}.rmp` directly into RetroArch's VFS (`/home/web_user/userdata/config/remaps/{core}/`) on boot.
   - **Automated System BIOS Mapping**: Auto-discovers and mounts all required system boot files from local server storage (`/assets/emscripten/bios/`) into RetroArch's expected VFS system directory (`/home/web_user/userdata/system/`) prior to core execution.
 - **Zero-Persistence Session Isolation**: Player button adjustments made during gameplay remain volatile in memory and safely reset on page reload, preserving master default layouts across sessions.
+- **Supported Consoles**:
+  - Atari 2600
+  - Sega SG-1000 / SC-3000
+  - Sega Master System
+  - Nintendo Entertainment System
 
 ---
 
