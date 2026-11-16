@@ -112,7 +112,7 @@ ON DUPLICATE KEY UPDATE
   `updated` = CURRENT_TIMESTAMP;
 
 INSERT INTO `system_info` (`item`, `version`, `created`, `updated`)
-VALUES ('system', '5.0.0', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+VALUES ('system', '5.1.0', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON DUPLICATE KEY UPDATE 
   `version` = VALUES(`version`),
   `updated` = CURRENT_TIMESTAMP;
