@@ -65,10 +65,12 @@ Videogame Vault serves as both an **archival management workbench** for collecti
 - **Zero-Persistence Session Isolation**: Player button adjustments made during gameplay remain volatile in memory and safely reset on page reload, preserving master default layouts across sessions.
 - **Supported Consoles**:
   - Atari 2600
+  - Magnavox Odyssey 2 (BIOS needed)
+  - ColecoVision (BIOS needed)
   - Sega SG-1000 / SC-3000
   - Sega Master System
   - Nintendo Entertainment System
-
+  
 ---
 
 ## 📋 Prerequisites
