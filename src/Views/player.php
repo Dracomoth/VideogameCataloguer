@@ -1238,13 +1238,48 @@ if (is_dir($remapsDir)) {
       updateLoadingStatus(`Loading Libretro core "${coreName}"...`);
       const coreUrl = `/assets/emscripten/${encodeURIComponent(coreName)}_libretro.js`;
       let factory = null;
+      let isEsModule = true;
 
+      // Inspect the core script to determine if it is an ES6 modularized build (export default)
+      // or a classic global Emscripten script (which binds directly to window.Module).
       try {
-        // Primary modern Emscripten / RetroArch approach: dynamic ES module import
-        const coreMod = await import(coreUrl);
-        factory = coreMod.default || window[`libretro_${coreName}`] || coreMod;
-      } catch (importErr) {
-        console.warn('[Core Loader] Dynamic import failed, falling back to script injection:', importErr);
+        const probeRes = await fetch(coreUrl);
+        if (!probeRes.ok) {
+          throw new Error(`Core script not found or failed to load (HTTP ${probeRes.status}): ${coreUrl}`);
+        }
+        const scriptText = await probeRes.text();
+        isEsModule = /\bexport\s+default\b/.test(scriptText);
+      } catch (probeErr) {
+        console.warn('[Core Loader] Script probe notice:', probeErr);
+      }
+
+      if (isEsModule) {
+        try {
+          // Primary modern Emscripten / RetroArch approach: dynamic ES module import
+          const coreMod = await import(coreUrl);
+          factory = coreMod.default || window[`libretro_${coreName}`] || coreMod;
+        } catch (importErr) {
+          console.warn('[Core Loader] Dynamic import failed, falling back to script injection:', importErr);
+          isEsModule = false;
+        }
+      }
+
+      if (!isEsModule) {
+        // Legacy Emscripten builds (e.g. RetroArch 1.9.x) do not have a built-in ResizeObserver
+        // and read canvas.width / canvas.height directly (which default to 300x150 if unset).
+        const syncLegacyCanvasSize = () => {
+          if (!canvas) return;
+          const dpr = window.devicePixelRatio || 1;
+          const w = Math.round((canvas.clientWidth || 800) * dpr);
+          const h = Math.round((canvas.clientHeight || 600) * dpr);
+          if (w > 0 && h > 0 && (canvas.width !== w || canvas.height !== h)) {
+            canvas.width = w;
+            canvas.height = h;
+          }
+        };
+        syncLegacyCanvasSize();
+        window.addEventListener('resize', syncLegacyCanvasSize);
+
         await new Promise((resolve, reject) => {
           const script = document.createElement('script');
           script.src = coreUrl;
@@ -1270,7 +1305,7 @@ if (is_dir($remapsDir)) {
      */
     function waitForRuntime() {
       return new Promise((resolve) => {
-        if (window.Module && (window.Module.calledRun || (window.Module.FS && window.Module.callMain))) {
+        if (window.Module && window.Module.calledRun) {
           resolve();
           return;
         }
@@ -1290,8 +1325,7 @@ if (is_dir($remapsDir)) {
 
         // Fallback interval check in case onRuntimeInitialized already triggered
         const interval = setInterval(() => {
-          const fs = window.FS || (window.Module && window.Module.FS);
-          if (fs && window.Module && typeof window.Module.callMain === 'function') {
+          if (window.Module && window.Module.calledRun) {
             clearInterval(interval);
             resolve();
           }
@@ -1403,6 +1437,7 @@ if (is_dir($remapsDir)) {
         const baseRemapDirs = [
           '/home/web_user/userdata/config/remaps',
           '/home/web_user/retroarch/userdata/config/remaps',
+          '/home/web_user/retroarch/userdata/remaps',
           '/home/web_user/retroarch/config/remaps',
           '/home/web/retroarch/config/remaps'
         ];

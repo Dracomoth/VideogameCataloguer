@@ -1,6 +1,7 @@
 const libretroCores = {
 	"2048": "2048",
 	"DoubleCherryGB": "Nintendo - Game Boy / Color (DoubleCherryGB)",
+	"a5200": "Atari 5200 (a5200)",
 	"anarch": "Anarch",
 	"ardens": "Arduboy (Ardens)",
 	"arduous": "Arduboy (Arduous)",
