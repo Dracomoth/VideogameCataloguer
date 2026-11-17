@@ -65,7 +65,10 @@ Videogame Vault serves as both an **archival management workbench** for collecti
 - **Zero-Persistence Session Isolation**: Player button adjustments made during gameplay remain volatile in memory and safely reset on page reload, preserving master default layouts across sessions.
 - **Supported Consoles**:
   - Atari 2600
+  - Atari 5200 (BIOS needed)
+  - Atari 7800 (BIOS needed)
   - Magnavox Odyssey 2 (BIOS needed)
+  - Intellivision (BIOS needed)
   - ColecoVision (BIOS needed)
   - Sega SG-1000 / SC-3000
   - Sega Master System
@@ -289,6 +292,9 @@ If the database is already initialized and you want to update the Super Admin (`
 VideogameCataloguer/
 ├── assets/
 │   ├── css/style.css                  # Master dark-slate stylesheet & design tokens
+|   ├── emscripten/                    # Folder for the RetroArch Web Emulator and the cores
+│   │   ├── bios/                      # Folder to put any BIOS files for specific cores
+│   │   └── remaps/                    # Folder to put any controller remaps for specific cores
 │   └── js/
 │       ├── components/data-grid.js    # Reusable <vault-grid> vanilla JS Web Component
 │       └── xlsx.full.min.js           # Client-side Excel (.xlsx) export engine
