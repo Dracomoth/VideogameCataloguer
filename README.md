@@ -1,4 +1,4 @@
-# 🎮 Videogame Vault (Videogame Cataloguer)
+# 🎮 Videogame Vault (Videogame Cataloguer) v5.1.1
 
 **Videogame Vault** (also known as **Videogame Cataloguer**) is a full-stack, zero-dependency web application built with **pure PHP 8.2+** and a responsive dark-slate workbench interface. It is designed to catalog, preserve, explore, and distribute a personal or multi-user video game and hardware collection, complete with AI-assisted metadata curation, secure cloud file distribution, per-player progress tracking, and dual-device Role-Based Access Control (RBAC).
 
