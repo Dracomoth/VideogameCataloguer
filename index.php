@@ -358,6 +358,137 @@ $router->get('/api/player/meta', function (array $req) {
     ]);
 });
 
+// RetroArch Player Slot 0 Save State Fetch Route (Multi-User)
+$router->get('/api/player/state', function (array $req) {
+    \Vault\Auth\Auth::requireAccess('player', 'read');
+    $userId    = (int)(\Vault\Auth\Auth::id() ?? 0);
+    $consoleId = (int)($req['query']['console_id'] ?? 0);
+    $gameId    = (int)($req['query']['game_id'] ?? 0);
+
+    if ($userId <= 0 || $consoleId <= 0 || $gameId <= 0) {
+        http_response_code(204);
+        exit;
+    }
+
+    $statesDir = __DIR__ . '/assets/emscripten/states';
+    if (!is_dir($statesDir)) {
+        http_response_code(204);
+        exit;
+    }
+
+    $prefix = "{$userId}_{$consoleId}_{$gameId}_";
+    $exactLegacy = "{$userId}_{$consoleId}_{$gameId}.state";
+    $matchedFile = null;
+    $latestMtime = -1;
+
+    $scanned = scandir($statesDir);
+    if ($scanned !== false) {
+        foreach ($scanned as $f) {
+            if ($f === '.' || $f === '..') {
+                continue;
+            }
+            if ((str_starts_with($f, $prefix) && str_ends_with(strtolower($f), '.state')) || $f === $exactLegacy) {
+                $fullPath = $statesDir . '/' . $f;
+                if (is_file($fullPath) && filesize($fullPath) > 64) {
+                    $mtime = (int)filemtime($fullPath);
+                    if ($mtime > $latestMtime) {
+                        $latestMtime = $mtime;
+                        $matchedFile = $fullPath;
+                    }
+                }
+            }
+        }
+    }
+
+    if ($matchedFile === null) {
+        http_response_code(204);
+        exit;
+    }
+
+    header('Content-Type: application/octet-stream');
+    header('Content-Length: ' . (string)filesize($matchedFile));
+    header('Cache-Control: no-store, no-cache, must-revalidate');
+    header('X-State-Filename: ' . basename($matchedFile));
+    readfile($matchedFile);
+    exit;
+});
+
+// RetroArch Player Slot 0 Save State Persist Route (Multi-User)
+$router->post('/api/player/save-state', function () {
+    \Vault\Auth\Auth::requireAccess('player', 'read');
+    $userId    = (int)(\Vault\Auth\Auth::id() ?? 0);
+    $consoleId = (int)($_POST['console_id'] ?? 0);
+    $gameId    = (int)($_POST['game_id'] ?? 0);
+    $romName   = trim((string)($_POST['rom_name'] ?? 'game'));
+
+    if ($userId <= 0) {
+        Response::error('Authenticated user session required to save game state.', 401);
+    }
+    if ($consoleId <= 0 || $gameId <= 0) {
+        Response::error('Invalid or missing console_id and game_id parameters.', 400);
+    }
+
+    $stateBinary = null;
+    if (!empty($_FILES['state_file']['tmp_name']) && is_uploaded_file($_FILES['state_file']['tmp_name'])) {
+        $stateBinary = file_get_contents($_FILES['state_file']['tmp_name']);
+    } elseif (!empty($_POST['state_base64'])) {
+        $decoded = base64_decode((string)$_POST['state_base64'], true);
+        if ($decoded !== false) {
+            $stateBinary = $decoded;
+        }
+    }
+
+    if (!is_string($stateBinary) || strlen($stateBinary) <= 64) {
+        Response::error('Invalid or empty Slot 0 save state binary payload.', 400);
+    }
+
+    $statesDir = __DIR__ . '/assets/emscripten/states';
+    if (!is_dir($statesDir) && !mkdir($statesDir, 0775, true) && !is_dir($statesDir)) {
+        Response::error('Failed to initialize server save state storage directory.', 500);
+    }
+
+    // Build deterministic sanitized filename for this user + console + game (Slot 0 only)
+    $romBase = preg_replace('/\.state$/i', '', $romName);
+    $romBase = preg_replace('/\.[^.]+$/', '', (string)$romBase);
+    $safeRom = preg_replace('/[^a-zA-Z0-9_-]/', '_', (string)$romBase);
+    $safeRom = trim((string)preg_replace('/_+/', '_', (string)$safeRom), '_');
+    if ($safeRom === '') {
+        $safeRom = 'game';
+    }
+
+    $targetFilename = "{$userId}_{$consoleId}_{$gameId}_{$safeRom}.state";
+    $targetPath = $statesDir . '/' . $targetFilename;
+
+    // Remove any previous Slot 0 state files for this user + console + game to prevent duplicates
+    $prefix = "{$userId}_{$consoleId}_{$gameId}_";
+    $exactLegacy = "{$userId}_{$consoleId}_{$gameId}.state";
+    $scanned = scandir($statesDir);
+    if ($scanned !== false) {
+        foreach ($scanned as $f) {
+            if ($f === '.' || $f === '..' || $f === $targetFilename) {
+                continue;
+            }
+            if ((str_starts_with($f, $prefix) && str_ends_with(strtolower($f), '.state')) || $f === $exactLegacy) {
+                @unlink($statesDir . '/' . $f);
+            }
+        }
+    }
+
+    $tmpPath = $targetPath . '.tmp.' . uniqid('', true);
+    if (file_put_contents($tmpPath, $stateBinary) === false || !@rename($tmpPath, $targetPath)) {
+        @unlink($tmpPath);
+        if (file_put_contents($targetPath, $stateBinary) === false) {
+            Response::error('Failed to write Slot 0 save state file to server.', 500);
+        }
+    }
+
+    Response::json([
+        'success'  => true,
+        'filename' => $targetFilename,
+        'size'     => strlen($stateBinary),
+    ]);
+});
+
 // Consoles Portal API Routes
 $router->get('/api/consoles-portal/console/{id}', function (array $req) {
     \Vault\Auth\Auth::requireAccess('consoles_portal', 'read');

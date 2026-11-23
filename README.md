@@ -1,4 +1,4 @@
-# 🎮 Videogame Vault (Videogame Cataloguer) v5.1.1
+# 🎮 Videogame Vault (Videogame Cataloguer) v5.2.0
 
 **Videogame Vault** (also known as **Videogame Cataloguer**) is a full-stack, zero-dependency web application built with **pure PHP 8.2+** and a responsive dark-slate workbench interface. It is designed to catalog, preserve, explore, and distribute a personal or multi-user video game and hardware collection, complete with AI-assisted metadata curation, secure cloud file distribution, per-player progress tracking, and dual-device Role-Based Access Control (RBAC).
 
@@ -62,7 +62,14 @@ Videogame Vault serves as both an **archival management workbench** for collecti
   - **Secure ROM Proxying**: Seamlessly streams ROMs and zipped game files from private cloud buckets (Backblaze B2) through local backend routes, bypassing browser CORS restrictions.
   - **Dynamic Input Remap Injection (`.rmp`)**: Automatically scans and mounts core-specific button remap templates from `/assets/emscripten/remaps/{core}.rmp` directly into RetroArch's VFS (`/home/web_user/userdata/config/remaps/{core}/`) on boot.
   - **Automated System BIOS Mapping**: Auto-discovers and mounts all required system boot files from local server storage (`/assets/emscripten/bios/`) into RetroArch's expected VFS system directory (`/home/web_user/userdata/system/`) prior to core execution.
-- **Zero-Persistence Session Isolation**: Player button adjustments made during gameplay remain volatile in memory and safely reset on page reload, preserving master default layouts across sessions.
+- **Multi-User Slot 0 Save State Persistence (`.state`)**:
+  - Automatically restores and persists **Slot 0** save states (`<rom_name>.state`) per authenticated user, console, and game (`/assets/emscripten/states/{user_id}_{console_id}_{game_id}_{rom_name}.state`).
+  - Monitors the Emscripten VFS in real time during gameplay and on player exit to sync Slot 0 updates to the server automatically, while keeping slots 1+ temporary in memory for optimal disk space efficiency.
+- **Mobile Fullscreen Overlay & Virtual Touch Controller**:
+  - **Dedicated Mobile Fullscreen HUD**: Displays out-of-the-way, icon-only floating controls in the top-left (**Save State** & **Touch Gamepad On/Off Toggle**) and top-right (**Load State** & **Exit Fullscreen**) corners when playing in fullscreen on mobile and touch devices.
+  - **Smart Physical Gamepad Detection**: Automatically detects connected Bluetooth/USB controllers (or handheld adapters) via the Gamepad API and hides the virtual touch buttons while keeping the **Save** and **Load State** overlay buttons accessible.
+  - **Zero-Gap Circular "Pizza-Wheel" D-Pad & Action Pad**: Features a translucent on-screen touch controller with a 4-slice circular D-Pad engineered for continuous thumb-slide directional transitions without dead gaps, paired with shoulder (`L`/`R`), `SELECT`/`START`, and diamond action buttons (`A`/`B`/`X`/`Y`).
+- **Session Configuration Isolation**: Player button adjustments and non-Slot-0 states made during gameplay remain volatile in memory and safely reset on page reload, preserving master default layouts across sessions.
 - **Supported Consoles**:
   - Atari 2600
   - Atari 5200 (BIOS needed)
@@ -292,9 +299,10 @@ If the database is already initialized and you want to update the Super Admin (`
 VideogameCataloguer/
 ├── assets/
 │   ├── css/style.css                  # Master dark-slate stylesheet & design tokens
-|   ├── emscripten/                    # Folder for the RetroArch Web Emulator and the cores
+│   ├── emscripten/                    # Folder for the RetroArch Web Emulator and the cores
 │   │   ├── bios/                      # Folder to put any BIOS files for specific cores
-│   │   └── remaps/                    # Folder to put any controller remaps for specific cores
+│   │   ├── remaps/                    # Folder to put any controller remaps for specific cores
+│   │   └── states/                    # Multi-user persistent Slot 0 save states (.state)
 │   └── js/
 │       ├── components/data-grid.js    # Reusable <vault-grid> vanilla JS Web Component
 │       └── xlsx.full.min.js           # Client-side Excel (.xlsx) export engine
