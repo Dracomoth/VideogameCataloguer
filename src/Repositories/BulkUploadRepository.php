@@ -67,7 +67,7 @@ final class BulkUploadRepository
                     'label' => 'Games (Catalog Library)',
                     'icon'  => '🎮',
                     'primary_key' => 'id',
-                    'recognized_headers' => 'title, console_id, category_id, subcategory_id, language_id, publisher_id, year, tags, screenshot_path, boxart_path, in_collection, comments',
+                    'recognized_headers' => 'title, console_id, category_id, subcategory_id, language_id, is_translation, publisher_id, year, tags, screenshot_path, boxart_path, in_collection, comments',
                     'columns' => [
                         'title' => [
                             'name' => 'title',
@@ -103,6 +103,13 @@ final class BulkUploadRepository
                             'type' => 'integer',
                             'required' => false,
                             'foreign_key' => ['table' => 'languages', 'column' => 'id'],
+                        ],
+                        'is_translation' => [
+                            'name' => 'is_translation',
+                            'label' => 'Is Translation',
+                            'type' => 'boolean',
+                            'required' => false,
+                            'default' => 0,
                         ],
                         'publisher_id' => [
                             'name' => 'publisher_id',
@@ -160,7 +167,7 @@ final class BulkUploadRepository
                     'label' => 'Consoles (Hardware Platforms)',
                     'icon'  => '🕹️',
                     'primary_key' => 'id',
-                    'recognized_headers' => 'name, publisher_id, year, generation, console_type_id, image_path, logo_path, comments, emulator, emulator_link, emulator_android, emulator_android_link, retroarch_core, core_link, is_browser_emulable, web_core, is_for_reference, master_reference_id',
+                    'recognized_headers' => 'name, publisher_id, year, generation, console_type_id, image_path, logo_path, mapping_gamepad_path, mapping_cellphone_path, mapping_rog_ally_path, comments, emulator, emulator_link, emulator_android, emulator_android_link, retroarch_core, core_link, is_browser_emulable, web_core, is_for_reference, master_reference_id',
                     'columns' => [
                         'name' => [
                             'name' => 'name',
@@ -208,6 +215,27 @@ final class BulkUploadRepository
                         'logo_path' => [
                             'name' => 'logo_path',
                             'label' => 'Vector/PNG Logo Path',
+                            'type' => 'string',
+                            'required' => false,
+                            'max_length' => 255,
+                        ],
+                        'mapping_gamepad_path' => [
+                            'name' => 'mapping_gamepad_path',
+                            'label' => 'Gamepad Mapping Image Path',
+                            'type' => 'string',
+                            'required' => false,
+                            'max_length' => 255,
+                        ],
+                        'mapping_cellphone_path' => [
+                            'name' => 'mapping_cellphone_path',
+                            'label' => 'Cellphone Mapping Image Path',
+                            'type' => 'string',
+                            'required' => false,
+                            'max_length' => 255,
+                        ],
+                        'mapping_rog_ally_path' => [
+                            'name' => 'mapping_rog_ally_path',
+                            'label' => 'ROG Ally Mapping Image Path',
                             'type' => 'string',
                             'required' => false,
                             'max_length' => 255,
@@ -294,7 +322,7 @@ final class BulkUploadRepository
                     'label' => 'Publishers & Hardware Manufacturers',
                     'icon'  => '🏢',
                     'primary_key' => 'id',
-                    'recognized_headers' => 'name, is_console_maker',
+                    'recognized_headers' => 'name, is_console_maker, description, logo_path',
                     'columns' => [
                         'name' => [
                             'name' => 'name',
@@ -309,6 +337,19 @@ final class BulkUploadRepository
                             'type' => 'boolean',
                             'required' => false,
                             'default' => 0,
+                        ],
+                        'description' => [
+                            'name' => 'description',
+                            'label' => 'Company Description / History',
+                            'type' => 'text',
+                            'required' => false,
+                        ],
+                        'logo_path' => [
+                            'name' => 'logo_path',
+                            'label' => 'Company Logo Path',
+                            'type' => 'string',
+                            'required' => false,
+                            'max_length' => 255,
                         ],
                     ],
                 ];

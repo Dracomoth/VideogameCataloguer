@@ -478,6 +478,11 @@ $canAccessPlayer = \Vault\Auth\Auth::canRead('player') || \Vault\Auth\Auth::canW
   color: #d8b4fe;
   border: 1px solid rgba(168, 85, 247, 0.35);
 }
+.tag-translation {
+  background: rgba(20, 184, 166, 0.18);
+  color: #2dd4bf;
+  border: 1px solid rgba(20, 184, 166, 0.35);
+}
 
 /* Header Group: Centered Title & Meta Info Line with balanced spacing */
 .picked-header-group {
@@ -1306,6 +1311,11 @@ $canAccessPlayer = \Vault\Auth\Auth::canRead('player') || \Vault\Auth\Auth::canW
             <?php if (!empty($initialGame['language_name'])): ?>
               <span class="tag-pill"><?= strtoupper(View::e($initialGame['language_name'])) ?></span>
             <?php endif; ?>
+
+            <!-- Translation Badge -->
+            <?php if (!empty($initialGame['is_translation'])): ?>
+              <span class="tag-pill tag-translation">TRANSLATION</span>
+            <?php endif; ?>
           </div>
 
           <!-- Centered Header Group: Title & Meta Info Line -->
@@ -1697,6 +1707,9 @@ function renderGameCard(game) {
   }
   if (game.language_name) {
     badgesHtml += `<span class="tag-pill">${escapeHtml(game.language_name.toUpperCase())}</span>`;
+  }
+  if (Number(game.is_translation) === 1 || game.is_translation === true) {
+    badgesHtml += `<span class="tag-pill tag-translation">TRANSLATION</span>`;
   }
 
   // Comments / Notes (content only, justified)

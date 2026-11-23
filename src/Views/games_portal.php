@@ -761,6 +761,12 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   border: 1.5px solid #eab308;
   box-shadow: 0 0 8px rgba(234, 179, 8, 0.3);
 }
+.badge-translation {
+  background: rgba(20, 184, 166, 0.15);
+  color: #2dd4bf;
+  border: 1.5px solid #0d9488;
+  box-shadow: 0 0 6px rgba(20, 184, 166, 0.25);
+}
 
 /* Play in Browser (RetroArch Arcade Button) */
 .btn-arcade-play {
@@ -1860,6 +1866,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         <h1 class="game-detail-name" id="detailGameTitle">Game Title</h1>
         <div class="game-detail-badges-group" id="detailBadgesGroup">
           <span class="badge-status badge-collection-green" id="detailGameStatusBadge">BACKLOG</span>
+          <span class="badge-status badge-translation" id="detailTranslationBadge" style="display: none;">Translation</span>
           <span class="badge-status badge-player-downloaded" id="detailDownloadedBadge" style="display: none;">Downloaded</span>
           <span class="badge-status badge-player-played" id="detailPlayedBadge" style="display: none;">Played</span>
           <span class="badge-status badge-player-won" id="detailWonBadge" style="display: none;">★ Won</span>
@@ -2144,6 +2151,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
   const detailGameTitle         = document.getElementById('detailGameTitle');
   const btnPlayGame             = document.getElementById('btnPlayGame');
   const detailGameStatusBadge   = document.getElementById('detailGameStatusBadge');
+  const detailTranslationBadge  = document.getElementById('detailTranslationBadge');
   const detailDownloadedBadge   = document.getElementById('detailDownloadedBadge');
   const detailPlayedBadge       = document.getElementById('detailPlayedBadge');
   const detailWonBadge          = document.getElementById('detailWonBadge');
@@ -3167,11 +3175,15 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
     detailGameStatusBadge.className = `badge-status badge-collection-${badgeInfo.color}`;
     detailGameStatusBadge.style.display = 'inline-flex';
 
-    // 2b. Player Status Badges (Downloaded, Played, Won)
+    // 2b. Translation & Player Status Badges (Translation, Downloaded, Played, Won)
+    const isTranslation = Number(game.is_translation) === 1 || game.is_translation === true;
     const isDownloaded = Number(game.is_downloaded) === 1 || Number(game.download_count) > 0;
     const isPlayed = Number(game.is_played) === 1;
     const isWon = Number(game.is_won) === 1;
 
+    if (detailTranslationBadge) {
+      detailTranslationBadge.style.display = isTranslation ? 'inline-flex' : 'none';
+    }
     if (detailDownloadedBadge) {
       detailDownloadedBadge.style.display = isDownloaded ? 'inline-flex' : 'none';
     }

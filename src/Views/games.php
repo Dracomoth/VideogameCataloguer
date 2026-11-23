@@ -559,12 +559,16 @@ if (!defined('APP_INIT')) {
         </div>
       </div>
 
-      <!-- Section 3: Collection Status -->
-      <div class="form-section-title">Collection Status</div>
+      <!-- Section 3: Game Status -->
+      <div class="form-section-title">Game Status</div>
       <div class="chip-group">
         <label class="chip-toggle">
           <input type="checkbox" id="inCollection" name="in_collection" value="1" <?= !$canWrite ? 'disabled' : '' ?>>
           📦 In Collection
+        </label>
+        <label class="chip-toggle">
+          <input type="checkbox" id="isTranslation" name="is_translation" value="1" <?= !$canWrite ? 'disabled' : '' ?>>
+          🌐 Is Translation
         </label>
       </div>
 
@@ -1068,6 +1072,7 @@ function selectGame(id) {
 
   document.getElementById('publisherId').value = String(record.publisher_id || '');
   document.getElementById('languageId').value = String(record.language_id || '');
+  document.getElementById('isTranslation').checked = Number(record.is_translation) === 1;
 
   document.getElementById('inCollection').checked = Number(record.in_collection) === 1;
 

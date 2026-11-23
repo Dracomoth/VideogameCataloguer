@@ -748,9 +748,25 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    const colKeys = schema.columns ? Object.keys(schema.columns) : [];
     const headersStr = schema.recognized_headers || '';
-    const parts = headersStr.split(',').map(s => s.trim()).filter(Boolean);
+    const headerParts = headersStr.split(',').map(s => s.trim()).filter(Boolean);
+    const parts = Array.from(new Set([...headerParts, ...colKeys]));
     recognizedHeadersDisplay.innerHTML = parts.map(p => `<span class="recognized-header-tag">${escapeHtml(p)}</span>`).join(', ');
+  }
+
+  async function refreshSchemaCatalog() {
+    try {
+      const res = await fetch(`/api/bulk-upload/schema?_t=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok) {
+        const json = await res.json();
+        const freshCatalog = json.data || json;
+        if (freshCatalog && typeof freshCatalog === 'object') {
+          Object.assign(schemaCatalog, freshCatalog);
+          updateSchemaDisplay();
+        }
+      }
+    } catch (_) {}
   }
 
   targetTableSelect.addEventListener('change', () => {
@@ -760,6 +776,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   updateSchemaDisplay();
+  refreshSchemaCatalog();
 
   // --------------------------------------------------------------------------
   // 2. Logging & Console Diagnostics Engine

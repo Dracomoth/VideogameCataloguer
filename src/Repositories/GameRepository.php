@@ -48,6 +48,7 @@ final class GameRepository
                 g.category_id,
                 g.subcategory_id,
                 g.language_id,
+                g.is_translation,
                 g.publisher_id,
                 g.year,
                 g.tags,
@@ -104,6 +105,7 @@ final class GameRepository
                 g.category_id,
                 g.subcategory_id,
                 g.language_id,
+                g.is_translation,
                 g.publisher_id,
                 g.year,
                 g.tags,
@@ -383,19 +385,20 @@ final class GameRepository
         $comments      = trim((string)($data['comments'] ?? '')) ?: null;
 
         $inCollection  = !empty($data['in_collection']) ? 1 : 0;
+        $isTranslation = !empty($data['is_translation']) ? 1 : 0;
 
         $now = date('Y-m-d H:i:s');
 
         $sql = "
             INSERT INTO `games` (
                 `title`, `console_id`, `category_id`, `subcategory_id`,
-                `language_id`, `publisher_id`, `year`, `tags`,
+                `language_id`, `is_translation`, `publisher_id`, `year`, `tags`,
                 `screenshot_path`, `boxart_path`,
                 `in_collection`, `comments`,
                 `created`, `updated`
             ) VALUES (
                 :title, :console_id, :category_id, :subcategory_id,
-                :language_id, :publisher_id, :year, :tags,
+                :language_id, :is_translation, :publisher_id, :year, :tags,
                 NULL, NULL,
                 :in_collection, :comments,
                 :created, :updated
@@ -408,6 +411,7 @@ final class GameRepository
             ':category_id'    => $categoryId,
             ':subcategory_id' => $subcategoryId,
             ':language_id'    => $languageId,
+            ':is_translation' => $isTranslation,
             ':publisher_id'   => $publisherId,
             ':year'           => $year,
             ':tags'           => $tags,
@@ -505,6 +509,7 @@ final class GameRepository
         $comments      = trim((string)($data['comments'] ?? '')) ?: null;
 
         $inCollection  = !empty($data['in_collection']) ? 1 : 0;
+        $isTranslation = !empty($data['is_translation']) ? 1 : 0;
 
         $deleteScreenshot = !empty($data['delete_screenshot']) || !empty($data['delete_screen']);
         $deleteBoxart     = !empty($data['delete_boxart']);
@@ -547,6 +552,7 @@ final class GameRepository
                 `category_id`     = :category_id,
                 `subcategory_id`  = :subcategory_id,
                 `language_id`     = :language_id,
+                `is_translation`  = :is_translation,
                 `publisher_id`    = :publisher_id,
                 `year`            = :year,
                 `tags`            = :tags,
@@ -564,6 +570,7 @@ final class GameRepository
             ':category_id'     => $categoryId,
             ':subcategory_id'  => $subcategoryId,
             ':language_id'     => $languageId,
+            ':is_translation'  => $isTranslation,
             ':publisher_id'    => $publisherId,
             ':year'            => $year,
             ':tags'            => $tags,
@@ -633,6 +640,7 @@ final class GameRepository
         $row['category_id']    = !empty($row['category_id']) ? (int)$row['category_id'] : null;
         $row['subcategory_id'] = !empty($row['subcategory_id']) ? (int)$row['subcategory_id'] : null;
         $row['language_id']    = !empty($row['language_id']) ? (int)$row['language_id'] : null;
+        $row['is_translation'] = (int)($row['is_translation'] ?? 0);
         $row['publisher_id']   = !empty($row['publisher_id']) ? (int)$row['publisher_id'] : null;
         $row['in_collection']  = (int)($row['in_collection'] ?? 0);
         $row['created']        = !empty($row['created']) ? (string)$row['created'] : '';
@@ -756,6 +764,7 @@ final class GameRepository
                 g.subcategory_id,
                 g.publisher_id,
                 g.language_id,
+                g.is_translation,
                 g.year,
                 g.tags,
                 g.comments,
