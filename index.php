@@ -316,8 +316,12 @@ $router->get('/api/player/meta', function (array $req) {
     }
 
     $isEmulable = !empty($console['is_browser_emulable']);
-    $webCore = trim((string)($console['web_core'] ?? ''));
-    if (!$isEmulable || $webCore === '') {
+    $useCustomCore = !empty($game['uses_custom_core']) && trim((string)($game['custom_core'] ?? '')) !== '';
+    $webCore = $useCustomCore
+        ? trim((string)$game['custom_core'])
+        : trim((string)($console['web_core'] ?? ''));
+
+    if ((!$isEmulable && !$useCustomCore) || $webCore === '') {
         Response::error("Console '{$console['name']}' does not support browser emulation or has no web core configured.", 400);
     }
 
@@ -328,12 +332,23 @@ $router->get('/api/player/meta', function (array $req) {
         Response::error("No downloadable game files found for game #{$gameId}.", 404);
     }
 
-    // Pick main file (is_main = 1) or fallback to first file
+    // Pick requested file_id if provided and belongs to this game, else main file (is_main = 1) or fallback to first file
+    $requestedFileId = (int)($req['query']['file_id'] ?? 0);
     $mainFile = null;
-    foreach ($files as $f) {
-        if (!empty($f['is_main'])) {
-            $mainFile = $f;
-            break;
+    if ($requestedFileId > 0) {
+        foreach ($files as $f) {
+            if ((int)$f['id'] === $requestedFileId) {
+                $mainFile = $f;
+                break;
+            }
+        }
+    }
+    if ($mainFile === null) {
+        foreach ($files as $f) {
+            if (!empty($f['is_main'])) {
+                $mainFile = $f;
+                break;
+            }
         }
     }
     if ($mainFile === null) {

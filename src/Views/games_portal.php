@@ -1343,6 +1343,31 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
 .btn-file-download-action:active {
   transform: translateY(0);
 }
+.btn-file-play-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+  padding: 5px 12px;
+  border-radius: var(--radius-md, 6px);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+.btn-file-play-action:hover {
+  background: #059669;
+  color: #fff;
+  border-color: #10b981;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+  transform: translateY(-1px);
+}
+.btn-file-play-action:active {
+  transform: translateY(0);
+}
 
 .file-action-group {
   display: inline-flex;
@@ -3199,12 +3224,15 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
       const conId = Number(game.console_id || (activeGame && activeGame.console_id) || 0);
       const conObj = ALL_CONSOLES.find(c => Number(c.id) === conId);
       const isEmulable = (Number(game.console_is_browser_emulable) === 1) || (conObj && (Number(conObj.is_browser_emulable) === 1 || conObj.is_browser_emulable === true));
-      const webCore = ((game.console_web_core || (conObj && conObj.web_core)) || '').trim();
+      const useCustomCore = Number(game.uses_custom_core) === 1 && ((game.custom_core || '').trim() !== '');
+      const webCore = useCustomCore
+        ? (game.custom_core || '').trim()
+        : ((game.console_web_core || (conObj && conObj.web_core)) || '').trim();
 
       const candidateFiles = Array.isArray(files) && files.length > 0 ? files : (game.downloadable_files || (activeGame && activeGame.downloadable_files) || []);
       const mainFile = (candidateFiles || []).find(f => Number(f.is_main) === 1) || ((candidateFiles && candidateFiles.length > 0) ? candidateFiles[0] : null);
 
-      if (CAN_ACCESS_PLAYER && isEmulable && webCore && mainFile && mainFile.id) {
+      if (CAN_ACCESS_PLAYER && (isEmulable || useCustomCore) && webCore && mainFile && mainFile.id) {
         btnPlayGame.style.display = 'inline-flex';
         btnPlayGame.href = `/player?console_id=${encodeURIComponent(conId)}&game_id=${encodeURIComponent(game.id)}`;
         btnPlayGame.target = '_blank';
@@ -3463,11 +3491,28 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
           detailFilesCountBadge.textContent = `${files.length} ${files.length === 1 ? 'file' : 'files'}`;
         }
 
+        const conId = Number(game.console_id || (activeGame && activeGame.console_id) || 0);
+        const conObj = ALL_CONSOLES.find(c => Number(c.id) === conId);
+        const isEmulable = (Number(game.console_is_browser_emulable) === 1) || (conObj && (Number(conObj.is_browser_emulable) === 1 || conObj.is_browser_emulable === true));
+        const useCustomCore = Number(game.uses_custom_core) === 1 && ((game.custom_core || '').trim() !== '');
+        const webCore = useCustomCore
+          ? (game.custom_core || '').trim()
+          : ((game.console_web_core || (conObj && conObj.web_core)) || '').trim();
+        const canPlayInBrowser = Boolean(CAN_ACCESS_PLAYER && (isEmulable || useCustomCore) && webCore && game.id);
+
         detailFilesList.innerHTML = files.map(file => {
           const fileId = file.id;
           const name = file.display_name || file.filename || 'Downloadable Resource';
           const dCount = Number(file.download_count || 0);
           const desc = file.description || file.file_description || (file.file_type ? file.file_type.toUpperCase() : 'Game Asset');
+          const playRowBtnHtml = canPlayInBrowser
+            ? `<a href="/player?console_id=${encodeURIComponent(conId)}&game_id=${encodeURIComponent(game.id)}&file_id=${encodeURIComponent(fileId)}" target="_blank" rel="noopener noreferrer" class="btn-file-play-action" onclick="handleRomFilePlayClick()" title="Play ${escapeHtml(name)} in browser (${escapeHtml(webCore)})">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+                <span>Play</span>
+              </a>`
+            : '';
 
           return `
             <tr>
@@ -3497,6 +3542,7 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
                     </svg>
                     <span>Download</span>
                   </a>
+                  ${playRowBtnHtml}
                   <button type="button" class="btn-report-broken-action" onclick="reportBrokenLink(${encodeURIComponent(fileId)}, this)" title="Report broken link" aria-label="Report broken link">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
                       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
@@ -3517,6 +3563,19 @@ $safeInitialDetailJson = json_encode($initialDet, JSON_HEX_TAG | JSON_HEX_APOS |
         }
       }
     }
+
+  function handleRomFilePlayClick() {
+    if (detailDownloadedBadge) detailDownloadedBadge.style.display = 'inline-flex';
+    if (detailPlayedBadge) detailPlayedBadge.style.display = 'inline-flex';
+    if (detailDownloadsCount) {
+      const cur = parseInt(detailDownloadsCount.textContent.replace(/,/g, ''), 10) || 0;
+      detailDownloadsCount.textContent = (cur + 1).toLocaleString();
+    }
+    if (activeGame && activeGame.id) {
+      detailCache.delete(Number(activeGame.id));
+    }
+  }
+  window.handleRomFilePlayClick = handleRomFilePlayClick;
 
   /**
    * Reports a broken link for a downloadable file

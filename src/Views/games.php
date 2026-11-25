@@ -561,7 +561,7 @@ if (!defined('APP_INIT')) {
 
       <!-- Section 3: Game Status -->
       <div class="form-section-title">Game Status</div>
-      <div class="chip-group">
+      <div class="chip-group" style="flex-wrap: wrap;">
         <label class="chip-toggle">
           <input type="checkbox" id="inCollection" name="in_collection" value="1" <?= !$canWrite ? 'disabled' : '' ?>>
           📦 In Collection
@@ -570,6 +570,24 @@ if (!defined('APP_INIT')) {
           <input type="checkbox" id="isTranslation" name="is_translation" value="1" <?= !$canWrite ? 'disabled' : '' ?>>
           🌐 Is Translation
         </label>
+        <label class="chip-toggle">
+          <input type="checkbox" id="usesCustomCore" name="uses_custom_core" value="1" onchange="handleUsesCustomCoreChange(this.checked)" <?= !$canWrite ? 'disabled' : '' ?>>
+          ⚙️ Uses Custom Core
+        </label>
+      </div>
+
+      <div id="customCoreContainer" class="form-group" style="display: none; margin-top: 8px; margin-bottom: 4px;">
+        <label for="customCore">Custom Core *</label>
+        <input 
+          type="text" 
+          id="customCore" 
+          name="custom_core" 
+          class="form-control" 
+          placeholder="e.g. a5200, fceumm, gearcoleco, gearsystem, o2em, tia"
+          maxlength="100"
+          autocomplete="off"
+          <?= !$canWrite ? 'disabled' : '' ?>
+        >
       </div>
 
       <!-- Section 4: Visual Asset Dropzones -->
@@ -1047,6 +1065,23 @@ function handleCategoryChange(categoryId, selectedSubId = null) {
 }
 
 /**
+ * Toggles visibility and required state of the Custom Core input field
+ */
+function handleUsesCustomCoreChange(isChecked) {
+  const container = document.getElementById('customCoreContainer');
+  const input = document.getElementById('customCore');
+  if (container) {
+    container.style.display = isChecked ? 'block' : 'none';
+  }
+  if (input) {
+    input.required = Boolean(isChecked);
+    if (!isChecked) {
+      input.value = '';
+    }
+  }
+}
+
+/**
  * Populates persistent left editor with selected game record
  */
 function selectGame(id) {
@@ -1073,6 +1108,17 @@ function selectGame(id) {
   document.getElementById('publisherId').value = String(record.publisher_id || '');
   document.getElementById('languageId').value = String(record.language_id || '');
   document.getElementById('isTranslation').checked = Number(record.is_translation) === 1;
+
+  const hasCustomCore = Number(record.uses_custom_core) === 1;
+  const usesCustomCoreEl = document.getElementById('usesCustomCore');
+  const customCoreEl = document.getElementById('customCore');
+  if (usesCustomCoreEl) {
+    usesCustomCoreEl.checked = hasCustomCore;
+  }
+  handleUsesCustomCoreChange(hasCustomCore);
+  if (customCoreEl) {
+    customCoreEl.value = hasCustomCore ? (record.custom_core || '') : '';
+  }
 
   document.getElementById('inCollection').checked = Number(record.in_collection) === 1;
 
@@ -1134,6 +1180,7 @@ function resetForm() {
   document.getElementById('deleteBoxart').value = '0';
   document.getElementById('deleteScreenshot').value = '0';
 
+  handleUsesCustomCoreChange(false);
   handleCategoryChange(null, null);
 
   resetDropzonePreview('boxartPreviewContainer', 'deleteBoxartBtn', '🖼️', 'Upload Box Art', '<ID>_Box.ext');
@@ -1614,6 +1661,17 @@ async function handleSave(e) {
     showToast('Please select a platform/console.', 'error');
     document.getElementById('consoleId').focus();
     return;
+  }
+
+  const usesCustomCoreEl = document.getElementById('usesCustomCore');
+  const customCoreEl = document.getElementById('customCore');
+  if (usesCustomCoreEl && usesCustomCoreEl.checked) {
+    const customCoreVal = customCoreEl ? customCoreEl.value.trim() : '';
+    if (!customCoreVal) {
+      showToast('Custom Core name is required when "Uses Custom Core" is checked.', 'error');
+      if (customCoreEl) customCoreEl.focus();
+      return;
+    }
   }
 
   saveBtn.disabled = true;

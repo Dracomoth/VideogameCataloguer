@@ -49,6 +49,8 @@ final class GameRepository
                 g.subcategory_id,
                 g.language_id,
                 g.is_translation,
+                g.uses_custom_core,
+                g.custom_core,
                 g.publisher_id,
                 g.year,
                 g.tags,
@@ -106,6 +108,8 @@ final class GameRepository
                 g.subcategory_id,
                 g.language_id,
                 g.is_translation,
+                g.uses_custom_core,
+                g.custom_core,
                 g.publisher_id,
                 g.year,
                 g.tags,
@@ -384,21 +388,32 @@ final class GameRepository
         $tags          = trim((string)($data['tags'] ?? '')) ?: null;
         $comments      = trim((string)($data['comments'] ?? '')) ?: null;
 
-        $inCollection  = !empty($data['in_collection']) ? 1 : 0;
-        $isTranslation = !empty($data['is_translation']) ? 1 : 0;
+        $inCollection   = !empty($data['in_collection']) ? 1 : 0;
+        $isTranslation  = !empty($data['is_translation']) ? 1 : 0;
+        $usesCustomCore = !empty($data['uses_custom_core']) ? 1 : 0;
+        $customCore     = $usesCustomCore ? trim((string)($data['custom_core'] ?? '')) : null;
+
+        if ($usesCustomCore === 1 && ($customCore === null || $customCore === '')) {
+            throw new InvalidArgumentException('Custom Core name is required when "Uses Custom Core" is checked.');
+        }
+        if ($customCore !== null && strlen($customCore) > 100) {
+            throw new InvalidArgumentException('Custom Core name cannot exceed 100 characters.');
+        }
 
         $now = date('Y-m-d H:i:s');
 
         $sql = "
             INSERT INTO `games` (
                 `title`, `console_id`, `category_id`, `subcategory_id`,
-                `language_id`, `is_translation`, `publisher_id`, `year`, `tags`,
+                `language_id`, `is_translation`, `uses_custom_core`, `custom_core`,
+                `publisher_id`, `year`, `tags`,
                 `screenshot_path`, `boxart_path`,
                 `in_collection`, `comments`,
                 `created`, `updated`
             ) VALUES (
                 :title, :console_id, :category_id, :subcategory_id,
-                :language_id, :is_translation, :publisher_id, :year, :tags,
+                :language_id, :is_translation, :uses_custom_core, :custom_core,
+                :publisher_id, :year, :tags,
                 NULL, NULL,
                 :in_collection, :comments,
                 :created, :updated
@@ -406,19 +421,21 @@ final class GameRepository
         ";
 
         Database::execute($sql, [
-            ':title'          => $title,
-            ':console_id'     => $consoleId,
-            ':category_id'    => $categoryId,
-            ':subcategory_id' => $subcategoryId,
-            ':language_id'    => $languageId,
-            ':is_translation' => $isTranslation,
-            ':publisher_id'   => $publisherId,
-            ':year'           => $year,
-            ':tags'           => $tags,
-            ':in_collection'  => $inCollection,
-            ':comments'       => $comments,
-            ':created'        => $now,
-            ':updated'        => $now,
+            ':title'            => $title,
+            ':console_id'       => $consoleId,
+            ':category_id'      => $categoryId,
+            ':subcategory_id'   => $subcategoryId,
+            ':language_id'      => $languageId,
+            ':is_translation'   => $isTranslation,
+            ':uses_custom_core' => $usesCustomCore,
+            ':custom_core'      => $customCore,
+            ':publisher_id'     => $publisherId,
+            ':year'             => $year,
+            ':tags'             => $tags,
+            ':in_collection'    => $inCollection,
+            ':comments'         => $comments,
+            ':created'          => $now,
+            ':updated'          => $now,
         ]);
 
         $newId = (int)Database::lastInsertId();
@@ -508,8 +525,17 @@ final class GameRepository
         $tags          = trim((string)($data['tags'] ?? '')) ?: null;
         $comments      = trim((string)($data['comments'] ?? '')) ?: null;
 
-        $inCollection  = !empty($data['in_collection']) ? 1 : 0;
-        $isTranslation = !empty($data['is_translation']) ? 1 : 0;
+        $inCollection   = !empty($data['in_collection']) ? 1 : 0;
+        $isTranslation  = !empty($data['is_translation']) ? 1 : 0;
+        $usesCustomCore = !empty($data['uses_custom_core']) ? 1 : 0;
+        $customCore     = $usesCustomCore ? trim((string)($data['custom_core'] ?? '')) : null;
+
+        if ($usesCustomCore === 1 && ($customCore === null || $customCore === '')) {
+            throw new InvalidArgumentException('Custom Core name is required when "Uses Custom Core" is checked.');
+        }
+        if ($customCore !== null && strlen($customCore) > 100) {
+            throw new InvalidArgumentException('Custom Core name cannot exceed 100 characters.');
+        }
 
         $deleteScreenshot = !empty($data['delete_screenshot']) || !empty($data['delete_screen']);
         $deleteBoxart     = !empty($data['delete_boxart']);
@@ -547,39 +573,43 @@ final class GameRepository
 
         $sql = "
             UPDATE `games` SET
-                `title`           = :title,
-                `console_id`      = :console_id,
-                `category_id`     = :category_id,
-                `subcategory_id`  = :subcategory_id,
-                `language_id`     = :language_id,
-                `is_translation`  = :is_translation,
-                `publisher_id`    = :publisher_id,
-                `year`            = :year,
-                `tags`            = :tags,
-                `screenshot_path` = :screenshot_path,
-                `boxart_path`     = :boxart_path,
-                `in_collection`   = :in_collection,
-                `comments`        = :comments,
-                `updated`         = :updated
+                `title`            = :title,
+                `console_id`       = :console_id,
+                `category_id`      = :category_id,
+                `subcategory_id`   = :subcategory_id,
+                `language_id`      = :language_id,
+                `is_translation`   = :is_translation,
+                `uses_custom_core` = :uses_custom_core,
+                `custom_core`      = :custom_core,
+                `publisher_id`     = :publisher_id,
+                `year`             = :year,
+                `tags`             = :tags,
+                `screenshot_path`  = :screenshot_path,
+                `boxart_path`      = :boxart_path,
+                `in_collection`    = :in_collection,
+                `comments`         = :comments,
+                `updated`          = :updated
             WHERE `id` = :id
         ";
 
         $affected = Database::execute($sql, [
-            ':title'           => $title,
-            ':console_id'      => $consoleId,
-            ':category_id'     => $categoryId,
-            ':subcategory_id'  => $subcategoryId,
-            ':language_id'     => $languageId,
-            ':is_translation'  => $isTranslation,
-            ':publisher_id'    => $publisherId,
-            ':year'            => $year,
-            ':tags'            => $tags,
-            ':screenshot_path' => $currentScreenshotPath,
-            ':boxart_path'     => $currentBoxartPath,
-            ':in_collection'   => $inCollection,
-            ':comments'        => $comments,
-            ':updated'         => $now,
-            ':id'              => $id,
+            ':title'            => $title,
+            ':console_id'       => $consoleId,
+            ':category_id'      => $categoryId,
+            ':subcategory_id'   => $subcategoryId,
+            ':language_id'      => $languageId,
+            ':is_translation'   => $isTranslation,
+            ':uses_custom_core' => $usesCustomCore,
+            ':custom_core'      => $customCore,
+            ':publisher_id'     => $publisherId,
+            ':year'             => $year,
+            ':tags'             => $tags,
+            ':screenshot_path'  => $currentScreenshotPath,
+            ':boxart_path'      => $currentBoxartPath,
+            ':in_collection'    => $inCollection,
+            ':comments'         => $comments,
+            ':updated'          => $now,
+            ':id'               => $id,
         ]);
 
         if (isset($data['downloadable_files_json']) || isset($data['downloadable_files'])) {
@@ -639,9 +669,13 @@ final class GameRepository
         $row['console_id']     = !empty($row['console_id']) ? (int)$row['console_id'] : null;
         $row['category_id']    = !empty($row['category_id']) ? (int)$row['category_id'] : null;
         $row['subcategory_id'] = !empty($row['subcategory_id']) ? (int)$row['subcategory_id'] : null;
-        $row['language_id']    = !empty($row['language_id']) ? (int)$row['language_id'] : null;
-        $row['is_translation'] = (int)($row['is_translation'] ?? 0);
-        $row['publisher_id']   = !empty($row['publisher_id']) ? (int)$row['publisher_id'] : null;
+        $row['language_id']      = !empty($row['language_id']) ? (int)$row['language_id'] : null;
+        $row['is_translation']   = (int)($row['is_translation'] ?? 0);
+        $row['uses_custom_core'] = (int)($row['uses_custom_core'] ?? 0);
+        $row['custom_core']      = isset($row['custom_core']) && $row['custom_core'] !== null && trim((string)$row['custom_core']) !== ''
+            ? trim((string)$row['custom_core'])
+            : null;
+        $row['publisher_id']     = !empty($row['publisher_id']) ? (int)$row['publisher_id'] : null;
         $row['in_collection']  = (int)($row['in_collection'] ?? 0);
         $row['created']        = !empty($row['created']) ? (string)$row['created'] : '';
         $row['updated']        = !empty($row['updated']) ? (string)$row['updated'] : '';
@@ -765,6 +799,8 @@ final class GameRepository
                 g.publisher_id,
                 g.language_id,
                 g.is_translation,
+                g.uses_custom_core,
+                g.custom_core,
                 g.year,
                 g.tags,
                 g.comments,

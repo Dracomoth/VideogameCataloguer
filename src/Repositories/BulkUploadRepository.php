@@ -67,7 +67,7 @@ final class BulkUploadRepository
                     'label' => 'Games (Catalog Library)',
                     'icon'  => '🎮',
                     'primary_key' => 'id',
-                    'recognized_headers' => 'title, console_id, category_id, subcategory_id, language_id, is_translation, publisher_id, year, tags, screenshot_path, boxart_path, in_collection, comments',
+                    'recognized_headers' => 'title, console_id, category_id, subcategory_id, language_id, is_translation, uses_custom_core, custom_core, publisher_id, year, tags, screenshot_path, boxart_path, in_collection, comments',
                     'columns' => [
                         'title' => [
                             'name' => 'title',
@@ -110,6 +110,20 @@ final class BulkUploadRepository
                             'type' => 'boolean',
                             'required' => false,
                             'default' => 0,
+                        ],
+                        'uses_custom_core' => [
+                            'name' => 'uses_custom_core',
+                            'label' => 'Uses Custom Core',
+                            'type' => 'boolean',
+                            'required' => false,
+                            'default' => 0,
+                        ],
+                        'custom_core' => [
+                            'name' => 'custom_core',
+                            'label' => 'Custom Web Core',
+                            'type' => 'string',
+                            'required' => false,
+                            'max_length' => 100,
                         ],
                         'publisher_id' => [
                             'name' => 'publisher_id',
@@ -769,6 +783,17 @@ final class BulkUploadRepository
                 $hasMaster = !empty($normalizedData['master_reference_id']);
                 if ($isRef && !$hasMaster) {
                     $rowErrors[] = "Reference-only console requires a valid Master Platform ('master_reference_id').";
+                }
+            }
+
+            // Games: If uses_custom_core is 1, require custom_core
+            if ($table === 'games') {
+                $usesCustom = !empty($normalizedData['uses_custom_core']);
+                $customCoreVal = isset($normalizedData['custom_core']) ? trim((string)$normalizedData['custom_core']) : '';
+                if ($usesCustom && $customCoreVal === '') {
+                    $rowErrors[] = "Game with 'uses_custom_core' enabled requires a non-empty 'custom_core' value.";
+                } elseif (!$usesCustom) {
+                    $normalizedData['custom_core'] = null;
                 }
             }
 

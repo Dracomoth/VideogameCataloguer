@@ -45,6 +45,9 @@ final class ReportRepository
         'category_id'           => 'Category ID',
         'subcategory_id'        => 'Subcategory ID',
         'language_id'           => 'Language ID',
+        'is_translation'        => 'Is Translation',
+        'uses_custom_core'      => 'Uses Custom Core',
+        'custom_core'           => 'Custom Web Core',
         'publisher_id'          => 'Publisher ID',
         'year'                  => 'Release Year',
         'generation'            => 'Generation',
@@ -135,6 +138,9 @@ final class ReportRepository
                             COALESCE(sub.name, '') AS subcategory,
                             COALESCE(pub.name, '') AS publisher,
                             COALESCE(g.year, '') AS year,
+                            g.is_translation,
+                            g.uses_custom_core,
+                            COALESCE(g.custom_core, '') AS custom_core,
                             COALESCE(g.tags, '') AS tags,
                             g.in_collection,
                             COALESCE(g.comments, '') AS comments
@@ -147,7 +153,7 @@ final class ReportRepository
                         ORDER BY g.title ASC";
 
                 $data = Database::fetchAll($sql);
-                $headers = ['id', 'title', 'console', 'category', 'subcategory', 'publisher', 'year', 'tags', 'in_collection', 'comments'];
+                $headers = ['id', 'title', 'console', 'category', 'subcategory', 'publisher', 'year', 'is_translation', 'uses_custom_core', 'custom_core', 'tags', 'in_collection', 'comments'];
                 $rows = [];
                 foreach ($data as $d) {
                     $row = [];

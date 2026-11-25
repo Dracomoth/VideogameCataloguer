@@ -25,6 +25,7 @@ $resolvedFileId = $fileId;
 
 // Resolve game and console records if gameId or id provided
 $gameRepo = new \Vault\Repositories\GameRepository();
+$gameCustomCore = '';
 if ($gameId <= 0 && !empty($_GET['id'])) {
     $potentialGame = $gameRepo->getById((int)$_GET['id']);
     if ($potentialGame) {
@@ -34,6 +35,9 @@ if ($gameId <= 0 && !empty($_GET['id'])) {
         }
         if (!empty($potentialGame['title'])) {
             $gameTitle = (string)$potentialGame['title'];
+        }
+        if (!empty($potentialGame['uses_custom_core']) && trim((string)($potentialGame['custom_core'] ?? '')) !== '') {
+            $gameCustomCore = trim((string)$potentialGame['custom_core']);
         }
     }
 }
@@ -47,7 +51,14 @@ if ($gameId > 0) {
         if ($consoleId <= 0 && !empty($gameData['console_id'])) {
             $consoleId = (int)$gameData['console_id'];
         }
+        if (!empty($gameData['uses_custom_core']) && trim((string)($gameData['custom_core'] ?? '')) !== '') {
+            $gameCustomCore = trim((string)$gameData['custom_core']);
+        }
     }
+}
+
+if ($resolvedWebCore === '' && $gameCustomCore !== '') {
+    $resolvedWebCore = $gameCustomCore;
 }
 
 // 2. Resolve console record, web_core and button mappings
@@ -2943,7 +2954,7 @@ if (is_dir($remapsDir)) {
 
           updateLoadingStatus('Retrieving console web core and game download file...');
 
-          const metaUrl = `/api/player/meta?console_id=${encodeURIComponent(consoleIdParam)}&game_id=${encodeURIComponent(gameIdParam)}`;
+          const metaUrl = `/api/player/meta?console_id=${encodeURIComponent(consoleIdParam)}&game_id=${encodeURIComponent(gameIdParam)}${fileIdParam ? '&file_id=' + encodeURIComponent(fileIdParam) : ''}`;
           const metaRes = await fetch(metaUrl);
 
           if (!metaRes.ok) {
