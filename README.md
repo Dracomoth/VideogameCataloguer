@@ -78,6 +78,7 @@ Videogame Vault serves as both an **archival management workbench** for collecti
   - Intellivision (BIOS needed)
   - ColecoVision (BIOS needed)
   - Sega SG-1000 / SC-3000
+  - Sega Mark III
   - Sega Master System
   - Nintendo Entertainment System
   
