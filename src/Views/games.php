@@ -822,6 +822,9 @@ if (!defined('APP_INIT')) {
             <button type="button" class="btn" onclick="resetForm()">
               + New
             </button>
+            <button type="button" id="duplicateBtn" class="btn" onclick="duplicateGame()" disabled>
+              📋 Duplicate
+            </button>
             <button type="button" id="deleteBtn" class="btn danger" onclick="handleDelete()" disabled>
               Delete
             </button>
@@ -1151,6 +1154,12 @@ function selectGame(id) {
     deleteBtn.title = `Delete ${record.title}`;
   }
 
+  const duplicateBtn = document.getElementById('duplicateBtn');
+  if (duplicateBtn) {
+    duplicateBtn.disabled = false;
+    duplicateBtn.title = `Duplicate ${record.title} into a new unsaved entry`;
+  }
+
   // Initialize and render ROMS / Additional Files
   currentGameFiles = Array.isArray(record.downloadable_files) ? JSON.parse(JSON.stringify(record.downloadable_files)) : [];
   pendingGameFiles = [];
@@ -1201,6 +1210,12 @@ function resetForm() {
     deleteBtn.removeAttribute('title');
   }
 
+  const duplicateBtn = document.getElementById('duplicateBtn');
+  if (duplicateBtn) {
+    duplicateBtn.disabled = true;
+    duplicateBtn.removeAttribute('title');
+  }
+
   // Reset attached downloadable files
   currentGameFiles = [];
   pendingGameFiles = [];
@@ -1218,6 +1233,141 @@ function resetForm() {
   const input = document.getElementById('gameTitle');
   if (input && !input.disabled) {
     input.focus();
+  }
+}
+
+/**
+ * Helper to fetch an existing image URL and attach it as a File object to a file input
+ * so that saving the duplicated entry processes and renames the image with the new game ID (<NEW_ID>_Box / <NEW_ID>_Img).
+ */
+async function attachImageUrlToFileInput(imageUrl, fileInputId, fallbackBaseName) {
+  if (!imageUrl || typeof DataTransfer === 'undefined') return;
+  const fileInput = document.getElementById(fileInputId);
+  if (!fileInput) return;
+
+  // If the user already manually browsed a local file into this input, keep their selection
+  if (fileInput.files && fileInput.files.length > 0) return;
+
+  try {
+    const res = await fetch(imageUrl, { cache: 'no-cache' });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    if (!blob || blob.size === 0) return;
+
+    const cleanUrlPath = imageUrl.split('?')[0];
+    const extMatch = cleanUrlPath.match(/\.([a-zA-Z0-9]+)$/);
+    const ext = extMatch ? extMatch[1].toLowerCase() : 'jpg';
+    const file = new File([blob], `${fallbackBaseName}.${ext}`, { type: blob.type || 'image/jpeg' });
+
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    fileInput.files = dt.files;
+  } catch (err) {
+    console.warn('Could not pre-populate image file input on duplicate:', err);
+  }
+}
+
+/**
+ * Switches the form into a NEW GAME ENTRY while keeping all field values, images, and file list
+ * from the currently selected game (without saving to the database until the user clicks Save Game).
+ */
+async function duplicateGame() {
+  if (!canWrite || !selectedId) return;
+
+  const sourceRecord = gamesList.find(g => Number(g.id) === Number(selectedId)) || null;
+
+  // If the user was editing the ROM files table, accept or sync any rows before duplicating
+  const editMode = document.getElementById('romFilesEditMode');
+  if (editMode && editMode.style.display !== 'none') {
+    syncWorkingGameFilesFromDom();
+  }
+
+  const boxDeleted = document.getElementById('deleteBoxart').value === '1';
+  const screenDeleted = document.getElementById('deleteScreenshot').value === '1';
+
+  // Detach from the previous database record ID so Save performs a normal CREATE with a new ID
+  selectedId = null;
+  const grid = document.getElementById('gamesGrid');
+  if (grid) grid.selectedId = null;
+
+  document.getElementById('gameId').value = '';
+  document.getElementById('deleteBoxart').value = '0';
+  document.getElementById('deleteScreenshot').value = '0';
+
+  document.getElementById('formModeTitle').textContent = 'NEW GAME ENTRY';
+  document.getElementById('activeIdBadge').textContent = '(Auto ID)';
+
+  const timestampsLabel = document.getElementById('recordTimestamps');
+  if (timestampsLabel) {
+    timestampsLabel.textContent = '';
+    timestampsLabel.style.display = 'none';
+  }
+
+  const deleteBtn = document.getElementById('deleteBtn');
+  if (deleteBtn) {
+    deleteBtn.disabled = true;
+    deleteBtn.removeAttribute('title');
+  }
+
+  const duplicateBtn = document.getElementById('duplicateBtn');
+  if (duplicateBtn) {
+    duplicateBtn.disabled = true;
+    duplicateBtn.removeAttribute('title');
+  }
+
+  // Carry over existing Box Art and Screenshot into the file inputs so normal Save renames them with the new ID
+  if (sourceRecord) {
+    const imagePromises = [];
+    if (!boxDeleted && sourceRecord.boxart_url) {
+      imagePromises.push(attachImageUrlToFileInput(sourceRecord.boxart_url, 'boxartFileInput', 'duplicated_Box'));
+    }
+    if (!screenDeleted && sourceRecord.screenshot_url) {
+      imagePromises.push(attachImageUrlToFileInput(sourceRecord.screenshot_url, 'screenshotFileInput', 'duplicated_Img'));
+    }
+    if (imagePromises.length > 0) {
+      await Promise.all(imagePromises);
+    }
+  }
+
+  // Duplicate attached ROMS / Files as new pending file entries (id: null) for the new game
+  const activeSourceFiles = (editMode && editMode.style.display !== 'none')
+    ? workingGameFiles
+    : (hasPendingFileChanges ? pendingGameFiles : currentGameFiles);
+
+  const clonedFiles = Array.isArray(activeSourceFiles)
+    ? activeSourceFiles
+        .filter(f => (f.display_name && f.display_name.trim() !== '') || (f.file_key_or_url && f.file_key_or_url.trim() !== ''))
+        .map(f => ({
+          id: null,
+          display_name: (f.display_name || '').trim(),
+          storage_provider: f.storage_provider === 'blackblaze' ? 'blackblaze' : 'external',
+          file_key_or_url: (f.file_key_or_url || '').trim(),
+          is_main: Number(f.is_main) === 1 ? 1 : 0
+        }))
+    : [];
+
+  currentGameFiles = [];
+  workingGameFiles = [];
+  pendingGameFiles = clonedFiles;
+  hasPendingFileChanges = clonedFiles.length > 0;
+
+  const jsonInput = document.getElementById('downloadableFilesJson');
+  if (jsonInput) {
+    jsonInput.value = hasPendingFileChanges ? JSON.stringify(pendingGameFiles) : '';
+  }
+
+  const viewMode = document.getElementById('romFilesViewMode');
+  if (editMode) editMode.style.display = 'none';
+  if (viewMode) viewMode.style.display = 'block';
+  renderRomViewMode();
+
+  syncRowHighlight();
+  showToast('Duplicated into a new unsaved entry. Edit as needed and click Save Game.', 'success');
+
+  const input = document.getElementById('gameTitle');
+  if (input && !input.disabled) {
+    input.focus();
+    input.select();
   }
 }
 
